@@ -1,0 +1,1066 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr"><head><title>native-aot-原生AOT</title><meta charset="utf-8"/><link rel="preconnect" href="https://fonts.googleapis.com"/><link rel="preconnect" href="https://fonts.gstatic.com"/><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted Grotesk:wght@400;700&amp;family=Source Sans Pro:ital,wght@0,400;0,600;1,400;1,600&amp;family=IBM Plex Mono:wght@400;600&amp;display=swap"/><link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin="anonymous"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><meta name="og:site_name" content="Unity / C# / .NET 游戏开发知识库"/><meta property="og:title" content="native-aot-原生AOT"/><meta property="og:type" content="website"/><meta name="twitter:card" content="summary_large_image"/><meta name="twitter:title" content="native-aot-原生AOT"/><meta name="twitter:description" content=".NET Native AOT 核心思想 Native AOT 在 publish 阶段把 IL ahead-of-time 编译成平台原生的 machine code，生成自包含应用。运行时完全不依赖 JIT 编译器，因此启动更快、内存占用更小，也能部署在不允许 JIT 的受限环境（如 iOS、某些云沙箱）。 核心权衡可以概括为一句话：提前编译换取部署可预测性和平台合规性，同时牺牲运行时动态能力。理解这个权衡，是理解所有 AOT 限制（反射、裁剪、泛型膨胀、序列化兼容）的钥匙。 虽然 Unity IL2CPP 与 .NET Native AOT 不是同一个工具链，但它们都体现了 AOT 的同..."/><meta property="og:description" content=".NET Native AOT 核心思想 Native AOT 在 publish 阶段把 IL ahead-of-time 编译成平台原生的 machine code，生成自包含应用。运行时完全不依赖 JIT 编译器，因此启动更快、内存占用更小，也能部署在不允许 JIT 的受限环境（如 iOS、某些云沙箱）。 核心权衡可以概括为一句话：提前编译换取部署可预测性和平台合规性，同时牺牲运行时动态能力。理解这个权衡，是理解所有 AOT 限制（反射、裁剪、泛型膨胀、序列化兼容）的钥匙。 虽然 Unity IL2CPP 与 .NET Native AOT 不是同一个工具链，但它们都体现了 AOT 的同..."/><meta property="og:image:alt" content=".NET Native AOT 核心思想 Native AOT 在 publish 阶段把 IL ahead-of-time 编译成平台原生的 machine code，生成自包含应用。运行时完全不依赖 JIT 编译器，因此启动更快、内存占用更小，也能部署在不允许 JIT 的受限环境（如 iOS、某些云沙箱）。 核心权衡可以概括为一句话：提前编译换取部署可预测性和平台合规性，同时牺牲运行时动态能力。理解这个权衡，是理解所有 AOT 限制（反射、裁剪、泛型膨胀、序列化兼容）的钥匙。 虽然 Unity IL2CPP 与 .NET Native AOT 不是同一个工具链，但它们都体现了 AOT 的同..."/><meta property="twitter:domain" content="easilyid.github.io/knowledge-base-site"/><meta property="og:url" content="https://easilyid.github.io/knowledge-base-site/csharp-dotnet-CSharp与NET/native-aot-原生AOT"/><meta property="twitter:url" content="https://easilyid.github.io/knowledge-base-site/csharp-dotnet-CSharp与NET/native-aot-原生AOT"/><link rel="icon" href="../static/icon.png"/><meta name="description" content=".NET Native AOT 核心思想 Native AOT 在 publish 阶段把 IL ahead-of-time 编译成平台原生的 machine code，生成自包含应用。运行时完全不依赖 JIT 编译器，因此启动更快、内存占用更小，也能部署在不允许 JIT 的受限环境（如 iOS、某些云沙箱）。 核心权衡可以概括为一句话：提前编译换取部署可预测性和平台合规性，同时牺牲运行时动态能力。理解这个权衡，是理解所有 AOT 限制（反射、裁剪、泛型膨胀、序列化兼容）的钥匙。 虽然 Unity IL2CPP 与 .NET Native AOT 不是同一个工具链，但它们都体现了 AOT 的同..."/><meta name="generator" content="Quartz"/><link href="../index.css" rel="stylesheet" type="text/css" data-persist="true"/><style>.expand-button {
+  position: absolute;
+  display: flex;
+  float: right;
+  padding: 0.4rem;
+  margin: 0.3rem;
+  right: 0;
+  color: var(--gray);
+  border-color: var(--dark);
+  background-color: var(--light);
+  border: 1px solid;
+  border-radius: 5px;
+  opacity: 0;
+  transition: 0.2s;
+}
+.expand-button > svg {
+  fill: var(--light);
+  filter: contrast(0.3);
+}
+.expand-button:hover {
+  cursor: pointer;
+  border-color: var(--secondary);
+}
+.expand-button:focus {
+  outline: 0;
+}
+
+pre:hover > .expand-button {
+  opacity: 1;
+  transition: 0.2s;
+}
+
+#mermaid-container {
+  position: fixed;
+  contain: layout;
+  z-index: 999;
+  left: 0;
+  top: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  display: none;
+  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.5);
+}
+#mermaid-container.active {
+  display: inline-block;
+}
+#mermaid-container > #mermaid-space {
+  border: 1px solid var(--lightgray);
+  background-color: var(--light);
+  border-radius: 5px;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  height: 80vh;
+  width: 80vw;
+  overflow: hidden;
+}
+#mermaid-container > #mermaid-space > .mermaid-content {
+  position: relative;
+  transform-origin: 0 0;
+  transition: transform 0.1s ease;
+  overflow: visible;
+  min-height: 200px;
+  min-width: 200px;
+}
+#mermaid-container > #mermaid-space > .mermaid-content pre {
+  margin: 0;
+  border: none;
+}
+#mermaid-container > #mermaid-space > .mermaid-content svg {
+  max-width: none;
+  height: auto;
+}
+#mermaid-container > #mermaid-space > .mermaid-controls {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+  background: var(--light);
+  border: 1px solid var(--lightgray);
+  border-radius: 6px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  z-index: 2;
+}
+#mermaid-container > #mermaid-space > .mermaid-controls .mermaid-control-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--lightgray);
+  background: var(--light);
+  color: var(--dark);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  font-family: var(--bodyFont);
+  transition: all 0.2s ease;
+}
+#mermaid-container > #mermaid-space > .mermaid-controls .mermaid-control-button:hover {
+  background: var(--lightgray);
+}
+#mermaid-container > #mermaid-space > .mermaid-controls .mermaid-control-button:active {
+  transform: translateY(1px);
+}
+#mermaid-container > #mermaid-space > .mermaid-controls .mermaid-control-button:nth-child(2) {
+  width: auto;
+  padding: 0 12px;
+  font-size: 14px;
+}
+/*# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VSb290IjoiL2hvbWUvcnVubmVyL3dvcmsvS25vd2xlZGdlLUJhc2UvS25vd2xlZGdlLUJhc2UvcXVhcnR6L3F1YXJ0ei9jb21wb25lbnRzL3N0eWxlcyIsInNvdXJjZXMiOlsibWVybWFpZC5pbmxpbmUuc2NzcyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiQUFBQTtFQUNFO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBOztBQUVBO0VBQ0U7RUFDQTs7QUFHRjtFQUNFO0VBQ0E7O0FBR0Y7RUFDRTs7O0FBS0Y7RUFDRTtFQUNBOzs7QUFJSjtFQUNFO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7O0FBRUE7RUFDRTs7QUFHRjtFQUNFO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBOztBQUVBO0VBQ0U7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBOztBQUVBO0VBQ0U7RUFDQTs7QUFHRjtFQUNFO0VBQ0E7O0FBSUo7RUFDRTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBOztBQUVBO0VBQ0U7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTs7QUFFQTtFQUNFOztBQUdGO0VBQ0U7O0FBSUY7RUFDRTtFQUNBO0VBQ0EiLCJzb3VyY2VzQ29udGVudCI6WyIuZXhwYW5kLWJ1dHRvbiB7XG4gIHBvc2l0aW9uOiBhYnNvbHV0ZTtcbiAgZGlzcGxheTogZmxleDtcbiAgZmxvYXQ6IHJpZ2h0O1xuICBwYWRkaW5nOiAwLjRyZW07XG4gIG1hcmdpbjogMC4zcmVtO1xuICByaWdodDogMDsgLy8gTk9URTogcmlnaHQgd2lsbCBiZSBzZXQgaW4gbWVybWFpZC5pbmxpbmUudHNcbiAgY29sb3I6IHZhcigtLWdyYXkpO1xuICBib3JkZXItY29sb3I6IHZhcigtLWRhcmspO1xuICBiYWNrZ3JvdW5kLWNvbG9yOiB2YXIoLS1saWdodCk7XG4gIGJvcmRlcjogMXB4IHNvbGlkO1xuICBib3JkZXItcmFkaXVzOiA1cHg7XG4gIG9wYWNpdHk6IDA7XG4gIHRyYW5zaXRpb246IDAuMnM7XG5cbiAgJiA+IHN2ZyB7XG4gICAgZmlsbDogdmFyKC0tbGlnaHQpO1xuICAgIGZpbHRlcjogY29udHJhc3QoMC4zKTtcbiAgfVxuXG4gICY6aG92ZXIge1xuICAgIGN1cnNvcjogcG9pbnRlcjtcbiAgICBib3JkZXItY29sb3I6IHZhcigtLXNlY29uZGFyeSk7XG4gIH1cblxuICAmOmZvY3VzIHtcbiAgICBvdXRsaW5lOiAwO1xuICB9XG59XG5cbnByZSB7XG4gICY6aG92ZXIgPiAuZXhwYW5kLWJ1dHRvbiB7XG4gICAgb3BhY2l0eTogMTtcbiAgICB0cmFuc2l0aW9uOiAwLjJzO1xuICB9XG59XG5cbiNtZXJtYWlkLWNvbnRhaW5lciB7XG4gIHBvc2l0aW9uOiBmaXhlZDtcbiAgY29udGFpbjogbGF5b3V0O1xuICB6LWluZGV4OiA5OTk7XG4gIGxlZnQ6IDA7XG4gIHRvcDogMDtcbiAgd2lkdGg6IDEwMHZ3O1xuICBoZWlnaHQ6IDEwMHZoO1xuICBvdmVyZmxvdzogaGlkZGVuO1xuICBkaXNwbGF5OiBub25lO1xuICBiYWNrZHJvcC1maWx0ZXI6IGJsdXIoNHB4KTtcbiAgYmFja2dyb3VuZDogcmdiYSgwLCAwLCAwLCAwLjUpO1xuXG4gICYuYWN0aXZlIHtcbiAgICBkaXNwbGF5OiBpbmxpbmUtYmxvY2s7XG4gIH1cblxuICAmID4gI21lcm1haWQtc3BhY2Uge1xuICAgIGJvcmRlcjogMXB4IHNvbGlkIHZhcigtLWxpZ2h0Z3JheSk7XG4gICAgYmFja2dyb3VuZC1jb2xvcjogdmFyKC0tbGlnaHQpO1xuICAgIGJvcmRlci1yYWRpdXM6IDVweDtcbiAgICBwb3NpdGlvbjogZml4ZWQ7XG4gICAgdG9wOiA1MCU7XG4gICAgbGVmdDogNTAlO1xuICAgIHRyYW5zZm9ybTogdHJhbnNsYXRlKC01MCUsIC01MCUpO1xuICAgIGhlaWdodDogODB2aDtcbiAgICB3aWR0aDogODB2dztcbiAgICBvdmVyZmxvdzogaGlkZGVuO1xuXG4gICAgJiA+IC5tZXJtYWlkLWNvbnRlbnQge1xuICAgICAgcG9zaXRpb246IHJlbGF0aXZlO1xuICAgICAgdHJhbnNmb3JtLW9yaWdpbjogMCAwO1xuICAgICAgdHJhbnNpdGlvbjogdHJhbnNmb3JtIDAuMXMgZWFzZTtcbiAgICAgIG92ZXJmbG93OiB2aXNpYmxlO1xuICAgICAgbWluLWhlaWdodDogMjAwcHg7XG4gICAgICBtaW4td2lkdGg6IDIwMHB4O1xuXG4gICAgICBwcmUge1xuICAgICAgICBtYXJnaW46IDA7XG4gICAgICAgIGJvcmRlcjogbm9uZTtcbiAgICAgIH1cblxuICAgICAgc3ZnIHtcbiAgICAgICAgbWF4LXdpZHRoOiBub25lO1xuICAgICAgICBoZWlnaHQ6IGF1dG87XG4gICAgICB9XG4gICAgfVxuXG4gICAgJiA+IC5tZXJtYWlkLWNvbnRyb2xzIHtcbiAgICAgIHBvc2l0aW9uOiBhYnNvbHV0ZTtcbiAgICAgIGJvdHRvbTogMjBweDtcbiAgICAgIHJpZ2h0OiAyMHB4O1xuICAgICAgZGlzcGxheTogZmxleDtcbiAgICAgIGdhcDogOHB4O1xuICAgICAgcGFkZGluZzogOHB4O1xuICAgICAgYmFja2dyb3VuZDogdmFyKC0tbGlnaHQpO1xuICAgICAgYm9yZGVyOiAxcHggc29saWQgdmFyKC0tbGlnaHRncmF5KTtcbiAgICAgIGJvcmRlci1yYWRpdXM6IDZweDtcbiAgICAgIGJveC1zaGFkb3c6IDAgMnB4IDRweCByZ2JhKDAsIDAsIDAsIDAuMSk7XG4gICAgICB6LWluZGV4OiAyO1xuXG4gICAgICAubWVybWFpZC1jb250cm9sLWJ1dHRvbiB7XG4gICAgICAgIGRpc3BsYXk6IGZsZXg7XG4gICAgICAgIGFsaWduLWl0ZW1zOiBjZW50ZXI7XG4gICAgICAgIGp1c3RpZnktY29udGVudDogY2VudGVyO1xuICAgICAgICB3aWR0aDogMzJweDtcbiAgICAgICAgaGVpZ2h0OiAzMnB4O1xuICAgICAgICBwYWRkaW5nOiAwO1xuICAgICAgICBib3JkZXI6IDFweCBzb2xpZCB2YXIoLS1saWdodGdyYXkpO1xuICAgICAgICBiYWNrZ3JvdW5kOiB2YXIoLS1saWdodCk7XG4gICAgICAgIGNvbG9yOiB2YXIoLS1kYXJrKTtcbiAgICAgICAgYm9yZGVyLXJhZGl1czogNHB4O1xuICAgICAgICBjdXJzb3I6IHBvaW50ZXI7XG4gICAgICAgIGZvbnQtc2l6ZTogMTZweDtcbiAgICAgICAgZm9udC1mYW1pbHk6IHZhcigtLWJvZHlGb250KTtcbiAgICAgICAgdHJhbnNpdGlvbjogYWxsIDAuMnMgZWFzZTtcblxuICAgICAgICAmOmhvdmVyIHtcbiAgICAgICAgICBiYWNrZ3JvdW5kOiB2YXIoLS1saWdodGdyYXkpO1xuICAgICAgICB9XG5cbiAgICAgICAgJjphY3RpdmUge1xuICAgICAgICAgIHRyYW5zZm9ybTogdHJhbnNsYXRlWSgxcHgpO1xuICAgICAgICB9XG5cbiAgICAgICAgLy8gU3R5bGUgdGhlIHJlc2V0IGJ1dHRvbiBkaWZmZXJlbnRseVxuICAgICAgICAmOm50aC1jaGlsZCgyKSB7XG4gICAgICAgICAgd2lkdGg6IGF1dG87XG4gICAgICAgICAgcGFkZGluZzogMCAxMnB4O1xuICAgICAgICAgIGZvbnQtc2l6ZTogMTRweDtcbiAgICAgICAgfVxuICAgICAgfVxuICAgIH1cbiAgfVxufVxuIl19 */</style><link href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" rel="stylesheet" type="text/css" data-persist="true"/><script src="../prescript.js" type="application/javascript" data-persist="true"></script><script type="application/javascript" data-persist="true">const fetchData = fetch("../static/contentIndex.json").then(data => data.json())</script><link rel="alternate" type="application/rss+xml" title="RSS Feed" href="https://easilyid.github.io/knowledge-base-site/index.xml"/><meta property="og:image:width" content="1200"/><meta property="og:image:height" content="630"/><meta property="og:image" content="https://easilyid.github.io/knowledge-base-site/csharp-dotnet-CSharp与NET/native-aot-原生AOT-og-image.webp"/><meta property="og:image:url" content="https://easilyid.github.io/knowledge-base-site/csharp-dotnet-CSharp与NET/native-aot-原生AOT-og-image.webp"/><meta name="twitter:image" content="https://easilyid.github.io/knowledge-base-site/csharp-dotnet-CSharp与NET/native-aot-原生AOT-og-image.webp"/><meta property="og:image:type" content="image/.webp"/></head><body data-slug="csharp-dotnet-CSharp与NET/native-aot-原生AOT"><div id="quartz-root" class="page"><div id="quartz-body"><div class="left sidebar"><h2 class="page-title"><a href="..">Unity / C# / .NET 游戏开发知识库</a></h2><div class="spacer mobile-only"></div><div class="flex-component" style="flex-direction: row; flex-wrap: nowrap; gap: 1rem;"><div style="flex-grow: 1; flex-shrink: 1; flex-basis: auto; order: 0; align-self: center; justify-self: center;"><div class="search"><button class="search-button"><svg role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 19.9 19.7"><title>Search</title><g class="search-path" fill="none"><path stroke-linecap="square" d="M18.5 18.3l-5.4-5.4"></path><circle cx="8" cy="8" r="7"></circle></g></svg><p>搜索</p></button><div class="search-container"><div class="search-space"><input autocomplete="off" class="search-bar" name="search" type="text" aria-label="搜索些什么" placeholder="搜索些什么"/><div class="search-layout" data-preview="true"></div></div></div></div></div><div style="flex-grow: 0; flex-shrink: 1; flex-basis: auto; order: 0; align-self: center; justify-self: center;"><button class="darkmode"><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" class="dayIcon" x="0px" y="0px" viewBox="0 0 35 35" style="enable-background:new 0 0 35 35" xml:space="preserve" aria-label="暗色模式"><title>暗色模式</title><path d="M6,17.5C6,16.672,5.328,16,4.5,16h-3C0.672,16,0,16.672,0,17.5    S0.672,19,1.5,19h3C5.328,19,6,18.328,6,17.5z M7.5,26c-0.414,0-0.789,0.168-1.061,0.439l-2,2C4.168,28.711,4,29.086,4,29.5    C4,30.328,4.671,31,5.5,31c0.414,0,0.789-0.168,1.06-0.44l2-2C8.832,28.289,9,27.914,9,27.5C9,26.672,8.329,26,7.5,26z M17.5,6    C18.329,6,19,5.328,19,4.5v-3C19,0.672,18.329,0,17.5,0S16,0.672,16,1.5v3C16,5.328,16.671,6,17.5,6z M27.5,9    c0.414,0,0.789-0.168,1.06-0.439l2-2C30.832,6.289,31,5.914,31,5.5C31,4.672,30.329,4,29.5,4c-0.414,0-0.789,0.168-1.061,0.44    l-2,2C26.168,6.711,26,7.086,26,7.5C26,8.328,26.671,9,27.5,9z M6.439,8.561C6.711,8.832,7.086,9,7.5,9C8.328,9,9,8.328,9,7.5    c0-0.414-0.168-0.789-0.439-1.061l-2-2C6.289,4.168,5.914,4,5.5,4C4.672,4,4,4.672,4,5.5c0,0.414,0.168,0.789,0.439,1.06    L6.439,8.561z M33.5,16h-3c-0.828,0-1.5,0.672-1.5,1.5s0.672,1.5,1.5,1.5h3c0.828,0,1.5-0.672,1.5-1.5S34.328,16,33.5,16z     M28.561,26.439C28.289,26.168,27.914,26,27.5,26c-0.828,0-1.5,0.672-1.5,1.5c0,0.414,0.168,0.789,0.439,1.06l2,2    C28.711,30.832,29.086,31,29.5,31c0.828,0,1.5-0.672,1.5-1.5c0-0.414-0.168-0.789-0.439-1.061L28.561,26.439z M17.5,29    c-0.829,0-1.5,0.672-1.5,1.5v3c0,0.828,0.671,1.5,1.5,1.5s1.5-0.672,1.5-1.5v-3C19,29.672,18.329,29,17.5,29z M17.5,7    C11.71,7,7,11.71,7,17.5S11.71,28,17.5,28S28,23.29,28,17.5S23.29,7,17.5,7z M17.5,25c-4.136,0-7.5-3.364-7.5-7.5    c0-4.136,3.364-7.5,7.5-7.5c4.136,0,7.5,3.364,7.5,7.5C25,21.636,21.636,25,17.5,25z"></path></svg><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" class="nightIcon" x="0px" y="0px" viewBox="0 0 100 100" style="enable-background:new 0 0 100 100" xml:space="preserve" aria-label="亮色模式"><title>亮色模式</title><path d="M96.76,66.458c-0.853-0.852-2.15-1.064-3.23-0.534c-6.063,2.991-12.858,4.571-19.655,4.571  C62.022,70.495,50.88,65.88,42.5,57.5C29.043,44.043,25.658,23.536,34.076,6.47c0.532-1.08,0.318-2.379-0.534-3.23  c-0.851-0.852-2.15-1.064-3.23-0.534c-4.918,2.427-9.375,5.619-13.246,9.491c-9.447,9.447-14.65,22.008-14.65,35.369  c0,13.36,5.203,25.921,14.65,35.368s22.008,14.65,35.368,14.65c13.361,0,25.921-5.203,35.369-14.65  c3.872-3.871,7.064-8.328,9.491-13.246C97.826,68.608,97.611,67.309,96.76,66.458z"></path></svg></button></div><div style="flex-grow: 0; flex-shrink: 1; flex-basis: auto; order: 0; align-self: center; justify-self: center;"><button class="readermode"><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" class="readerIcon" fill="currentColor" stroke="currentColor" stroke-width="0.2" stroke-linecap="round" stroke-linejoin="round" width="64px" height="64px" viewBox="0 0 24 24" aria-label="阅读模式"><title>阅读模式</title><g transform="translate(-1.8, -1.8) scale(1.15, 1.2)"><path d="M8.9891247,2.5 C10.1384702,2.5 11.2209868,2.96705384 12.0049645,3.76669482 C12.7883914,2.96705384 13.8709081,2.5 15.0202536,2.5 L18.7549359,2.5 C19.1691495,2.5 19.5049359,2.83578644 19.5049359,3.25 L19.5046891,4.004 L21.2546891,4.00457396 C21.6343849,4.00457396 21.9481801,4.28672784 21.9978425,4.6528034 L22.0046891,4.75457396 L22.0046891,20.25 C22.0046891,20.6296958 21.7225353,20.943491 21.3564597,20.9931534 L21.2546891,21 L2.75468914,21 C2.37499337,21 2.06119817,20.7178461 2.01153575,20.3517706 L2.00468914,20.25 L2.00468914,4.75457396 C2.00468914,4.37487819 2.28684302,4.061083 2.65291858,4.01142057 L2.75468914,4.00457396 L4.50368914,4.004 L4.50444233,3.25 C4.50444233,2.87030423 4.78659621,2.55650904 5.15267177,2.50684662 L5.25444233,2.5 L8.9891247,2.5 Z M4.50368914,5.504 L3.50468914,5.504 L3.50468914,19.5 L10.9478955,19.4998273 C10.4513189,18.9207296 9.73864328,18.5588115 8.96709342,18.5065584 L8.77307039,18.5 L5.25444233,18.5 C4.87474657,18.5 4.56095137,18.2178461 4.51128895,17.8517706 L4.50444233,17.75 L4.50368914,5.504 Z M19.5049359,17.75 C19.5049359,18.1642136 19.1691495,18.5 18.7549359,18.5 L15.2363079,18.5 C14.3910149,18.5 13.5994408,18.8724714 13.0614828,19.4998273 L20.5046891,19.5 L20.5046891,5.504 L19.5046891,5.504 L19.5049359,17.75 Z M18.0059359,3.999 L15.0202536,4 L14.8259077,4.00692283 C13.9889509,4.06666544 13.2254227,4.50975805 12.7549359,5.212 L12.7549359,17.777 L12.7782651,17.7601316 C13.4923805,17.2719483 14.3447024,17 15.2363079,17 L18.0059359,16.999 L18.0056891,4.798 L18.0033792,4.75457396 L18.0056891,4.71 L18.0059359,3.999 Z M8.9891247,4 L6.00368914,3.999 L6.00599909,4.75457396 L6.00599909,4.75457396 L6.00368914,4.783 L6.00368914,16.999 L8.77307039,17 C9.57551536,17 10.3461406,17.2202781 11.0128313,17.6202194 L11.2536891,17.776 L11.2536891,5.211 C10.8200889,4.56369974 10.1361548,4.13636104 9.37521067,4.02745763 L9.18347055,4.00692283 L8.9891247,4 Z"></path></g></svg></button></div></div><div class="explorer" data-behavior="link" data-collapsed="collapsed" data-savestate="true" data-data-fns="{&quot;order&quot;:[&quot;filter&quot;,&quot;map&quot;,&quot;sort&quot;],&quot;sortFn&quot;:&quot;(a,b)=>!a.isFolder&amp;&amp;!b.isFolder||a.isFolder&amp;&amp;b.isFolder?a.displayName.localeCompare(b.displayName,void 0,{numeric:!0,sensitivity:\&quot;base\&quot;}):!a.isFolder&amp;&amp;b.isFolder?1:-1&quot;,&quot;filterFn&quot;:&quot;node=>node.slugSegment!==\&quot;tags\&quot;&quot;,&quot;mapFn&quot;:&quot;node=>{let override={\&quot;unity-Unity\\u5F15\\u64CE\&quot;:\&quot;Unity\&quot;,\&quot;csharp-dotnet-CSharp\\u4E0ENET\&quot;:\&quot;C#/.NET\&quot;,\&quot;patterns-\\u8BBE\\u8BA1\\u6A21\\u5F0F\&quot;:\&quot;\\u8BBE\\u8BA1\\u6A21\\u5F0F\&quot;,\&quot;performance-\\u6027\\u80FD\\u4F18\\u5316\&quot;:\&quot;\\u6027\\u80FD\&quot;,\&quot;tools-\\u5DE5\\u5177\\u4E0E\\u5DE5\\u4F5C\\u6D41\&quot;:\&quot;\\u5DE5\\u5177\&quot;,\&quot;gamedesign-\\u6E38\\u620F\\u8BBE\\u8BA1\&quot;:\&quot;\\u6E38\\u620F\\u8BBE\\u8BA1\&quot;,\&quot;sources-\\u6765\\u6E90\\u6458\\u8981\&quot;:\&quot;\\u6765\\u6E90\\u6458\\u8981\&quot;}[node.displayName];if(override){node.displayName=override;return}let segments=node.displayName.split(\&quot;-\&quot;),cjkStart=segments.findIndex(segment=>/[一-鿿]/.test(segment));cjkStart>-1&amp;&amp;(node.displayName=segments.slice(cjkStart).join(\&quot;-\&quot;))}&quot;}"><button type="button" class="explorer-toggle mobile-explorer hide-until-loaded" data-mobile="true" aria-controls="explorer-16"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide-menu"><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button><button type="button" class="title-button explorer-toggle desktop-explorer" data-mobile="false" aria-expanded="true"><h2>探索</h2><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="5 8 14 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="fold"><polyline points="6 9 12 15 18 9"></polyline></svg></button><div id="explorer-16" class="explorer-content" aria-expanded="false" role="group"><ul class="explorer-ul overflow" id="list-0"><li class="overflow-end"></li></ul></div><template id="template-file"><li><a href="#"></a></li></template><template id="template-folder"><li><div class="folder-container"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="5 8 14 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="folder-icon"><polyline points="6 9 12 15 18 9"></polyline></svg><div><button class="folder-button"><span class="folder-title"></span></button></div></div><div class="folder-outer"><ul class="content"></ul></div></li></template></div></div><div class="center"><div class="page-header"><div class="popover-hint"><nav class="breadcrumb-container" aria-label="breadcrumbs"><div class="breadcrumb-element"><a href="../">Home</a><p> ❯ </p></div><div class="breadcrumb-element"><a href="../csharp-dotnet-CSharp与NET/">C#/.NET</a><p> ❯ </p></div><div class="breadcrumb-element"><a href>原生AOT</a></div></nav><h1 class="article-title">native-aot-原生AOT</h1><p show-comma="true" class="content-meta"><time datetime="2026-05-17T00:00:00.000Z">2026年5月17日</time><span>29分钟阅读</span></p></div></div><article class="popover-hint"><h1 id="net-native-aot">.NET Native AOT<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#net-native-aot" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h1>
+<h2 id="核心思想">核心思想<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#核心思想" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<p>Native AOT 在 publish 阶段把 IL ahead-of-time 编译成平台原生的 machine code，生成自包含应用。运行时完全不依赖 JIT 编译器，因此启动更快、内存占用更小，也能部署在不允许 JIT 的受限环境（如 iOS、某些云沙箱）。</p>
+<p>核心权衡可以概括为一句话：<strong>提前编译换取部署可预测性和平台合规性，同时牺牲运行时动态能力</strong>。理解这个权衡，是理解所有 AOT 限制（反射、裁剪、泛型膨胀、序列化兼容）的钥匙。</p>
+<p>虽然 Unity IL2CPP 与 .NET Native AOT 不是同一个工具链，但它们都体现了 AOT 的同一套核心约束。理解 Native AOT，有助于理解游戏构建中常见的反射限制、裁剪警告、泛型膨胀和代码生成替代方案。</p>
+<h2 id="编译管线">编译管线<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#编译管线" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<p>Native AOT 的编译管线是一条从托管 IL 到原生二进制的单向流水线：</p>
+<pre><button class="expand-button" aria-label="Expand mermaid diagram" data-view-component="true"><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path fill-rule="evenodd" d="M3.72 3.72a.75.75 0 011.06 1.06L2.56 7h10.88l-2.22-2.22a.75.75 0 011.06-1.06l3.5 3.5a.75.75 0 010 1.06l-3.5 3.5a.75.75 0 11-1.06-1.06l2.22-2.22H2.56l2.22 2.22a.75.75 0 11-1.06 1.06l-3.5-3.5a.75.75 0 010-1.06l3.5-3.5z"></path></svg></button><code class="mermaid" data-clipboard="&quot;flowchart LR\n    A[\&quot;C# 源码\&quot;] --> B[\&quot;Roslyn 编译\&quot;]\n    B --> C[\&quot;IL 程序集\&quot;]\n    C --> D[\&quot;静态分析&lt;br/>(数据流 + 反射追踪)\&quot;]\n    D --> E[\&quot;裁剪&lt;br/>(Trimmer)\&quot;]\n    E --> F[\&quot;泛型特化&lt;br/>(值类型实例化)\&quot;]\n    F --> G[\&quot;ILC 编译器&lt;br/>(IL → native)\&quot;]\n    G --> H[\&quot;原生二进制&lt;br/>(.exe / .so / .dll)\&quot;]&quot;">flowchart LR
+    A[&quot;C# 源码&quot;] --> B[&quot;Roslyn 编译&quot;]
+    B --> C[&quot;IL 程序集&quot;]
+    C --> D[&quot;静态分析&lt;br/>(数据流 + 反射追踪)&quot;]
+    D --> E[&quot;裁剪&lt;br/>(Trimmer)&quot;]
+    E --> F[&quot;泛型特化&lt;br/>(值类型实例化)&quot;]
+    F --> G[&quot;ILC 编译器&lt;br/>(IL → native)&quot;]
+    G --> H[&quot;原生二进制&lt;br/>(.exe / .so / .dll)&quot;]
+</code><div id="mermaid-container" role="dialog"><div id="mermaid-space"><div class="mermaid-content"></div></div></div></pre>
+<p>关键阶段说明：</p>
+<ol>
+<li><strong>Roslyn 编译</strong>：C# 源码编译为标准 IL 程序集，这一步与普通 .NET 构建完全一致</li>
+<li><strong>静态分析</strong>：ILC（IL Compiler）对整个应用及其依赖做数据流分析，追踪反射调用、动态类型访问等，生成裁剪决策</li>
+<li><strong>裁剪</strong>：基于分析结果，移除未被静态可达的代码和数据</li>
+<li><strong>泛型特化</strong>：为每个值类型泛型实例化生成专门的 native code（引用类型可共享实现）</li>
+<li><strong>ILC 编译</strong>：将分析后的 IL 编译为目标平台的 native code，使用 RyuJIT 的代码生成后端</li>
+</ol>
+<blockquote class="callout note" data-callout="note">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>与 JIT 管线的关键差异 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>JIT 管线是”运行时按需编译”——只有实际执行到的代码才被编译，反射和动态加载自然得到支持。AOT 管线是”构建时全量分析”——编译器必须在 publish 时确定所有需要保留的代码，任何运行时才揭晓的类型访问都会导致问题。</p>
+</div>
+</blockquote>
+<h2 id="发布配置">发布配置<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#发布配置" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<h3 id="publishaot">PublishAot<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#publishaot" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>在项目文件中启用 Native AOT：</p>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="xml" data-theme="github-light github-dark"><code data-language="xml" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;</span><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">PropertyGroup</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">></span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    &lt;</span><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">PublishAot</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">>true&lt;/</span><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">PublishAot</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">></span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;/</span><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">PropertyGroup</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">></span></span></code></pre></figure>
+<p><code>PublishAot</code> 不仅控制 publish 行为，还会在 build 和编辑阶段启用动态代码使用分析（即 AOT 兼容性检查）。因此建议将其写在项目文件中而非命令行传入，以确保 IDE 也能实时提示 AOT 警告。</p>
+<blockquote class="callout warning" data-callout="warning">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>PublishTrimmed 不可关闭 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>启用 <code>PublishAot</code> 后，<code>PublishTrimmed</code> 自动被设为 <code>true</code> 且<strong>不可禁用</strong>。AOT 必须先裁剪再编译，否则二进制体积会膨胀到不可接受的程度。尝试手动设置 <code>&lt;PublishTrimmed>false&lt;/PublishTrimmed></code> 会导致编译错误。</p>
+</div>
+</blockquote>
+<h3 id="runtimeidentifier-与跨平台发布">RuntimeIdentifier 与跨平台发布<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#runtimeidentifier-与跨平台发布" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>Native AOT 生成的是平台特定二进制，必须指定 RuntimeIdentifier（RID）：</p>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="bash" data-theme="github-light github-dark"><code data-language="bash" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;"># Windows x64</span></span>
+<span data-line><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">dotnet</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> publish</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> -r</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> win-x64</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> -c</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> Release</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;"># Linux ARM64</span></span>
+<span data-line><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">dotnet</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> publish</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> -r</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> linux-arm64</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> -c</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> Release</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;"># macOS ARM64 (Apple Silicon)</span></span>
+<span data-line><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">dotnet</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> publish</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> -r</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> osx-arm64</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> -c</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> Release</span></span></code></pre></figure>
+<p><strong>跨架构编译</strong>：在同一操作系统上，可以交叉编译不同架构。例如在 Windows x64 上编译 Windows ARM64：</p>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="bash" data-theme="github-light github-dark"><code data-language="bash" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">dotnet</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> publish</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> -r</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> win-arm64</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> -c</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> Release</span></span></code></pre></figure>
+<p><strong>跨操作系统编译不支持</strong>：无法在 Windows 上编译 Linux 二进制，反之亦然。解决方案是使用容器或 CI 矩阵：</p>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="bash" data-theme="github-light github-dark"><code data-language="bash" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;"># 在 Linux 容器中构建 Linux 二进制</span></span>
+<span data-line><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">docker</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> run</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> --rm</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> -v</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> $(</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">pwd</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">)</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">:/app</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> -w</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> /app</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> mcr.microsoft.com/dotnet/sdk:8.0</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> \</span></span>
+<span data-line><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">    dotnet</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> publish</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> -r</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> linux-x64</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> -c</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> Release</span></span></code></pre></figure>
+<h3 id="isaotcompatible">IsAotCompatible<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#isaotcompatible" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>库作者应启用此属性以获得完整的 AOT 兼容性分析：</p>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="xml" data-theme="github-light github-dark"><code data-language="xml" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;</span><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">PropertyGroup</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">></span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    &lt;</span><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">IsAotCompatible</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">>true&lt;/</span><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">IsAotCompatible</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">></span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;/</span><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">PropertyGroup</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">></span></span></code></pre></figure>
+<p>它会自动启用以下四个分析器：</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th>属性</th><th>作用</th></tr></thead><tbody><tr><td><code>IsTrimmable</code></td><td>标记库可被裁剪</td></tr><tr><td><code>EnableTrimAnalyzer</code></td><td>编译时裁剪警告</td></tr><tr><td><code>EnableSingleFileAnalyzer</code></td><td>单文件发布兼容警告</td></tr><tr><td><code>EnableAotAnalyzer</code></td><td>AOT 特有警告</td></tr></tbody></table></div>
+<h3 id="支持的目标平台">支持的目标平台<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#支持的目标平台" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th>操作系统</th><th>架构</th><th>备注</th></tr></thead><tbody><tr><td>Windows</td><td>x64, ARM64</td><td>需要桌面 C++ 开发工具</td></tr><tr><td>Linux</td><td>x64, ARM64</td><td>需要 clang 和 build-essential</td></tr><tr><td>macOS</td><td>x64, ARM64</td><td>需要 Xcode 命令行工具</td></tr></tbody></table></div>
+<h2 id="裁剪系统">裁剪系统<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#裁剪系统" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<p>裁剪（Trimming）是 Native AOT 的前置步骤——移除静态分析认为”不可达”的代码。裁剪不是可选的，它是 AOT 编译的前提。</p>
+<h3 id="裁剪级别">裁剪级别<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#裁剪级别" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th><code>TrimMode</code></th><th>行为</th><th>适用场景</th></tr></thead><tbody><tr><td><code>full</code>（默认）</td><td>裁剪器积极移除所有未被静态可达的成员</td><td>发布生产二进制</td></tr><tr><td><code>partial</code></td><td>仅裁剪标记为 <code>IsTrimmable</code> 的程序集，其余保留</td><td>渐进式迁移，兼容性测试</td></tr></tbody></table></div>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="xml" data-theme="github-light github-dark"><code data-language="xml" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">&lt;!-- 渐进式迁移：先用 partial，逐步修复警告后再切 full --></span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;</span><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">PropertyGroup</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">></span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    &lt;</span><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">TrimMode</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">>partial&lt;/</span><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">TrimMode</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">></span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;/</span><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">PropertyGroup</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">></span></span></code></pre></figure>
+<blockquote class="callout warning" data-callout="warning">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>full 模式可能&quot;过度裁剪&quot; </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p><code>full</code> 模式下，如果代码通过反射访问的成员没有正确标注，裁剪器会误删这些成员，导致运行时 <code>MissingMethodException</code> 或 <code>NullReferenceException</code>。必须确保所有反射访问都有对应的裁剪标注。</p>
+</div>
+</blockquote>
+<h3 id="trimmerrootassembly">TrimmerRootAssembly<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#trimmerrootassembly" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>当你想确保某个程序集的所有成员都被保留（不裁剪），可以将其指定为根程序集：</p>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="xml" data-theme="github-light github-dark"><code data-language="xml" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;</span><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">ItemGroup</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">></span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    &lt;</span><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">TrimmerRootAssembly</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Include</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">=</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;MyPluginLib&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> /></span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;/</span><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">ItemGroup</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">></span></span></code></pre></figure>
+<p>这告诉裁剪器：<code>MyPluginLib</code> 中所有可达成员都应保留。适用于插件系统或反射密集的库的临时解决方案。</p>
+<h3 id="dynamicallyaccessedmembers-标注">DynamicallyAccessedMembers 标注<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#dynamicallyaccessedmembers-标注" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>这是让裁剪器理解反射意图的核心机制。它创建一个”契约”：告诉裁剪器某个 Type 上需要保留哪些成员。</p>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="csharp" data-theme="github-light github-dark"><code data-language="csharp" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 问题：裁剪器不知道 type 上需要保留什么</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">void</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> PrintMethodNames</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Type</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> type</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">)</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    foreach</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> (</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">var</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> method</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> in</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> type.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">GetMethods</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">()) </span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// IL2070 警告</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    {</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">        Console.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">WriteLine</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(method.Name);</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    }</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">}</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 解决：标注参数，告诉裁剪器保留所有公共方法</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">void</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> PrintMethodNames</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    [</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">DynamicallyAccessedMembers</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(DynamicallyAccessedMemberTypes.PublicMethods)] </span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Type</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> type</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">)</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    foreach</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> (</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">var</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> method</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> in</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> type.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">GetMethods</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">()) </span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 无警告</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    {</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">        Console.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">WriteLine</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(method.Name);</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    }</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">}</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 调用方：typeof 传递的类型的公共方法会被保留</span></span>
+<span data-line><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">PrintMethodNames</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">typeof</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">DateTime</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">));</span></span></code></pre></figure>
+<p>常用 <code>DynamicallyAccessedMemberTypes</code> 值：</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th>值</th><th>保留的成员</th></tr></thead><tbody><tr><td><code>All</code></td><td>所有成员（慎用，会膨胀体积）</td></tr><tr><td><code>PublicMethods</code></td><td>公共方法</td></tr><tr><td><code>PublicProperties</code></td><td>公共属性</td></tr><tr><td><code>PublicConstructors</code></td><td>公共构造函数</td></tr><tr><td><code>NonPublicMethods</code></td><td>非公共方法</td></tr><tr><td><code>Interfaces</code></td><td>实现的接口</td></tr></tbody></table></div>
+<blockquote class="callout warning" data-callout="warning">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>标注必须贯穿整个调用链 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p><code>DynamicallyAccessedMembers</code> 的要求从反射调用点<strong>逆向传播</strong>到 Type 值的来源。如果调用链中间某一层没有标注，警告仍然会出现。必须确保从反射使用处回溯到 <code>typeof()</code> 入口的每一步参数都标注了相同或更宽的要求。</p>
+</div>
+</blockquote>
+<h3 id="link-xml-描述文件">link XML 描述文件<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#link-xml-描述文件" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>当无法修改源码（如第三方库）时，可以用 XML 文件告诉裁剪器保留特定成员：</p>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="xml" data-theme="github-light github-dark"><code data-language="xml" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">&lt;!-- TrimmerRoots.xml --></span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;</span><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">linker</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">></span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    &lt;</span><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">assembly</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> fullname</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">=</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;ThirdPartyLib&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">></span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">        &lt;</span><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">type</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> fullname</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">=</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;ThirdPartyLib.Serializer&quot;</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> preserve</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">=</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;all&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> /></span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    &lt;/</span><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">assembly</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">></span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    &lt;</span><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">assembly</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> fullname</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">=</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;AnotherLib&quot;</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> preserve</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">=</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;all&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> /></span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;/</span><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">linker</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">></span></span></code></pre></figure>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="xml" data-theme="github-light github-dark"><code data-language="xml" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;</span><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">ItemGroup</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">></span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    &lt;</span><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">TrimmerRootDescriptor</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Include</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">=</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;TrimmerRoots.xml&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> /></span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;/</span><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">ItemGroup</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">></span></span></code></pre></figure>
+<blockquote class="callout tip" data-callout="tip">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>优先使用标注，XML 仅作后备 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p><code>DynamicallyAccessedMembers</code> 标注比 XML 更精确、更可维护。XML 是”无差别保留”，容易保留不需要的代码。仅在无法修改源码时才用 XML。</p>
+</div>
+</blockquote>
+<h3 id="裁剪警告控制">裁剪警告控制<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#裁剪警告控制" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="xml" data-theme="github-light github-dark"><code data-language="xml" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">&lt;!-- 显示每个程序集的详细警告（而非折叠为一条） --></span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;</span><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">TrimmerSingleWarn</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">>false&lt;/</span><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">TrimmerSingleWarn</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">></span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">&lt;!-- 抑制特定警告（仅作为最后手段） --></span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;</span><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">NoWarn</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">>IL2070;IL2065&lt;/</span><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">NoWarn</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">></span></span></code></pre></figure>
+<p>更精确的抑制方式——<code>UnconditionalSuppressMessage</code>，可限定范围：</p>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="csharp" data-theme="github-light github-dark"><code data-language="csharp" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">[</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">UnconditionalSuppressMessage</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;Trimming&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">, </span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;IL2026:RequiresUnreferencedCode&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">,</span></span>
+<span data-line><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">    Justification</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> &quot;此类型通过 DynamicDependency 保证保留&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">)]</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">void</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> CallReflectiveMethod</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">()</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{</span></span>
+<span data-line><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">    MethodWithReflection</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">();</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">}</span></span></code></pre></figure>
+<h2 id="泛型特化">泛型特化<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#泛型特化" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<h3 id="值类型实例化生成独立代码">值类型实例化生成独立代码<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#值类型实例化生成独立代码" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>.NET 的泛型在运行时对值类型和引用类型采取不同策略：</p>
+<ul>
+<li><strong>引用类型</strong>：共享一份 native code（因为引用都是指针大小，内存布局一致）</li>
+<li><strong>值类型</strong>：每个不同的泛型实参组合生成一份专门的 native code（因为内存布局不同）</li>
+</ul>
+<p>这意味着：</p>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="csharp" data-theme="github-light github-dark"><code data-language="csharp" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 以下三个实例化共享同一份 native code</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">List</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">&lt;</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">string</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">></span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">List</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">&lt;object></span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">List</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">&lt;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">Stream</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">></span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 以下三个实例化各生成一份独立的 native code</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">List</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">&lt;int></span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">       // int: 4 bytes</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">List</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">&lt;float></span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">     // float: 4 bytes</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">List</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">&lt;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">Vector3</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">></span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">   // Vector3: 12 bytes</span></span></code></pre></figure>
+<p>在 JIT 模式下这不是大问题——运行时按需编译，只编译实际用到的实例化。但在 Native AOT 中，编译器必须在 publish 时确定所有需要编译的实例化，否则运行时会因为找不到对应代码而崩溃。</p>
+<h3 id="传递闭包膨胀">传递闭包膨胀<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#传递闭包膨胀" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>一个看似简单的泛型类型，其传递闭包可能涉及大量类型。例如 <code>List&lt;T></code> 的传递闭包包含约 28 个类型——包括枚举器、比较器、集合调试视图等。每个值类型实例化都会复制整条链。</p>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="csharp" data-theme="github-light github-dark"><code data-language="csharp" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 如果你的代码中使用了这些：</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">List</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">&lt;int></span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">        // 生成 int 全链</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">List</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">&lt;float></span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">      // 生成 float 全链</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">List</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">&lt;double></span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">     // 生成 double 全链</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">List</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">&lt;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">Vector3</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">></span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">    // 生成 Vector3 全链</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">Dictionary</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">&lt;int</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">, </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">string</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">></span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">  // 生成 int+string 全链 + KeyValuePair&lt;int, string></span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 二进制体积可能因此增加数 MB</span></span></code></pre></figure>
+<blockquote class="callout warning" data-callout="warning">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>值类型泛型是 AOT 体积膨胀的主要来源 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>在 Native AOT 中，每个值类型泛型实例化都会生成独立的 native code。大量使用值类型泛型（尤其是嵌套泛型，如 <code>Dictionary&lt;int, List&lt;float>></code>）会导致二进制体积显著膨胀。这是 AOT 的固有特性，不是 bug。</p>
+</div>
+</blockquote>
+<h3 id="反射创建泛型实例化的问题">反射创建泛型实例化的问题<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#反射创建泛型实例化的问题" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="csharp" data-theme="github-light github-dark"><code data-language="csharp" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 这段代码在 AOT 下极不可靠</span></span>
+<span data-line><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Type</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> t</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> typeof</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">int</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">);</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">t </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">=</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> typeof</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">List</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;>).</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">MakeGenericType</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(t);  </span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// IL3050 警告</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">var</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> instance</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> Activator.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">CreateInstance</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(t);</span></span></code></pre></figure>
+<p><code>MakeGenericType</code> 要求运行时存在对应值类型实例化的 native code，但 AOT 编译器无法从静态分析中确定需要编译哪些实例化。即使对引用类型使用 <code>MakeGenericType</code>，也可能因为静态抽象接口方法等特性而失败。</p>
+<h2 id="反射限制与替代方案">反射限制与替代方案<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#反射限制与替代方案" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<h3 id="哪些反射在-aot-下可用">哪些反射在 AOT 下可用<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#哪些反射在-aot-下可用" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th>反射模式</th><th>AOT 兼容性</th><th>说明</th></tr></thead><tbody><tr><td><code>typeof(T)</code></td><td>完全支持</td><td>编译时确定</td></tr><tr><td><code>obj.GetType()</code></td><td>完全支持</td><td>实际类型已知</td></tr><tr><td><code>type.GetMethods()</code></td><td>需要标注</td><td>必须用 <code>DynamicallyAccessedMembers</code></td></tr><tr><td><code>Type.GetType(string)</code></td><td>受限</td><td>编译器无法确定目标类型</td></tr><tr><td><code>Assembly.LoadFile</code></td><td>不支持</td><td>动态加载不在 AOT 模型中</td></tr><tr><td><code>System.Reflection.Emit</code></td><td>不支持</td><td>无 JIT，无法运行时生成 IL</td></tr><tr><td><code>MakeGenericType</code></td><td>受限</td><td>IL3050 警告，值类型实例化可能不存在</td></tr></tbody></table></div>
+<h3 id="运行时检测-aot-环境">运行时检测 AOT 环境<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#运行时检测-aot-环境" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="csharp" data-theme="github-light github-dark"><code data-language="csharp" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">if</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> (RuntimeFeature.IsDynamicCodeSupported)</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{</span></span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">    // JIT 可用：使用 Reflection.Emit 生成动态代码</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">}</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">else</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{</span></span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">    // AOT 环境：回退到预编译路径</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">}</span></span></code></pre></figure>
+<p><code>RuntimeFeature.IsDynamicCodeSupported</code> 在 Native AOT 中始终返回 <code>false</code>。</p>
+<h3 id="source-generatorsaot-时代的替代方案">Source Generators：AOT 时代的替代方案<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#source-generatorsaot-时代的替代方案" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>Source Generators（源码生成器）在编译时生成 C# 代码，完全绕过反射，是 AOT 兼容的首选模式：</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th>传统反射模式</th><th>Source Generator 替代</th></tr></thead><tbody><tr><td>反射遍历属性做序列化</td><td><code>System.Text.Json</code> Source Generator</td></tr><tr><td>反射注册 DI 服务</td><td><code>Microsoft.Extensions.DependencyInjection</code> 内建标注</td></tr><tr><td>正则表达式运行时编译</td><td><code>[GeneratedRegex]</code></td></tr><tr><td>反射访问配置属性</td><td>Options 验证 Source Generator</td></tr><tr><td>运行时发现插件</td><td>编译时生成注册代码</td></tr></tbody></table></div>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="csharp" data-theme="github-light github-dark"><code data-language="csharp" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 传统方式：运行时反射编译正则——AOT 不兼容</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">var</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> regex</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> new</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Regex</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">@&quot;\d+&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">);</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// Source Generator 方式：编译时生成——AOT 兼容</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">[</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">GeneratedRegex</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">@&quot;\d+&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">)]</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">private</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> static</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> partial</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Regex</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> DigitRegex</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">();</span></span></code></pre></figure>
+<blockquote class="callout warning" data-callout="warning">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>不要在 AOT 项目中依赖反射做&quot;插件发现&quot; </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>基于反射的插件系统（如扫描程序集查找实现某接口的类型）在 AOT 下完全不可行。替代方案：编译时代码生成、显式注册表模式、或预定义插件清单。</p>
+</div>
+</blockquote>
+<h2 id="与-il2cpp-对比">与 IL2CPP 对比<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#与-il2cpp-对比" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th>维度</th><th>.NET Native AOT</th><th>Unity IL2CPP</th></tr></thead><tbody><tr><td>编译路径</td><td>IL → ILC → native code</td><td>IL → C++ 代码生成 → C++ 编译器 → native</td></tr><tr><td>中间表示</td><td>直接从 IL 编译</td><td>转换为 C++ 源码再编译</td></tr><tr><td>代码质量</td><td>基于 RyuJIT 后端，优化质量接近 JIT</td><td>依赖 C++ 编译器优化，生成代码可读性差</td></tr><tr><td>裁剪</td><td>内建 trimmer，有完善的标注体系</td><td>strip 机制较粗糙，主要靠 link.xml</td></tr><tr><td>反射支持</td><td><code>DynamicallyAccessedMembers</code> 标注体系</td><td><code>link.xml</code> + <code>[Preserve]</code> 标注</td></tr><tr><td>泛型处理</td><td>值类型特化 + 引用类型共享</td><td>全部特化（不共享引用类型代码）</td></tr><tr><td>运行时 GC</td><td>CoreCLR GC（相同于 JIT 模式）</td><td>Boehm GC / Incremental GC</td></tr><tr><td>调试体验</td><td>有限的 native 调试支持</td><td>C++ 源码级调试（但映射到 C# 困难）</td></tr><tr><td>跨平台</td><td>每个目标 OS 需要对应构建环境</td><td>Unity 编辑器内一键构建所有平台</td></tr><tr><td>Hot Reload</td><td>不支持</td><td>Unity 域重载（有限）</td></tr><tr><td>适用场景</td><td>.NET 控制台应用、微服务、CLI 工具</td><td>Unity 游戏 Player 构建</td></tr><tr><td>成熟度</td><td>.NET 8 起可用于生产</td><td>Unity 4.6+ 起即为主流方案</td></tr></tbody></table></div>
+<p><strong>核心差异</strong>：IL2CPP 的”C++ 转译”策略让它在跨平台构建上更灵活（C++ 编译器遍地都是），但牺牲了代码优化质量和调试体验。Native AOT 直接从 IL 到 native，优化路径更短更可控，但要求目标平台的构建工具链。</p>
+<h2 id="与-burst-对比">与 Burst 对比<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#与-burst-对比" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th>维度</th><th>.NET Native AOT</th><th>Unity Burst</th></tr></thead><tbody><tr><td>目标</td><td>完整 .NET 应用的 AOT 编译</td><td>高性能计算内核的 AOT 编译</td></tr><tr><td>语言子集</td><td>完整 C#（受限于 AOT 约束）</td><td>HPC#（C# 的严格子集：无引用类型、无异常、无托管堆）</td></tr><tr><td>编译后端</td><td>ILC（基于 RyuJIT）</td><td>LLVM</td></tr><tr><td>泛型支持</td><td>完整支持（值类型特化）</td><td>仅支持值类型泛型，且约束更严格</td></tr><tr><td>反射</td><td>受限但可通过标注妥协</td><td>完全禁止</td></tr><tr><td>GC</td><td>CoreCLR GC 正常运行</td><td>不使用 GC（无托管堆分配）</td></tr><tr><td>内存模型</td><td>托管堆 + native 互操作</td><td>纯 native 内存（NativeArray、NativeList 等）</td></tr><tr><td>优化深度</td><td>通用优化</td><td>SIMD 自动向量化、循环展开、目标指令集</td></tr><tr><td>适用场景</td><td>应用级部署</td><td>Job System 内核、数学密集计算</td></tr><tr><td>与 Job System 集成</td><td>无</td><td>原生集成，<code>[BurstCompile]</code> 标记 Job</td></tr><tr><td>调试</td><td>支持（有限）</td><td>Burst Inspector 查看生成代码</td></tr><tr><td>跨平台</td><td>需要构建环境</td><td>Unity 内管理所有目标平台</td></tr></tbody></table></div>
+<p><strong>核心差异</strong>：Burst 是一个”计算编译器”——它只编译一个小子集的 C#，但在这个子集内做到极致优化（SIMD、向量化）。Native AOT 是一个”应用编译器”——它编译完整的 C#，但优化目标是通用场景。两者解决的是完全不同的问题。</p>
+<blockquote class="callout tip" data-callout="tip">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>理解 AOT 的统一视角 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>Native AOT / IL2CPP / Burst 三者虽然工具链完全不同，但都受同一套 AOT 约束：编译时必须确定所有代码路径、反射受限、值类型泛型膨胀。理解这套约束，就能在 Unity 项目中更快定位”为什么这个库在 Player 构建中不工作”。</p>
+</div>
+</blockquote>
+<h2 id="序列化与-aot">序列化与 AOT<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#序列化与-aot" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<h3 id="systemtextjson-的-aot-模式">System.Text.Json 的 AOT 模式<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#systemtextjson-的-aot-模式" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p><code>System.Text.Json</code> 从 .NET 6 起提供 Source Generator，从 .NET 7 起成为 AOT 兼容的推荐方式。反射模式在 AOT 下不可用。</p>
+<p><strong>定义序列化上下文</strong>：</p>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="csharp" data-theme="github-light github-dark"><code data-language="csharp" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">[</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">JsonSerializable</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">typeof</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">PlayerData</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">))]</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">[</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">JsonSerializable</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">typeof</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">SaveGame</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">))]</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">[</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">JsonSerializable</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">typeof</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">LevelConfig</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">[]))]</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">internal</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> partial</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> class</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> GameJsonContext</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> : </span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">JsonSerializerContext</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">}</span></span></code></pre></figure>
+<p><strong>使用上下文进行序列化/反序列化</strong>：</p>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="csharp" data-theme="github-light github-dark"><code data-language="csharp" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 序列化</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">string</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> json</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> JsonSerializer.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Serialize</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(playerData, GameJsonContext.Default.PlayerData);</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 反序列化</span></span>
+<span data-line><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">PlayerData</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">? </span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">data</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> JsonSerializer.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Deserialize</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(json, GameJsonContext.Default.PlayerData);</span></span></code></pre></figure>
+<p><strong>在 ASP.NET Core 中注册</strong>：</p>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="csharp" data-theme="github-light github-dark"><code data-language="csharp" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">services.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">AddControllers</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">().</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">AddJsonOptions</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    static</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> options</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =></span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> options.JsonSerializerOptions.TypeInfoResolverChain.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Add</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">        GameJsonContext.Default));</span></span></code></pre></figure>
+<h3 id="枚举的-aot-兼容处理">枚举的 AOT 兼容处理<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#枚举的-aot-兼容处理" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>非泛型的 <code>JsonStringEnumConverter</code> 依赖运行时代码生成，不兼容 AOT。应使用泛型版本：</p>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="csharp" data-theme="github-light github-dark"><code data-language="csharp" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// AOT 不兼容</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">[</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">JsonConverter</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">typeof</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">JsonStringEnumConverter</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">))]</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// AOT 兼容</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">[</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">JsonConverter</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">typeof</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">JsonStringEnumConverter</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">GameMode</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">>))]</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">public</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> enum</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> GameMode</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> { </span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Survival</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">, </span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Creative</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">, </span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Adventure</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> }</span></span></code></pre></figure>
+<h3 id="jsonnet-newtonsoftjson-与-aot">Json.NET (Newtonsoft.Json) 与 AOT<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#jsonnet-newtonsoftjson-与-aot" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>Json.NET 大量使用反射，<strong>不兼容 Native AOT</strong>。这是社区最常见的 AOT 迁移痛点。迁移路径：</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th>Json.NET 功能</th><th>AOT 兼容替代</th></tr></thead><tbody><tr><td><code>JsonConvert.SerializeObject</code></td><td><code>System.Text.Json</code> + Source Generator</td></tr><tr><td><code>JObject</code> 动态解析</td><td>强类型 + <code>JsonSerializerContext</code></td></tr><tr><td>自定义 <code>JsonConverter&lt;T></code></td><td>Source Generator 中的自定义转换器</td></tr><tr><td><code>JsonProperty</code> 特性</td><td><code>[JsonPropertyName]</code> + <code>[JsonSerializable]</code></td></tr></tbody></table></div>
+<blockquote class="callout warning" data-callout="warning">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>Json.NET 在 AOT 下不可用 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>Newtonsoft.Json 的核心架构依赖反射遍历属性，没有 Source Generator 模式。如果你的库依赖 Json.NET，在 AOT 项目中将无法使用。这是 .NET 生态从 Json.NET 迁移到 System.Text.Json 的主要驱动力之一。</p>
+</div>
+</blockquote>
+<h3 id="其他序列化框架的-aot-状态">其他序列化框架的 AOT 状态<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#其他序列化框架的-aot-状态" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th>框架</th><th>AOT 兼容</th><th>备注</th></tr></thead><tbody><tr><td>System.Text.Json</td><td>是（Source Generator）</td><td>官方推荐</td></tr><tr><td>System.Xml.Serialization</td><td>部分</td><td>.NET 9+ 有改善</td></tr><tr><td>YamlDotNet</td><td>是（Source Generator）</td><td>需要 16.x+</td></tr><tr><td>MessagePack (neuecc)</td><td>是（Source Generator）</td><td><code>MessagePackFormatter</code> + SG</td></tr><tr><td>Protobuf-net</td><td>是（Source Generator）</td><td><code>protobuf-net.BuildTools</code></td></tr><tr><td>Newtonsoft.Json</td><td>否</td><td>无 SG 模式，核心依赖反射</td></tr></tbody></table></div>
+<h2 id="依赖注入与-aot">依赖注入与 AOT<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#依赖注入与-aot" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<p><code>Microsoft.Extensions.DependencyInjection</code> 在 .NET 8+ 中已经兼容 Native AOT，<strong>且不需要 Source Generator</strong>。</p>
+<h3 id="工作原理">工作原理<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#工作原理" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>DI 容器内部使用的反射（如通过构造函数参数发现依赖）已经被完整的 <code>DynamicallyAccessedMembers</code> 标注覆盖。当你注册服务时：</p>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="csharp" data-theme="github-light github-dark"><code data-language="csharp" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 这些注册方式都兼容 AOT</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">services.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">AddTransient</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">IPlayerService</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">, </span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">PlayerService</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">>();</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">services.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">AddSingleton</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">IGameConfig</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">, </span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">GameConfig</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">>();</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">services.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">AddScoped</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">ISaveManager</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">, </span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">SaveManager</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">>();</span></span></code></pre></figure>
+<p>DI 容器通过标注确保需要的构造函数和类型信息不会被裁剪。</p>
+<h3 id="需要注意的限制">需要注意的限制<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#需要注意的限制" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="csharp" data-theme="github-light github-dark"><code data-language="csharp" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// AOT 不兼容：运行时动态构建服务描述</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">var</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> types</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> Assembly.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">GetExecutingAssembly</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">().</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">GetTypes</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">()</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    .</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Where</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">t</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =></span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> t.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">GetInterface</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">nameof</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(IGameSystem)) </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">!=</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> null</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">);</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">foreach</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> (</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">var</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> type</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> in</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> types)</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    services.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">AddTransient</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">typeof</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">IGameSystem</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">), type);</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// AOT 兼容：显式注册</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">services.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">AddTransient</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">IGameSystem</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">, </span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">PhysicsSystem</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">>();</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">services.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">AddTransient</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">IGameSystem</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">, </span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">AudioSystem</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">>();</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">services.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">AddTransient</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">IGameSystem</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">, </span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">InputSystem</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">>();</span></span></code></pre></figure>
+<blockquote class="callout warning" data-callout="warning">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>避免在 AOT 项目中动态扫描程序集注册 DI 服务 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>运行时扫描程序集查找服务实现是 AOT 不兼容模式。使用编译时已知的显式注册、Source Generator 自动生成注册代码、或 <code>[OptionsValidator]</code> 模式替代。</p>
+</div>
+</blockquote>
+<h3 id="options-验证的-aot-模式">Options 验证的 AOT 模式<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#options-验证的-aot-模式" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="csharp" data-theme="github-light github-dark"><code data-language="csharp" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// .NET 8+ Source Generator 方式</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">[</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">OptionsValidator</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">]</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">internal</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> sealed</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> partial</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> class</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> GameSettingsValidator</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> : </span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">IValidateOptions</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">GameSettings</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">></span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">}</span></span></code></pre></figure>
+<p>编译时生成验证逻辑，完全绕过反射。</p>
+<h2 id="体积优化">体积优化<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#体积优化" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<h3 id="optimizationpreference">OptimizationPreference<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#optimizationpreference" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="xml" data-theme="github-light github-dark"><code data-language="xml" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">&lt;!-- 优先缩小体积（可能牺牲峰值性能） --></span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;</span><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">OptimizationPreference</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">>Size&lt;/</span><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">OptimizationPreference</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">></span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">&lt;!-- 优先峰值性能（可能增大体积） --></span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;</span><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">OptimizationPreference</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">>Speed&lt;/</span><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">OptimizationPreference</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">></span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">&lt;!-- 默认：平衡 --></span></span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">&lt;!-- 不设置即可 --></span></span></code></pre></figure>
+<h3 id="禁用不需要的框架功能">禁用不需要的框架功能<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#禁用不需要的框架功能" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="xml" data-theme="github-light github-dark"><code data-language="xml" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;</span><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">PropertyGroup</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">></span></span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">    &lt;!-- 禁用全球化支持（使用 invariant 模式），约减少 5-10 MB --></span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    &lt;</span><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">InvariantGlobalization</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">>true&lt;/</span><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">InvariantGlobalization</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">></span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">    &lt;!-- 禁用 HTTP 相关功能（如果不需要网络） --></span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    &lt;</span><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">HttpActivityPropagationSupport</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">>false&lt;/</span><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">HttpActivityPropagationSupport</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">></span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">    &lt;!-- 禁用事件日志（Windows） --></span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    &lt;</span><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">EnableWindowsTargeting</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">>true&lt;/</span><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">EnableWindowsTargeting</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">></span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">    &lt;!-- 移除调试符号 --></span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    &lt;</span><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">TrimmerRemoveSymbols</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">>true&lt;/</span><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">TrimmerRemoveSymbols</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">></span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">    &lt;!-- StripSymbols（Unix 平台） --></span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    &lt;</span><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">StripSymbols</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">>true&lt;/</span><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">StripSymbols</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">></span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;/</span><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">PropertyGroup</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">></span></span></code></pre></figure>
+<h3 id="减少泛型实例化">减少泛型实例化<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#减少泛型实例化" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="csharp" data-theme="github-light github-dark"><code data-language="csharp" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 反模式：大量值类型泛型实例化</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">public</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> void</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Process</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">T</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">>() </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">where</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> T</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> : </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">unmanaged</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{</span></span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">    // 每个 T 生成一份独立代码</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">}</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 替代：使用非泛型 API + 手动特化热点</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">public</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> void</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> ProcessInt</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">() { </span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">/* 热路径：手动优化 */</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> }</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">public</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> void</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> ProcessFloat</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">() { </span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">/* 热路径：手动优化 */</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> }</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">public</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> void</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> ProcessGeneric</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">T</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">>(</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">T</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> value</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">) </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">where</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> T</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> : </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">unmanaged</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{</span></span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">    // 非热路径：接受运行时分发</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">}</span></span></code></pre></figure>
+<h3 id="控制裁剪粒度">控制裁剪粒度<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#控制裁剪粒度" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="xml" data-theme="github-light github-dark"><code data-language="xml" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;</span><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">PropertyGroup</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">></span></span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">    &lt;!-- 使用 partial 模式渐进迁移 --></span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    &lt;</span><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">TrimMode</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">>partial&lt;/</span><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">TrimMode</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">></span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">    &lt;!-- 仅裁剪标记为 IsTrimmable 的程序集 --></span></span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">    &lt;!-- 未标记的程序集完整保留 --></span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;/</span><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">PropertyGroup</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">></span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;</span><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">ItemGroup</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">></span></span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">    &lt;!-- 确保关键程序集不被过度裁剪 --></span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    &lt;</span><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">TrimmerRootAssembly</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Include</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">=</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;MyCoreLib&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> /></span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;/</span><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">ItemGroup</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">></span></span></code></pre></figure>
+<h3 id="体积参考数据">体积参考数据<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#体积参考数据" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th>应用类型</th><th>JIT 自包含</th><th>Native AOT</th><th>缩减比例</th></tr></thead><tbody><tr><td>Hello World 控制台</td><td>~65 MB</td><td>~3-5 MB</td><td>~92%</td></tr><tr><td>ASP.NET Minimal API</td><td>~90 MB</td><td>~20 MB</td><td>~78%</td></tr><tr><td>复杂 Web 应用</td><td>~120 MB</td><td>~40 MB</td><td>~67%</td></tr></tbody></table></div>
+<blockquote class="callout note" data-callout="note">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>游戏开发通常不需要极致体积优化 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>游戏二进制通常在数百 MB 到数 GB 量级（资源占大头），托管代码体积的影响相对较小。但对插件系统、Mod 工具链等轻量级工具，AOT 的体积优化有实际价值。</p>
+</div>
+</blockquote>
+<h2 id="游戏开发启示">游戏开发启示<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#游戏开发启示" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<p>虽然 Unity 当前使用 IL2CPP 而非 .NET Native AOT，但理解 Native AOT 的约束体系对游戏开发者有直接价值：</p>
+<ol>
+<li>
+<p><strong>理解 IL2CPP 的限制来源</strong>：IL2CPP 的反射限制、link.xml 需求、泛型膨胀，与 Native AOT 面对的是同一套问题。理解裁剪标注体系，就能理解为什么 Unity 需要 <code>[Preserve]</code> 和 <code>link.xml</code>。</p>
+</li>
+<li>
+<p><strong>库选型的 AOT 意识</strong>：在 Unity 项目中使用 NuGet 包时，AOT 兼容性是重要考量。依赖反射的库在 IL2CPP 构建中同样会出问题。</p>
+</li>
+<li>
+<p><strong>序列化架构设计</strong>：游戏存档、配置系统、网络协议——这些序列化场景在 AOT 环境下必须用 Source Generator 或显式注册模式，不能依赖反射。</p>
+</li>
+<li>
+<p><strong>泛型使用策略</strong>：在 Burst Job 中大量使用值类型泛型是合理的（Burst 会优化），但在托管代码中过度使用值类型泛型组合会导致构建体积膨胀。</p>
+</li>
+<li>
+<p><strong>Unity CoreCLR 迁移的前瞻</strong>：Unity 计划在 6.7 提供实验性 CoreCLR 桌面 Player，6.8 将 CoreCLR 设为唯一运行时。届时 .NET 生态中 AOT 兼容库的成熟度将直接影响 Unity 项目的可用库范围。</p>
+</li>
+<li>
+<p><strong>Source Generator 思维</strong>：养成”编译时生成而非运行时反射”的编程习惯。这不仅对 AOT 友好，也对启动性能有利。</p>
+</li>
+</ol>
+<h2 id="反模式">反模式<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#反模式" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<blockquote class="callout warning" data-callout="warning">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>在 AOT 中使用 Assembly.LoadFile 动态加载程序集 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>Native AOT 编译产生单一原生二进制，不存在独立的程序集文件可供运行时加载。所有代码必须在 publish 时静态可达。如果需要插件系统，改用编译时代码生成或预定义注册表。</p>
+</div>
+</blockquote>
+<blockquote class="callout warning" data-callout="warning">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>使用 System.Reflection.Emit 在运行时生成 IL </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>Native AOT 没有 JIT 编译器，无法将运行时生成的 IL 编译为机器码。<code>DynamicMethod</code>、<code>AssemblyBuilder</code> 等类型在 AOT 下不可用。替代方案：Source Generator、表达式树（有限支持）、手写代码生成器。</p>
+</div>
+</blockquote>
+<blockquote class="callout warning" data-callout="warning">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>通过 Type.GetType(string) 从字符串加载类型 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>裁剪器无法从字符串推断目标类型，对应的类型元数据可能已被移除。AOT 发布时会生成 IL2057 警告。替代方案：使用 <code>typeof()</code> 显式引用，或用 <code>DynamicallyAccessedMembers</code> 标注。</p>
+</div>
+</blockquote>
+<blockquote class="callout warning" data-callout="warning">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>忽略裁剪警告直接发布 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>裁剪警告（IL2xxx / IL3xxx）不是”建议”，是”运行时必然出错的前兆”。一个没有裁剪警告的 AOT 应用，其行为保证与 JIT 模式一致。有警告则可能在运行时抛出 <code>MissingMethodException</code> 等异常。必须在发布前清零所有裁剪警告。</p>
+</div>
+</blockquote>
+<blockquote class="callout warning" data-callout="warning">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>在 AOT 项目中继续使用 Newtonsoft.Json </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>Json.NET 的核心架构依赖运行时反射遍历属性树，没有 Source Generator 模式，无法在 AOT 下工作。即使你的项目不是 Native AOT，如果未来可能迁移到 Unity CoreCLR + AOT，现在就应规划向 System.Text.Json 的迁移。</p>
+</div>
+</blockquote>
+<blockquote class="callout warning" data-callout="warning">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>大量嵌套值类型泛型组合 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p><code>Dictionary&lt;int, List&lt;Vector3>></code> 这种嵌套泛型在值类型上的组合，每个实例化都会生成独立的 native code。在游戏代码中，对值类型泛型保持克制：热路径手写特化，非热路径可接受，但要避免大量排列组合（如 ECS 中每个组件类型 x 每个查询组合都生成独立代码）。</p>
+</div>
+</blockquote>
+<blockquote class="callout warning" data-callout="warning">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>在泛型方法中使用未约束的反射 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="csharp" data-theme="github-light github-dark"><code data-language="csharp" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">void</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Process</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">T</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">>()</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    var</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> props</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> typeof</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">T</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">).</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">GetProperties</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(); </span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 警告：T 的来源无法确定</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">}</span></span></code></pre></figure>
+<p>在泛型上下文中，编译器不知道 <code>T</code> 的具体类型，无法确定需要保留哪些属性。解决方案：对 <code>T</code> 添加 <code>DynamicallyAccessedMembers</code> 约束，或在调用方显式传递类型信息。</p>
+</div>
+</blockquote>
+<blockquote class="callout warning" data-callout="warning">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>假设 AOT 编译的代码比 JIT 更快 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>AOT 的优势是启动速度和部署形态，而非峰值吞吐量。JIT 可以根据运行时 CPU 特性进行针对性优化（如利用 AVX2/AVX-512），AOT 编译时只能针对通用指令集。长时间运行的服务端应用，JIT 的峰值性能往往优于 AOT。</p>
+</div>
+</blockquote>
+<h2 id="相关">相关<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#相关" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<ul>
+<li><a href="../csharp-dotnet-CSharp与NET/managed-execution-托管执行" class="internal alias" data-slug="csharp-dotnet-CSharp与NET/managed-execution-托管执行">.NET 托管执行流程</a> — 理解 JIT 管线才能理解 AOT 管线省略了什么</li>
+<li><a href="../performance-性能优化/burst-compiler-Burst编译" class="internal alias" data-slug="performance-性能优化/burst-compiler-Burst编译">Burst 编译器</a> — 另一种 AOT 编译器，专攻计算内核</li>
+<li><a href="../csharp-dotnet-CSharp与NET/async-await-internals-异步机制" class="internal alias" data-slug="csharp-dotnet-CSharp与NET/async-await-internals-异步机制">await 内部机制</a> — 状态机在 AOT 下的行为与 JIT 一致</li>
+<li><a href="../csharp-dotnet-CSharp与NET/garbage-collection-GC与内存" class="internal alias" data-slug="csharp-dotnet-CSharp与NET/garbage-collection-GC与内存">.NET 垃圾回收</a> — AOT 使用相同的 CoreCLR GC</li>
+<li><a href="../csharp-dotnet-CSharp与NET/value-types-vs-reference-types-值与引用" class="internal alias" data-slug="csharp-dotnet-CSharp与NET/value-types-vs-reference-types-值与引用">值类型与引用类型</a> — 值类型泛型特化是 AOT 体积膨胀的根源</li>
+<li><a href="../csharp-dotnet-CSharp与NET/type-system-类型系统" class="internal alias" data-slug="csharp-dotnet-CSharp与NET/type-system-类型系统">C＃ 类型系统</a> — 静态类型是 AOT 分析的基础</li>
+<li><a href="../performance-性能优化/job-system-作业系统" class="internal alias" data-slug="performance-性能优化/job-system-作业系统">Job System</a> — Burst AOT 编译的宿主系统</li>
+<li><a href="../performance-性能优化/native-container-Native容器" class="internal alias" data-slug="performance-性能优化/native-container-Native容器">NativeContainer</a> — Burst 世界的非托管容器，与 AOT 体积问题相关</li>
+</ul></article><hr/><div class="page-footer"></div></div><div class="right sidebar"><div class="graph"><h3>关系图谱</h3><div class="graph-outer"><div class="graph-container" data-cfg="{&quot;drag&quot;:true,&quot;zoom&quot;:true,&quot;depth&quot;:1,&quot;scale&quot;:1.1,&quot;repelForce&quot;:0.5,&quot;centerForce&quot;:0.3,&quot;linkDistance&quot;:30,&quot;fontSize&quot;:0.6,&quot;opacityScale&quot;:1,&quot;showTags&quot;:true,&quot;removeTags&quot;:[],&quot;focusOnHover&quot;:false,&quot;enableRadial&quot;:false}"></div><button class="global-graph-icon" aria-label="Global Graph"><svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 55 55" fill="currentColor" xml:space="preserve"><path d="M49,0c-3.309,0-6,2.691-6,6c0,1.035,0.263,2.009,0.726,2.86l-9.829,9.829C32.542,17.634,30.846,17,29,17
+                s-3.542,0.634-4.898,1.688l-7.669-7.669C16.785,10.424,17,9.74,17,9c0-2.206-1.794-4-4-4S9,6.794,9,9s1.794,4,4,4
+                c0.74,0,1.424-0.215,2.019-0.567l7.669,7.669C21.634,21.458,21,23.154,21,25s0.634,3.542,1.688,4.897L10.024,42.562
+                C8.958,41.595,7.549,41,6,41c-3.309,0-6,2.691-6,6s2.691,6,6,6s6-2.691,6-6c0-1.035-0.263-2.009-0.726-2.86l12.829-12.829
+                c1.106,0.86,2.44,1.436,3.898,1.619v10.16c-2.833,0.478-5,2.942-5,5.91c0,3.309,2.691,6,6,6s6-2.691,6-6c0-2.967-2.167-5.431-5-5.91
+                v-10.16c1.458-0.183,2.792-0.759,3.898-1.619l7.669,7.669C41.215,39.576,41,40.26,41,41c0,2.206,1.794,4,4,4s4-1.794,4-4
+                s-1.794-4-4-4c-0.74,0-1.424,0.215-2.019,0.567l-7.669-7.669C36.366,28.542,37,26.846,37,25s-0.634-3.542-1.688-4.897l9.665-9.665
+                C46.042,11.405,47.451,12,49,12c3.309,0,6-2.691,6-6S52.309,0,49,0z M11,9c0-1.103,0.897-2,2-2s2,0.897,2,2s-0.897,2-2,2
+                S11,10.103,11,9z M6,51c-2.206,0-4-1.794-4-4s1.794-4,4-4s4,1.794,4,4S8.206,51,6,51z M33,49c0,2.206-1.794,4-4,4s-4-1.794-4-4
+                s1.794-4,4-4S33,46.794,33,49z M29,31c-3.309,0-6-2.691-6-6s2.691-6,6-6s6,2.691,6,6S32.309,31,29,31z M47,41c0,1.103-0.897,2-2,2
+                s-2-0.897-2-2s0.897-2,2-2S47,39.897,47,41z M49,10c-2.206,0-4-1.794-4-4s1.794-4,4-4s4,1.794,4,4S51.206,10,49,10z"></path></svg></button></div><div class="global-graph-outer"><div class="global-graph-container" data-cfg="{&quot;drag&quot;:true,&quot;zoom&quot;:true,&quot;depth&quot;:-1,&quot;scale&quot;:0.9,&quot;repelForce&quot;:0.5,&quot;centerForce&quot;:0.2,&quot;linkDistance&quot;:30,&quot;fontSize&quot;:0.6,&quot;opacityScale&quot;:1,&quot;showTags&quot;:true,&quot;removeTags&quot;:[],&quot;focusOnHover&quot;:true,&quot;enableRadial&quot;:true}"></div></div></div><div class="toc desktop-only"><button type="button" class="toc-header" aria-controls="toc-9" aria-expanded="true"><h3>目录</h3><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="fold"><polyline points="6 9 12 15 18 9"></polyline></svg></button><ul id="list-1" class="toc-content overflow"><li class="depth-0"><a href="#net-native-aot" data-for="net-native-aot">.NET Native AOT</a></li><li class="depth-1"><a href="#核心思想" data-for="核心思想">核心思想</a></li><li class="depth-1"><a href="#编译管线" data-for="编译管线">编译管线</a></li><li class="depth-1"><a href="#发布配置" data-for="发布配置">发布配置</a></li><li class="depth-2"><a href="#publishaot" data-for="publishaot">PublishAot</a></li><li class="depth-2"><a href="#runtimeidentifier-与跨平台发布" data-for="runtimeidentifier-与跨平台发布">RuntimeIdentifier 与跨平台发布</a></li><li class="depth-2"><a href="#isaotcompatible" data-for="isaotcompatible">IsAotCompatible</a></li><li class="depth-2"><a href="#支持的目标平台" data-for="支持的目标平台">支持的目标平台</a></li><li class="depth-1"><a href="#裁剪系统" data-for="裁剪系统">裁剪系统</a></li><li class="depth-2"><a href="#裁剪级别" data-for="裁剪级别">裁剪级别</a></li><li class="depth-2"><a href="#trimmerrootassembly" data-for="trimmerrootassembly">TrimmerRootAssembly</a></li><li class="depth-2"><a href="#dynamicallyaccessedmembers-标注" data-for="dynamicallyaccessedmembers-标注">DynamicallyAccessedMembers 标注</a></li><li class="depth-2"><a href="#link-xml-描述文件" data-for="link-xml-描述文件">link XML 描述文件</a></li><li class="depth-2"><a href="#裁剪警告控制" data-for="裁剪警告控制">裁剪警告控制</a></li><li class="depth-1"><a href="#泛型特化" data-for="泛型特化">泛型特化</a></li><li class="depth-2"><a href="#值类型实例化生成独立代码" data-for="值类型实例化生成独立代码">值类型实例化生成独立代码</a></li><li class="depth-2"><a href="#传递闭包膨胀" data-for="传递闭包膨胀">传递闭包膨胀</a></li><li class="depth-2"><a href="#反射创建泛型实例化的问题" data-for="反射创建泛型实例化的问题">反射创建泛型实例化的问题</a></li><li class="depth-1"><a href="#反射限制与替代方案" data-for="反射限制与替代方案">反射限制与替代方案</a></li><li class="depth-2"><a href="#哪些反射在-aot-下可用" data-for="哪些反射在-aot-下可用">哪些反射在 AOT 下可用</a></li><li class="depth-2"><a href="#运行时检测-aot-环境" data-for="运行时检测-aot-环境">运行时检测 AOT 环境</a></li><li class="depth-2"><a href="#source-generatorsaot-时代的替代方案" data-for="source-generatorsaot-时代的替代方案">Source Generators：AOT 时代的替代方案</a></li><li class="depth-1"><a href="#与-il2cpp-对比" data-for="与-il2cpp-对比">与 IL2CPP 对比</a></li><li class="depth-1"><a href="#与-burst-对比" data-for="与-burst-对比">与 Burst 对比</a></li><li class="depth-1"><a href="#序列化与-aot" data-for="序列化与-aot">序列化与 AOT</a></li><li class="depth-2"><a href="#systemtextjson-的-aot-模式" data-for="systemtextjson-的-aot-模式">System.Text.Json 的 AOT 模式</a></li><li class="depth-2"><a href="#枚举的-aot-兼容处理" data-for="枚举的-aot-兼容处理">枚举的 AOT 兼容处理</a></li><li class="depth-2"><a href="#jsonnet-newtonsoftjson-与-aot" data-for="jsonnet-newtonsoftjson-与-aot">Json.NET (Newtonsoft.Json) 与 AOT</a></li><li class="depth-2"><a href="#其他序列化框架的-aot-状态" data-for="其他序列化框架的-aot-状态">其他序列化框架的 AOT 状态</a></li><li class="depth-1"><a href="#依赖注入与-aot" data-for="依赖注入与-aot">依赖注入与 AOT</a></li><li class="depth-2"><a href="#工作原理" data-for="工作原理">工作原理</a></li><li class="depth-2"><a href="#需要注意的限制" data-for="需要注意的限制">需要注意的限制</a></li><li class="depth-2"><a href="#options-验证的-aot-模式" data-for="options-验证的-aot-模式">Options 验证的 AOT 模式</a></li><li class="depth-1"><a href="#体积优化" data-for="体积优化">体积优化</a></li><li class="depth-2"><a href="#optimizationpreference" data-for="optimizationpreference">OptimizationPreference</a></li><li class="depth-2"><a href="#禁用不需要的框架功能" data-for="禁用不需要的框架功能">禁用不需要的框架功能</a></li><li class="depth-2"><a href="#减少泛型实例化" data-for="减少泛型实例化">减少泛型实例化</a></li><li class="depth-2"><a href="#控制裁剪粒度" data-for="控制裁剪粒度">控制裁剪粒度</a></li><li class="depth-2"><a href="#体积参考数据" data-for="体积参考数据">体积参考数据</a></li><li class="depth-1"><a href="#游戏开发启示" data-for="游戏开发启示">游戏开发启示</a></li><li class="depth-1"><a href="#反模式" data-for="反模式">反模式</a></li><li class="depth-1"><a href="#相关" data-for="相关">相关</a></li><li class="overflow-end"></li></ul></div><div class="backlinks"><h3>反向链接</h3><ul id="list-2" class="overflow"><li><a href="../csharp-dotnet-CSharp与NET/managed-execution-托管执行" class="internal">managed-execution-托管执行</a></li><li><a href="../csharp-dotnet-CSharp与NET/type-system-类型系统" class="internal">type-system-类型系统</a></li><li><a href="../" class="internal">index</a></li><li><a href="../performance-性能优化/burst-compiler-Burst编译" class="internal">burst-compiler-Burst编译</a></li><li><a href="../sources-来源摘要/2026-05-16-csharp-dotnet-foundations-overview" class="internal">2026-05-16-csharp-dotnet-foundations-overview</a></li><li class="overflow-end"></li></ul></div></div><footer class><p>Created with <a href="https://quartz.jzhao.xyz/">Quartz v4.5.2</a> © 2026</p><ul><li><a href="https://github.com/jackyzha0/quartz">GitHub</a></li><li><a href="https://discord.gg/cRFFHYye7t">Discord Community</a></li></ul></footer></div></div></body><script type="application/javascript" data-persist="true">function n(){let t=this.parentElement;t.classList.toggle("is-collapsed");let e=t.getElementsByClassName("callout-content")[0];if(!e)return;let l=t.classList.contains("is-collapsed");e.style.gridTemplateRows=l?"0fr":"1fr"}function c(){let t=document.getElementsByClassName("callout is-collapsible");for(let e of t){let l=e.getElementsByClassName("callout-title")[0],s=e.getElementsByClassName("callout-content")[0];if(!l||!s)continue;l.addEventListener("click",n),window.addCleanup(()=>l.removeEventListener("click",n));let o=e.classList.contains("is-collapsed");s.style.gridTemplateRows=o?"0fr":"1fr"}}document.addEventListener("nav",c);
+</script><script type="module" data-persist="true">function E(c,e){if(!c)return;function t(s){s.target===this&&(s.preventDefault(),s.stopPropagation(),e())}function r(s){s.key.startsWith("Esc")&&(s.preventDefault(),e())}c?.addEventListener("click",t),window.addCleanup(()=>c?.removeEventListener("click",t)),document.addEventListener("keydown",r),window.addCleanup(()=>document.removeEventListener("keydown",r))}function y(c){for(;c.firstChild;)c.removeChild(c.firstChild)}var v=class{constructor(e,t){this.container=e;this.content=t;this.setupEventListeners(),this.setupNavigationControls(),this.resetTransform()}isDragging=!1;startPan={x:0,y:0};currentPan={x:0,y:0};scale=1;MIN_SCALE=.5;MAX_SCALE=3;cleanups=[];setupEventListeners(){let e=this.onMouseDown.bind(this),t=this.onMouseMove.bind(this),r=this.onMouseUp.bind(this),s=this.onTouchStart.bind(this),o=this.onTouchMove.bind(this),i=this.onTouchEnd.bind(this),n=this.resetTransform.bind(this);this.container.addEventListener("mousedown",e),document.addEventListener("mousemove",t),document.addEventListener("mouseup",r),this.container.addEventListener("touchstart",s,{passive:!1}),document.addEventListener("touchmove",o,{passive:!1}),document.addEventListener("touchend",i),window.addEventListener("resize",n),this.cleanups.push(()=>this.container.removeEventListener("mousedown",e),()=>document.removeEventListener("mousemove",t),()=>document.removeEventListener("mouseup",r),()=>this.container.removeEventListener("touchstart",s),()=>document.removeEventListener("touchmove",o),()=>document.removeEventListener("touchend",i),()=>window.removeEventListener("resize",n))}cleanup(){for(let e of this.cleanups)e()}setupNavigationControls(){let e=document.createElement("div");e.className="mermaid-controls";let t=this.createButton("+",()=>this.zoom(.1)),r=this.createButton("-",()=>this.zoom(-.1)),s=this.createButton("Reset",()=>this.resetTransform());e.appendChild(r),e.appendChild(s),e.appendChild(t),this.container.appendChild(e)}createButton(e,t){let r=document.createElement("button");return r.textContent=e,r.className="mermaid-control-button",r.addEventListener("click",t),window.addCleanup(()=>r.removeEventListener("click",t)),r}onMouseDown(e){e.button===0&&(this.isDragging=!0,this.startPan={x:e.clientX-this.currentPan.x,y:e.clientY-this.currentPan.y},this.container.style.cursor="grabbing")}onMouseMove(e){this.isDragging&&(e.preventDefault(),this.currentPan={x:e.clientX-this.startPan.x,y:e.clientY-this.startPan.y},this.updateTransform())}onMouseUp(){this.isDragging=!1,this.container.style.cursor="grab"}onTouchStart(e){if(e.touches.length!==1)return;this.isDragging=!0;let t=e.touches[0];this.startPan={x:t.clientX-this.currentPan.x,y:t.clientY-this.currentPan.y}}onTouchMove(e){if(!this.isDragging||e.touches.length!==1)return;e.preventDefault();let t=e.touches[0];this.currentPan={x:t.clientX-this.startPan.x,y:t.clientY-this.startPan.y},this.updateTransform()}onTouchEnd(){this.isDragging=!1}zoom(e){let t=Math.min(Math.max(this.scale+e,this.MIN_SCALE),this.MAX_SCALE),r=this.content.getBoundingClientRect(),s=r.width/2,o=r.height/2,i=t-this.scale;this.currentPan.x-=s*i,this.currentPan.y-=o*i,this.scale=t,this.updateTransform()}updateTransform(){this.content.style.transform=`translate(${this.currentPan.x}px, ${this.currentPan.y}px) scale(${this.scale})`}resetTransform(){let t=this.content.querySelector("svg").getBoundingClientRect(),r=t.width/this.scale,s=t.height/this.scale;this.scale=1,this.currentPan={x:(this.container.clientWidth-r)/2,y:(this.container.clientHeight-s)/2},this.updateTransform()}},T=["--secondary","--tertiary","--gray","--light","--lightgray","--highlight","--dark","--darkgray","--codeFont"],L;document.addEventListener("nav",async()=>{let e=document.querySelector(".center").querySelectorAll("code.mermaid");if(e.length===0)return;L||=await import("https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.4.0/mermaid.esm.min.mjs");let t=L.default,r=new WeakMap;for(let o of e){let i=o.getAttribute("data-clipboard"),n=o.innerText;if(i)try{n=JSON.parse(i)}catch{}r.set(o,n)}async function s(){for(let n of e){n.removeAttribute("data-processed");let a=r.get(n);a&&(n.textContent=a)}let o=T.reduce((n,a)=>(n[a]=window.getComputedStyle(document.documentElement).getPropertyValue(a),n),{}),i=document.documentElement.getAttribute("saved-theme")==="dark";t.initialize({startOnLoad:!1,securityLevel:"loose",theme:i?"dark":"base",themeVariables:{fontFamily:o["--codeFont"],primaryColor:o["--light"],primaryTextColor:o["--darkgray"],primaryBorderColor:o["--tertiary"],lineColor:o["--darkgray"],secondaryColor:o["--secondary"],tertiaryColor:o["--tertiary"],clusterBkg:o["--light"],edgeLabelBackground:o["--highlight"]}});for(let n=0;n<e.length;n++){let a=e[n],l=r.get(a);if(l)try{let u=`mermaid-svg-${Date.now()}-${n}`,{svg:p,bindFunctions:d}=await t.render(u,l);a.innerHTML=p,d&&d(a),a.setAttribute("data-processed","true")}catch(u){console.error(`mermaid render failed for node ${n}:`,u)}}}await s(),document.addEventListener("themechange",s),window.addCleanup(()=>document.removeEventListener("themechange",s));for(let o=0;o<e.length;o++){let g=function(){let f=d.querySelector("#mermaid-space"),m=d.querySelector(".mermaid-content");if(!m)return;y(m);let w=i.querySelector("svg").cloneNode(!0);m.appendChild(w),d.classList.add("active"),f.style.cursor="grab",h=new v(f,m)},M=function(){d.classList.remove("active"),h?.cleanup(),h=null},i=e[o],n=i.parentElement,a=n.querySelector(".clipboard-button"),l=n.querySelector(".expand-button"),u=window.getComputedStyle(a),p=a.offsetWidth+parseFloat(u.marginLeft||"0")+parseFloat(u.marginRight||"0");l.style.right=`calc(${p}px + 0.3rem)`,n.prepend(l);let d=n.querySelector("#mermaid-container");if(!d)return;let h=null;l.addEventListener("click",g),E(d,M),window.addCleanup(()=>{h?.cleanup(),l.removeEventListener("click",g)})}});
+</script><script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/copy-tex.min.js" type="application/javascript" data-persist="true"></script><script src="../postscript.js" type="module" data-persist="true"></script></html>

@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr"><head><title>optimization-patterns-优化</title><meta charset="utf-8"/><link rel="preconnect" href="https://fonts.googleapis.com"/><link rel="preconnect" href="https://fonts.gstatic.com"/><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted Grotesk:wght@400;700&amp;family=Source Sans Pro:ital,wght@0,400;0,600;1,400;1,600&amp;family=IBM Plex Mono:wght@400;600&amp;display=swap"/><link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin="anonymous"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><meta name="og:site_name" content="Unity / C# / .NET 游戏开发知识库"/><meta property="og:title" content="optimization-patterns-优化"/><meta property="og:type" content="website"/><meta name="twitter:card" content="summary_large_image"/><meta name="twitter:title" content="optimization-patterns-优化"/><meta name="twitter:description" content="优化模式（Optimization Patterns） 核心思想 游戏有硬性性能约束——60fps 意味着每帧只有 16.6ms，包含输入、逻辑、物理、渲染、音频在内的所有工作必须在此时限内完成。优化模式不是”让代码更快”的技巧集，而是为达到性能约束的工程手段：用结构化的设计取舍换取确定性性能。 GoF 将性能视为可选，优化模式将性能视为第一等公民。四种模式分别解决四种性能瓶颈：内存墙（缓存未命中）、计算浪费（重复重算）、分配墙（GC/分配延迟）、查询墙（暴力遍历）。理解瓶颈才能选对模式——不是所有代码都需要优化，但热路径必须优化。 问题动机 // 反面教材 1：无视缓存——经典 OOP 遍历..."/><meta property="og:description" content="优化模式（Optimization Patterns） 核心思想 游戏有硬性性能约束——60fps 意味着每帧只有 16.6ms，包含输入、逻辑、物理、渲染、音频在内的所有工作必须在此时限内完成。优化模式不是”让代码更快”的技巧集，而是为达到性能约束的工程手段：用结构化的设计取舍换取确定性性能。 GoF 将性能视为可选，优化模式将性能视为第一等公民。四种模式分别解决四种性能瓶颈：内存墙（缓存未命中）、计算浪费（重复重算）、分配墙（GC/分配延迟）、查询墙（暴力遍历）。理解瓶颈才能选对模式——不是所有代码都需要优化，但热路径必须优化。 问题动机 // 反面教材 1：无视缓存——经典 OOP 遍历..."/><meta property="og:image:alt" content="优化模式（Optimization Patterns） 核心思想 游戏有硬性性能约束——60fps 意味着每帧只有 16.6ms，包含输入、逻辑、物理、渲染、音频在内的所有工作必须在此时限内完成。优化模式不是”让代码更快”的技巧集，而是为达到性能约束的工程手段：用结构化的设计取舍换取确定性性能。 GoF 将性能视为可选，优化模式将性能视为第一等公民。四种模式分别解决四种性能瓶颈：内存墙（缓存未命中）、计算浪费（重复重算）、分配墙（GC/分配延迟）、查询墙（暴力遍历）。理解瓶颈才能选对模式——不是所有代码都需要优化，但热路径必须优化。 问题动机 // 反面教材 1：无视缓存——经典 OOP 遍历..."/><meta property="twitter:domain" content="easilyid.github.io/knowledge-base-site"/><meta property="og:url" content="https://easilyid.github.io/knowledge-base-site/patterns-设计模式/optimization-patterns-优化"/><meta property="twitter:url" content="https://easilyid.github.io/knowledge-base-site/patterns-设计模式/optimization-patterns-优化"/><link rel="icon" href="../static/icon.png"/><meta name="description" content="优化模式（Optimization Patterns） 核心思想 游戏有硬性性能约束——60fps 意味着每帧只有 16.6ms，包含输入、逻辑、物理、渲染、音频在内的所有工作必须在此时限内完成。优化模式不是”让代码更快”的技巧集，而是为达到性能约束的工程手段：用结构化的设计取舍换取确定性性能。 GoF 将性能视为可选，优化模式将性能视为第一等公民。四种模式分别解决四种性能瓶颈：内存墙（缓存未命中）、计算浪费（重复重算）、分配墙（GC/分配延迟）、查询墙（暴力遍历）。理解瓶颈才能选对模式——不是所有代码都需要优化，但热路径必须优化。 问题动机 // 反面教材 1：无视缓存——经典 OOP 遍历..."/><meta name="generator" content="Quartz"/><link href="../index.css" rel="stylesheet" type="text/css" data-persist="true"/><style>.expand-button {
+  position: absolute;
+  display: flex;
+  float: right;
+  padding: 0.4rem;
+  margin: 0.3rem;
+  right: 0;
+  color: var(--gray);
+  border-color: var(--dark);
+  background-color: var(--light);
+  border: 1px solid;
+  border-radius: 5px;
+  opacity: 0;
+  transition: 0.2s;
+}
+.expand-button > svg {
+  fill: var(--light);
+  filter: contrast(0.3);
+}
+.expand-button:hover {
+  cursor: pointer;
+  border-color: var(--secondary);
+}
+.expand-button:focus {
+  outline: 0;
+}
+
+pre:hover > .expand-button {
+  opacity: 1;
+  transition: 0.2s;
+}
+
+#mermaid-container {
+  position: fixed;
+  contain: layout;
+  z-index: 999;
+  left: 0;
+  top: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  display: none;
+  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.5);
+}
+#mermaid-container.active {
+  display: inline-block;
+}
+#mermaid-container > #mermaid-space {
+  border: 1px solid var(--lightgray);
+  background-color: var(--light);
+  border-radius: 5px;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  height: 80vh;
+  width: 80vw;
+  overflow: hidden;
+}
+#mermaid-container > #mermaid-space > .mermaid-content {
+  position: relative;
+  transform-origin: 0 0;
+  transition: transform 0.1s ease;
+  overflow: visible;
+  min-height: 200px;
+  min-width: 200px;
+}
+#mermaid-container > #mermaid-space > .mermaid-content pre {
+  margin: 0;
+  border: none;
+}
+#mermaid-container > #mermaid-space > .mermaid-content svg {
+  max-width: none;
+  height: auto;
+}
+#mermaid-container > #mermaid-space > .mermaid-controls {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+  background: var(--light);
+  border: 1px solid var(--lightgray);
+  border-radius: 6px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  z-index: 2;
+}
+#mermaid-container > #mermaid-space > .mermaid-controls .mermaid-control-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--lightgray);
+  background: var(--light);
+  color: var(--dark);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  font-family: var(--bodyFont);
+  transition: all 0.2s ease;
+}
+#mermaid-container > #mermaid-space > .mermaid-controls .mermaid-control-button:hover {
+  background: var(--lightgray);
+}
+#mermaid-container > #mermaid-space > .mermaid-controls .mermaid-control-button:active {
+  transform: translateY(1px);
+}
+#mermaid-container > #mermaid-space > .mermaid-controls .mermaid-control-button:nth-child(2) {
+  width: auto;
+  padding: 0 12px;
+  font-size: 14px;
+}
+/*# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VSb290IjoiL2hvbWUvcnVubmVyL3dvcmsvS25vd2xlZGdlLUJhc2UvS25vd2xlZGdlLUJhc2UvcXVhcnR6L3F1YXJ0ei9jb21wb25lbnRzL3N0eWxlcyIsInNvdXJjZXMiOlsibWVybWFpZC5pbmxpbmUuc2NzcyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiQUFBQTtFQUNFO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBOztBQUVBO0VBQ0U7RUFDQTs7QUFHRjtFQUNFO0VBQ0E7O0FBR0Y7RUFDRTs7O0FBS0Y7RUFDRTtFQUNBOzs7QUFJSjtFQUNFO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7O0FBRUE7RUFDRTs7QUFHRjtFQUNFO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBOztBQUVBO0VBQ0U7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBOztBQUVBO0VBQ0U7RUFDQTs7QUFHRjtFQUNFO0VBQ0E7O0FBSUo7RUFDRTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBOztBQUVBO0VBQ0U7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTs7QUFFQTtFQUNFOztBQUdGO0VBQ0U7O0FBSUY7RUFDRTtFQUNBO0VBQ0EiLCJzb3VyY2VzQ29udGVudCI6WyIuZXhwYW5kLWJ1dHRvbiB7XG4gIHBvc2l0aW9uOiBhYnNvbHV0ZTtcbiAgZGlzcGxheTogZmxleDtcbiAgZmxvYXQ6IHJpZ2h0O1xuICBwYWRkaW5nOiAwLjRyZW07XG4gIG1hcmdpbjogMC4zcmVtO1xuICByaWdodDogMDsgLy8gTk9URTogcmlnaHQgd2lsbCBiZSBzZXQgaW4gbWVybWFpZC5pbmxpbmUudHNcbiAgY29sb3I6IHZhcigtLWdyYXkpO1xuICBib3JkZXItY29sb3I6IHZhcigtLWRhcmspO1xuICBiYWNrZ3JvdW5kLWNvbG9yOiB2YXIoLS1saWdodCk7XG4gIGJvcmRlcjogMXB4IHNvbGlkO1xuICBib3JkZXItcmFkaXVzOiA1cHg7XG4gIG9wYWNpdHk6IDA7XG4gIHRyYW5zaXRpb246IDAuMnM7XG5cbiAgJiA+IHN2ZyB7XG4gICAgZmlsbDogdmFyKC0tbGlnaHQpO1xuICAgIGZpbHRlcjogY29udHJhc3QoMC4zKTtcbiAgfVxuXG4gICY6aG92ZXIge1xuICAgIGN1cnNvcjogcG9pbnRlcjtcbiAgICBib3JkZXItY29sb3I6IHZhcigtLXNlY29uZGFyeSk7XG4gIH1cblxuICAmOmZvY3VzIHtcbiAgICBvdXRsaW5lOiAwO1xuICB9XG59XG5cbnByZSB7XG4gICY6aG92ZXIgPiAuZXhwYW5kLWJ1dHRvbiB7XG4gICAgb3BhY2l0eTogMTtcbiAgICB0cmFuc2l0aW9uOiAwLjJzO1xuICB9XG59XG5cbiNtZXJtYWlkLWNvbnRhaW5lciB7XG4gIHBvc2l0aW9uOiBmaXhlZDtcbiAgY29udGFpbjogbGF5b3V0O1xuICB6LWluZGV4OiA5OTk7XG4gIGxlZnQ6IDA7XG4gIHRvcDogMDtcbiAgd2lkdGg6IDEwMHZ3O1xuICBoZWlnaHQ6IDEwMHZoO1xuICBvdmVyZmxvdzogaGlkZGVuO1xuICBkaXNwbGF5OiBub25lO1xuICBiYWNrZHJvcC1maWx0ZXI6IGJsdXIoNHB4KTtcbiAgYmFja2dyb3VuZDogcmdiYSgwLCAwLCAwLCAwLjUpO1xuXG4gICYuYWN0aXZlIHtcbiAgICBkaXNwbGF5OiBpbmxpbmUtYmxvY2s7XG4gIH1cblxuICAmID4gI21lcm1haWQtc3BhY2Uge1xuICAgIGJvcmRlcjogMXB4IHNvbGlkIHZhcigtLWxpZ2h0Z3JheSk7XG4gICAgYmFja2dyb3VuZC1jb2xvcjogdmFyKC0tbGlnaHQpO1xuICAgIGJvcmRlci1yYWRpdXM6IDVweDtcbiAgICBwb3NpdGlvbjogZml4ZWQ7XG4gICAgdG9wOiA1MCU7XG4gICAgbGVmdDogNTAlO1xuICAgIHRyYW5zZm9ybTogdHJhbnNsYXRlKC01MCUsIC01MCUpO1xuICAgIGhlaWdodDogODB2aDtcbiAgICB3aWR0aDogODB2dztcbiAgICBvdmVyZmxvdzogaGlkZGVuO1xuXG4gICAgJiA+IC5tZXJtYWlkLWNvbnRlbnQge1xuICAgICAgcG9zaXRpb246IHJlbGF0aXZlO1xuICAgICAgdHJhbnNmb3JtLW9yaWdpbjogMCAwO1xuICAgICAgdHJhbnNpdGlvbjogdHJhbnNmb3JtIDAuMXMgZWFzZTtcbiAgICAgIG92ZXJmbG93OiB2aXNpYmxlO1xuICAgICAgbWluLWhlaWdodDogMjAwcHg7XG4gICAgICBtaW4td2lkdGg6IDIwMHB4O1xuXG4gICAgICBwcmUge1xuICAgICAgICBtYXJnaW46IDA7XG4gICAgICAgIGJvcmRlcjogbm9uZTtcbiAgICAgIH1cblxuICAgICAgc3ZnIHtcbiAgICAgICAgbWF4LXdpZHRoOiBub25lO1xuICAgICAgICBoZWlnaHQ6IGF1dG87XG4gICAgICB9XG4gICAgfVxuXG4gICAgJiA+IC5tZXJtYWlkLWNvbnRyb2xzIHtcbiAgICAgIHBvc2l0aW9uOiBhYnNvbHV0ZTtcbiAgICAgIGJvdHRvbTogMjBweDtcbiAgICAgIHJpZ2h0OiAyMHB4O1xuICAgICAgZGlzcGxheTogZmxleDtcbiAgICAgIGdhcDogOHB4O1xuICAgICAgcGFkZGluZzogOHB4O1xuICAgICAgYmFja2dyb3VuZDogdmFyKC0tbGlnaHQpO1xuICAgICAgYm9yZGVyOiAxcHggc29saWQgdmFyKC0tbGlnaHRncmF5KTtcbiAgICAgIGJvcmRlci1yYWRpdXM6IDZweDtcbiAgICAgIGJveC1zaGFkb3c6IDAgMnB4IDRweCByZ2JhKDAsIDAsIDAsIDAuMSk7XG4gICAgICB6LWluZGV4OiAyO1xuXG4gICAgICAubWVybWFpZC1jb250cm9sLWJ1dHRvbiB7XG4gICAgICAgIGRpc3BsYXk6IGZsZXg7XG4gICAgICAgIGFsaWduLWl0ZW1zOiBjZW50ZXI7XG4gICAgICAgIGp1c3RpZnktY29udGVudDogY2VudGVyO1xuICAgICAgICB3aWR0aDogMzJweDtcbiAgICAgICAgaGVpZ2h0OiAzMnB4O1xuICAgICAgICBwYWRkaW5nOiAwO1xuICAgICAgICBib3JkZXI6IDFweCBzb2xpZCB2YXIoLS1saWdodGdyYXkpO1xuICAgICAgICBiYWNrZ3JvdW5kOiB2YXIoLS1saWdodCk7XG4gICAgICAgIGNvbG9yOiB2YXIoLS1kYXJrKTtcbiAgICAgICAgYm9yZGVyLXJhZGl1czogNHB4O1xuICAgICAgICBjdXJzb3I6IHBvaW50ZXI7XG4gICAgICAgIGZvbnQtc2l6ZTogMTZweDtcbiAgICAgICAgZm9udC1mYW1pbHk6IHZhcigtLWJvZHlGb250KTtcbiAgICAgICAgdHJhbnNpdGlvbjogYWxsIDAuMnMgZWFzZTtcblxuICAgICAgICAmOmhvdmVyIHtcbiAgICAgICAgICBiYWNrZ3JvdW5kOiB2YXIoLS1saWdodGdyYXkpO1xuICAgICAgICB9XG5cbiAgICAgICAgJjphY3RpdmUge1xuICAgICAgICAgIHRyYW5zZm9ybTogdHJhbnNsYXRlWSgxcHgpO1xuICAgICAgICB9XG5cbiAgICAgICAgLy8gU3R5bGUgdGhlIHJlc2V0IGJ1dHRvbiBkaWZmZXJlbnRseVxuICAgICAgICAmOm50aC1jaGlsZCgyKSB7XG4gICAgICAgICAgd2lkdGg6IGF1dG87XG4gICAgICAgICAgcGFkZGluZzogMCAxMnB4O1xuICAgICAgICAgIGZvbnQtc2l6ZTogMTRweDtcbiAgICAgICAgfVxuICAgICAgfVxuICAgIH1cbiAgfVxufVxuIl19 */</style><link href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" rel="stylesheet" type="text/css" data-persist="true"/><script src="../prescript.js" type="application/javascript" data-persist="true"></script><script type="application/javascript" data-persist="true">const fetchData = fetch("../static/contentIndex.json").then(data => data.json())</script><link rel="alternate" type="application/rss+xml" title="RSS Feed" href="https://easilyid.github.io/knowledge-base-site/index.xml"/><meta property="og:image:width" content="1200"/><meta property="og:image:height" content="630"/><meta property="og:image" content="https://easilyid.github.io/knowledge-base-site/patterns-设计模式/optimization-patterns-优化-og-image.webp"/><meta property="og:image:url" content="https://easilyid.github.io/knowledge-base-site/patterns-设计模式/optimization-patterns-优化-og-image.webp"/><meta name="twitter:image" content="https://easilyid.github.io/knowledge-base-site/patterns-设计模式/optimization-patterns-优化-og-image.webp"/><meta property="og:image:type" content="image/.webp"/></head><body data-slug="patterns-设计模式/optimization-patterns-优化"><div id="quartz-root" class="page"><div id="quartz-body"><div class="left sidebar"><h2 class="page-title"><a href="..">Unity / C# / .NET 游戏开发知识库</a></h2><div class="spacer mobile-only"></div><div class="flex-component" style="flex-direction: row; flex-wrap: nowrap; gap: 1rem;"><div style="flex-grow: 1; flex-shrink: 1; flex-basis: auto; order: 0; align-self: center; justify-self: center;"><div class="search"><button class="search-button"><svg role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 19.9 19.7"><title>Search</title><g class="search-path" fill="none"><path stroke-linecap="square" d="M18.5 18.3l-5.4-5.4"></path><circle cx="8" cy="8" r="7"></circle></g></svg><p>搜索</p></button><div class="search-container"><div class="search-space"><input autocomplete="off" class="search-bar" name="search" type="text" aria-label="搜索些什么" placeholder="搜索些什么"/><div class="search-layout" data-preview="true"></div></div></div></div></div><div style="flex-grow: 0; flex-shrink: 1; flex-basis: auto; order: 0; align-self: center; justify-self: center;"><button class="darkmode"><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" class="dayIcon" x="0px" y="0px" viewBox="0 0 35 35" style="enable-background:new 0 0 35 35" xml:space="preserve" aria-label="暗色模式"><title>暗色模式</title><path d="M6,17.5C6,16.672,5.328,16,4.5,16h-3C0.672,16,0,16.672,0,17.5    S0.672,19,1.5,19h3C5.328,19,6,18.328,6,17.5z M7.5,26c-0.414,0-0.789,0.168-1.061,0.439l-2,2C4.168,28.711,4,29.086,4,29.5    C4,30.328,4.671,31,5.5,31c0.414,0,0.789-0.168,1.06-0.44l2-2C8.832,28.289,9,27.914,9,27.5C9,26.672,8.329,26,7.5,26z M17.5,6    C18.329,6,19,5.328,19,4.5v-3C19,0.672,18.329,0,17.5,0S16,0.672,16,1.5v3C16,5.328,16.671,6,17.5,6z M27.5,9    c0.414,0,0.789-0.168,1.06-0.439l2-2C30.832,6.289,31,5.914,31,5.5C31,4.672,30.329,4,29.5,4c-0.414,0-0.789,0.168-1.061,0.44    l-2,2C26.168,6.711,26,7.086,26,7.5C26,8.328,26.671,9,27.5,9z M6.439,8.561C6.711,8.832,7.086,9,7.5,9C8.328,9,9,8.328,9,7.5    c0-0.414-0.168-0.789-0.439-1.061l-2-2C6.289,4.168,5.914,4,5.5,4C4.672,4,4,4.672,4,5.5c0,0.414,0.168,0.789,0.439,1.06    L6.439,8.561z M33.5,16h-3c-0.828,0-1.5,0.672-1.5,1.5s0.672,1.5,1.5,1.5h3c0.828,0,1.5-0.672,1.5-1.5S34.328,16,33.5,16z     M28.561,26.439C28.289,26.168,27.914,26,27.5,26c-0.828,0-1.5,0.672-1.5,1.5c0,0.414,0.168,0.789,0.439,1.06l2,2    C28.711,30.832,29.086,31,29.5,31c0.828,0,1.5-0.672,1.5-1.5c0-0.414-0.168-0.789-0.439-1.061L28.561,26.439z M17.5,29    c-0.829,0-1.5,0.672-1.5,1.5v3c0,0.828,0.671,1.5,1.5,1.5s1.5-0.672,1.5-1.5v-3C19,29.672,18.329,29,17.5,29z M17.5,7    C11.71,7,7,11.71,7,17.5S11.71,28,17.5,28S28,23.29,28,17.5S23.29,7,17.5,7z M17.5,25c-4.136,0-7.5-3.364-7.5-7.5    c0-4.136,3.364-7.5,7.5-7.5c4.136,0,7.5,3.364,7.5,7.5C25,21.636,21.636,25,17.5,25z"></path></svg><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" class="nightIcon" x="0px" y="0px" viewBox="0 0 100 100" style="enable-background:new 0 0 100 100" xml:space="preserve" aria-label="亮色模式"><title>亮色模式</title><path d="M96.76,66.458c-0.853-0.852-2.15-1.064-3.23-0.534c-6.063,2.991-12.858,4.571-19.655,4.571  C62.022,70.495,50.88,65.88,42.5,57.5C29.043,44.043,25.658,23.536,34.076,6.47c0.532-1.08,0.318-2.379-0.534-3.23  c-0.851-0.852-2.15-1.064-3.23-0.534c-4.918,2.427-9.375,5.619-13.246,9.491c-9.447,9.447-14.65,22.008-14.65,35.369  c0,13.36,5.203,25.921,14.65,35.368s22.008,14.65,35.368,14.65c13.361,0,25.921-5.203,35.369-14.65  c3.872-3.871,7.064-8.328,9.491-13.246C97.826,68.608,97.611,67.309,96.76,66.458z"></path></svg></button></div><div style="flex-grow: 0; flex-shrink: 1; flex-basis: auto; order: 0; align-self: center; justify-self: center;"><button class="readermode"><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" class="readerIcon" fill="currentColor" stroke="currentColor" stroke-width="0.2" stroke-linecap="round" stroke-linejoin="round" width="64px" height="64px" viewBox="0 0 24 24" aria-label="阅读模式"><title>阅读模式</title><g transform="translate(-1.8, -1.8) scale(1.15, 1.2)"><path d="M8.9891247,2.5 C10.1384702,2.5 11.2209868,2.96705384 12.0049645,3.76669482 C12.7883914,2.96705384 13.8709081,2.5 15.0202536,2.5 L18.7549359,2.5 C19.1691495,2.5 19.5049359,2.83578644 19.5049359,3.25 L19.5046891,4.004 L21.2546891,4.00457396 C21.6343849,4.00457396 21.9481801,4.28672784 21.9978425,4.6528034 L22.0046891,4.75457396 L22.0046891,20.25 C22.0046891,20.6296958 21.7225353,20.943491 21.3564597,20.9931534 L21.2546891,21 L2.75468914,21 C2.37499337,21 2.06119817,20.7178461 2.01153575,20.3517706 L2.00468914,20.25 L2.00468914,4.75457396 C2.00468914,4.37487819 2.28684302,4.061083 2.65291858,4.01142057 L2.75468914,4.00457396 L4.50368914,4.004 L4.50444233,3.25 C4.50444233,2.87030423 4.78659621,2.55650904 5.15267177,2.50684662 L5.25444233,2.5 L8.9891247,2.5 Z M4.50368914,5.504 L3.50468914,5.504 L3.50468914,19.5 L10.9478955,19.4998273 C10.4513189,18.9207296 9.73864328,18.5588115 8.96709342,18.5065584 L8.77307039,18.5 L5.25444233,18.5 C4.87474657,18.5 4.56095137,18.2178461 4.51128895,17.8517706 L4.50444233,17.75 L4.50368914,5.504 Z M19.5049359,17.75 C19.5049359,18.1642136 19.1691495,18.5 18.7549359,18.5 L15.2363079,18.5 C14.3910149,18.5 13.5994408,18.8724714 13.0614828,19.4998273 L20.5046891,19.5 L20.5046891,5.504 L19.5046891,5.504 L19.5049359,17.75 Z M18.0059359,3.999 L15.0202536,4 L14.8259077,4.00692283 C13.9889509,4.06666544 13.2254227,4.50975805 12.7549359,5.212 L12.7549359,17.777 L12.7782651,17.7601316 C13.4923805,17.2719483 14.3447024,17 15.2363079,17 L18.0059359,16.999 L18.0056891,4.798 L18.0033792,4.75457396 L18.0056891,4.71 L18.0059359,3.999 Z M8.9891247,4 L6.00368914,3.999 L6.00599909,4.75457396 L6.00599909,4.75457396 L6.00368914,4.783 L6.00368914,16.999 L8.77307039,17 C9.57551536,17 10.3461406,17.2202781 11.0128313,17.6202194 L11.2536891,17.776 L11.2536891,5.211 C10.8200889,4.56369974 10.1361548,4.13636104 9.37521067,4.02745763 L9.18347055,4.00692283 L8.9891247,4 Z"></path></g></svg></button></div></div><div class="explorer" data-behavior="link" data-collapsed="collapsed" data-savestate="true" data-data-fns="{&quot;order&quot;:[&quot;filter&quot;,&quot;map&quot;,&quot;sort&quot;],&quot;sortFn&quot;:&quot;(a,b)=>!a.isFolder&amp;&amp;!b.isFolder||a.isFolder&amp;&amp;b.isFolder?a.displayName.localeCompare(b.displayName,void 0,{numeric:!0,sensitivity:\&quot;base\&quot;}):!a.isFolder&amp;&amp;b.isFolder?1:-1&quot;,&quot;filterFn&quot;:&quot;node=>node.slugSegment!==\&quot;tags\&quot;&quot;,&quot;mapFn&quot;:&quot;node=>{let override={\&quot;unity-Unity\\u5F15\\u64CE\&quot;:\&quot;Unity\&quot;,\&quot;csharp-dotnet-CSharp\\u4E0ENET\&quot;:\&quot;C#/.NET\&quot;,\&quot;patterns-\\u8BBE\\u8BA1\\u6A21\\u5F0F\&quot;:\&quot;\\u8BBE\\u8BA1\\u6A21\\u5F0F\&quot;,\&quot;performance-\\u6027\\u80FD\\u4F18\\u5316\&quot;:\&quot;\\u6027\\u80FD\&quot;,\&quot;tools-\\u5DE5\\u5177\\u4E0E\\u5DE5\\u4F5C\\u6D41\&quot;:\&quot;\\u5DE5\\u5177\&quot;,\&quot;gamedesign-\\u6E38\\u620F\\u8BBE\\u8BA1\&quot;:\&quot;\\u6E38\\u620F\\u8BBE\\u8BA1\&quot;,\&quot;sources-\\u6765\\u6E90\\u6458\\u8981\&quot;:\&quot;\\u6765\\u6E90\\u6458\\u8981\&quot;}[node.displayName];if(override){node.displayName=override;return}let segments=node.displayName.split(\&quot;-\&quot;),cjkStart=segments.findIndex(segment=>/[一-鿿]/.test(segment));cjkStart>-1&amp;&amp;(node.displayName=segments.slice(cjkStart).join(\&quot;-\&quot;))}&quot;}"><button type="button" class="explorer-toggle mobile-explorer hide-until-loaded" data-mobile="true" aria-controls="explorer-52"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide-menu"><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button><button type="button" class="title-button explorer-toggle desktop-explorer" data-mobile="false" aria-expanded="true"><h2>探索</h2><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="5 8 14 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="fold"><polyline points="6 9 12 15 18 9"></polyline></svg></button><div id="explorer-52" class="explorer-content" aria-expanded="false" role="group"><ul class="explorer-ul overflow" id="list-0"><li class="overflow-end"></li></ul></div><template id="template-file"><li><a href="#"></a></li></template><template id="template-folder"><li><div class="folder-container"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="5 8 14 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="folder-icon"><polyline points="6 9 12 15 18 9"></polyline></svg><div><button class="folder-button"><span class="folder-title"></span></button></div></div><div class="folder-outer"><ul class="content"></ul></div></li></template></div></div><div class="center"><div class="page-header"><div class="popover-hint"><nav class="breadcrumb-container" aria-label="breadcrumbs"><div class="breadcrumb-element"><a href="../">Home</a><p> ❯ </p></div><div class="breadcrumb-element"><a href="../patterns-设计模式/">设计模式</a><p> ❯ </p></div><div class="breadcrumb-element"><a href>优化</a></div></nav><h1 class="article-title">optimization-patterns-优化</h1><p show-comma="true" class="content-meta"><time datetime="2026-05-17T00:00:00.000Z">2026年5月17日</time><span>22分钟阅读</span></p></div></div><article class="popover-hint"><h1 id="优化模式optimization-patterns">优化模式（Optimization Patterns）<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#优化模式optimization-patterns" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h1>
+<h2 id="核心思想">核心思想<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#核心思想" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<p>游戏有硬性性能约束——60fps 意味着每帧只有 16.6ms，包含输入、逻辑、物理、渲染、音频在内的所有工作必须在此时限内完成。优化模式不是”让代码更快”的技巧集，而是<strong>为达到性能约束的工程手段</strong>：用结构化的设计取舍换取确定性性能。</p>
+<p>GoF 将性能视为可选，优化模式将性能视为<strong>第一等公民</strong>。四种模式分别解决四种性能瓶颈：内存墙（缓存未命中）、计算浪费（重复重算）、分配墙（GC/分配延迟）、查询墙（暴力遍历）。理解瓶颈才能选对模式——不是所有代码都需要优化，但热路径必须优化。</p>
+<h2 id="问题动机">问题动机<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#问题动机" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="csharp" data-theme="github-light github-dark"><code data-language="csharp" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 反面教材 1：无视缓存——经典 OOP 遍历</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">public</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> class</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Enemy</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    public</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Vector3</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Position</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">;</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    public</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> int</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Health</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">;</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    public</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> float</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Speed</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">;</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    public</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> AIState</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> AIState</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">;</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">}</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 1000 个 Enemy 在堆上随机分布</span></span>
+<span data-line><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">List</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Enemy</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">> </span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">enemies</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> new</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> List</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Enemy</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">>();</span></span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// enemies[0] 在 0x1000，enemies[1] 在 0x5000 ← 跳跃 16KB！</span></span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 每次访问 enemy.Position 都可能 Cache Miss → 等 100-200 周期</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">foreach</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> (</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">var</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> enemy</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> in</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> enemies)</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    enemy.Position </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">+=</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> enemy.Speed </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">*</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> enemy.AIState.Direction </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">*</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> dt;</span></span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 1000 次指针跳转 → 大量 Cache Miss → 帧时间爆炸</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 反面教材 2：每次修改都立即重算——不延期</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">public</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> class</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> SceneGraphNode</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    public</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> void</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> SetLocal</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Transform</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> local</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">)</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    {</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">        LocalTransform </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">=</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> local;</span></span>
+<span data-line><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">        RecalculateWorld</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">();                  </span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 立即重算自己</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">        foreach</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> (</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">var</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> child</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> in</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> Children)</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">            child.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">RecalculateWorld</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">();        </span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 递归重算子节点</span></span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">        // 一帧内 SetLocal 10 次 → 重算 10 次，前 9 次白算</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    }</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">}</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 反面教材 3：频繁 Instantiate/Destroy —— GC Spike</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">public</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> class</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> BulletManager</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> : </span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">MonoBehaviour</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    public</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> void</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Fire</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Vector3</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> pos</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">, </span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Vector3</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> dir</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">)</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    {</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">        var</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> bullet</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Instantiate</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(BulletPrefab, pos, Quaternion.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">LookRotation</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(dir));</span></span>
+<span data-line><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">        Destroy</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(bullet, </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">3f</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">);</span></span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">        // 射击游戏每秒 50 发 = 每秒 50 次 Instantiate + 50 次 Destroy</span></span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">        // Destroy 不是立即释放，等 GC 一次性回收 → GC Spike</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    }</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">}</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 反面教材 4：暴力 O(n²) 空间查询</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">for</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> (</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">int</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> i</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> 0</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">; i </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">&lt;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> enemies.Count; i</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">++</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">)</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    for</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> (</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">int</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> j</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> i </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">+</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> 1</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">; j </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">&lt;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> enemies.Count; j</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">++</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">)</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">        if</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> (</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Overlap</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(enemies[i], enemies[j])) </span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Resolve</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">();</span></span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 1000 个单位 → 499,500 次检测 → 卡死</span></span></code></pre></figure>
+<p>四种写法分别对应四种性能瓶颈：</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th>瓶颈</th><th>问题</th><th>对应模式</th></tr></thead><tbody><tr><td>内存墙</td><td>数据散布在堆上，遍历时 Cache Miss</td><td>数据局部性</td></tr><tr><td>计算浪费</td><td>每次修改都立即重算，大量中间结果被覆盖</td><td>脏标识</td></tr><tr><td>分配墙</td><td>频繁 new/destroy 导致 GC Spike 和内存碎片</td><td><a href="../patterns-设计模式/object-pool-对象池" class="internal alias" data-slug="patterns-设计模式/object-pool-对象池">对象池</a></td></tr><tr><td>查询墙</td><td>暴力遍历所有对象对，绝大多数检测是浪费</td><td>空间分区</td></tr></tbody></table></div>
+<h2 id="模式间关系">模式间关系<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#模式间关系" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<pre><button class="expand-button" aria-label="Expand mermaid diagram" data-view-component="true"><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path fill-rule="evenodd" d="M3.72 3.72a.75.75 0 011.06 1.06L2.56 7h10.88l-2.22-2.22a.75.75 0 011.06-1.06l3.5 3.5a.75.75 0 010 1.06l-3.5 3.5a.75.75 0 11-1.06-1.06l2.22-2.22H2.56l2.22 2.22a.75.75 0 11-1.06 1.06l-3.5-3.5a.75.75 0 010-1.06l3.5-3.5z"></path></svg></button><code class="mermaid" data-clipboard="&quot;graph TB\n    DL[\&quot;数据局部性&lt;br/>优化：内存布局\&quot;] --> |\&quot;连续布局 → 池化更自然\&quot;| OP[\&quot;对象池&lt;br/>优化：分配开销\&quot;]\n    OP --> |\&quot;池对象 → 空间分区管理\&quot;| SP[\&quot;空间分区&lt;br/>优化：查询范围\&quot;]\n    DF[\&quot;脏标识&lt;br/>优化：计算频率\&quot;] --> |\&quot;脏标识减少计算 → 池对象更新更少\&quot;| OP\n    SP --> |\&quot;只更新局部 → 脏标识更精准\&quot;| DF\n\n    subgraph 四种性能瓶颈\n        direction LR\n        B1[\&quot;内存墙&lt;br/>缓存未命中\&quot;] --> B2[\&quot;计算浪费&lt;br/>重复重算\&quot;]\n        B2 --> B3[\&quot;分配墙&lt;br/>GC/分配延迟\&quot;]\n        B3 --> B4[\&quot;查询墙&lt;br/>暴力遍历\&quot;]\n    end\n\n    style DL fill:#e8f5e9\n    style DF fill:#e3f2fd\n    style OP fill:#fff3e0\n    style SP fill:#fce4ec&quot;">graph TB
+    DL[&quot;数据局部性&lt;br/>优化：内存布局&quot;] --> |&quot;连续布局 → 池化更自然&quot;| OP[&quot;对象池&lt;br/>优化：分配开销&quot;]
+    OP --> |&quot;池对象 → 空间分区管理&quot;| SP[&quot;空间分区&lt;br/>优化：查询范围&quot;]
+    DF[&quot;脏标识&lt;br/>优化：计算频率&quot;] --> |&quot;脏标识减少计算 → 池对象更新更少&quot;| OP
+    SP --> |&quot;只更新局部 → 脏标识更精准&quot;| DF
+
+    subgraph 四种性能瓶颈
+        direction LR
+        B1[&quot;内存墙&lt;br/>缓存未命中&quot;] --> B2[&quot;计算浪费&lt;br/>重复重算&quot;]
+        B2 --> B3[&quot;分配墙&lt;br/>GC/分配延迟&quot;]
+        B3 --> B4[&quot;查询墙&lt;br/>暴力遍历&quot;]
+    end
+
+    style DL fill:#e8f5e9
+    style DF fill:#e3f2fd
+    style OP fill:#fff3e0
+    style SP fill:#fce4ec
+</code><div id="mermaid-container" role="dialog"><div id="mermaid-space"><div class="mermaid-content"></div></div></div></pre>
+<p>四种模式覆盖四种性能瓶颈，组合使用覆盖全部性能热点：</p>
+<ul>
+<li><strong>数据局部性</strong>让 CPU 预取命中——消除内存墙</li>
+<li><strong>脏标识</strong>只在需要时计算——消除计算浪费</li>
+<li><strong>对象池</strong>消除运行时分配——消除分配墙</li>
+<li><strong>空间分区</strong>缩小搜索范围——消除查询墙</li>
+</ul>
+<h2 id="参与者">参与者<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#参与者" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th>角色</th><th>职责</th><th>数据局部性</th><th>脏标识</th><th>对象池</th><th>空间分区</th></tr></thead><tbody><tr><td><strong>瓶颈类型</strong></td><td>性能问题的根源</td><td>缓存未命中</td><td>重复计算</td><td>GC/分配</td><td>O(n²) 查询</td></tr><tr><td><strong>优化策略</strong></td><td>如何消除瓶颈</td><td>连续内存布局</td><td>延期计算</td><td>预分配复用</td><td>空间索引</td></tr><tr><td><strong>核心数据结构</strong></td><td>优化依赖的结构</td><td>SoA / Archetype</td><td>bool / 位掩码</td><td>池 + 空闲链表</td><td>网格 / 树</td></tr><tr><td><strong>代价</strong></td><td>优化牺牲了什么</td><td>代码可读性</td><td>延迟生效</td><td>内存常驻</td><td>维护开销</td></tr><tr><td><strong>Unity 映射</strong></td><td>引擎中的标准实现</td><td>DOTS / NativeArray</td><td>Transform.hasChanged</td><td>ObjectPool&lt;T></td><td>PhysX BVH</td></tr></tbody></table></div>
+<h2 id="与-performance-分支的关系">与 performance 分支的关系<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#与-performance-分支的关系" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<p>优化模式是 <code>performance</code> 分支中诸多页面的<strong>设计模式根源</strong>：</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th>performance 页面</th><th>对应的优化模式</th><th>关系</th></tr></thead><tbody><tr><td><a href="../performance-性能优化/job-system-作业系统" class="internal alias" data-slug="performance-性能优化/job-system-作业系统">job-system-作业系统</a></td><td>数据局部性</td><td>Job 的并行前提是数据连续可切分</td></tr><tr><td><a href="../performance-性能优化/native-container-Native容器" class="internal alias" data-slug="performance-性能优化/native-container-Native容器">native-container-Native容器</a></td><td>数据局部性 + 对象池</td><td>NativeArray/NativeList 是连续布局；NativeHashMap 是空间分区变体</td></tr><tr><td><a href="../performance-性能优化/burst-compiler-Burst编译" class="internal alias" data-slug="performance-性能优化/burst-compiler-Burst编译">burst-compiler-Burst编译</a></td><td>数据局部性</td><td>Burst 的 SIMD 优化前提是数据连续对齐</td></tr><tr><td><a href="../csharp-dotnet-CSharp与NET/garbage-collection-GC与内存" class="internal alias" data-slug="csharp-dotnet-CSharp与NET/garbage-collection-GC与内存">garbage-collection-GC与内存</a></td><td>对象池</td><td>对象池是规避 GC 的核心手段</td></tr><tr><td><a href="../unity-Unity引擎/dots-ecs-数据导向" class="internal alias" data-slug="unity-Unity引擎/dots-ecs-数据导向">dots-ecs-数据导向</a></td><td>数据局部性 + 对象池</td><td>Archetype 连续布局 + Entity 复用</td></tr></tbody></table></div>
+<blockquote class="callout tip" data-callout="tip">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>理解优化模式是理解 performance 分支的前提 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p><code>NativeArray</code> 的设计不是随意选择——它是数据局部性模式的工程落地。<code>ObjectPool&lt;T></code> 的存在不是因为 C# 缺少 GC——它是对象池模式的标准化实现。知道模式才能理解为什么这些 API 长这样。</p>
+</div>
+</blockquote>
+<h2 id="四种模式详解">四种模式详解<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#四种模式详解" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<h3 id="数据局部性data-locality">数据局部性（Data Locality）<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#数据局部性data-locality" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p><strong>核心意图</strong>：将频繁一起访问的数据在内存中连续排列，最大化 CPU 缓存命中率。现代 CPU 访问主内存比访问 L1 缓存慢 100-200 倍——算法时间复杂度再好，每次访问都 Cache Miss 性能照样崩溃。</p>
+<p><strong>经典场景</strong>：大量实体遍历（1000+ 敌人位置更新）、DOTS/ECS 全部 System、粒子系统。</p>
+<p><strong>Unity 映射</strong>：DOTS 的整个设计就是数据局部性模式的系统级实现——Archetype 保证同类 Component 内存连续，Chunk 是 CPU 缓存行友好的 16KB 块，Burst 编译器利用连续数据布局生成 SIMD 指令。</p>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="csharp" data-theme="github-light github-dark"><code data-language="csharp" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// AoS vs SoA：数据局部性的核心对比</span></span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// AoS（传统 OOP）：随机内存 → Cache Miss</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">class</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Enemy</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> { </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">public</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Vector3</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Position</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">; </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">public</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> int</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Health</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">; </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">public</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> float</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Speed</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">; }</span></span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// enemies[0] 在 0x1000，enemies[1] 在 0x5000 ← 跳跃！</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// SoA（数据局部性）：连续内存 → Cache Hit</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">public</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> struct</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> EnemySoA</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    public</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> NativeArray</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Vector3</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">> </span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Positions</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">;  </span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 连续 1000 个 Vector3</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    public</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> NativeArray</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">int</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">> </span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Healths</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">;        </span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 连续 1000 个 int</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    public</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> NativeArray</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">float</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">> </span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Speeds</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">;       </span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 连续 1000 个 float</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">}</span></span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// Positions[i] 和 Positions[i+1] 在同一 Cache Line → 预取命中</span></span></code></pre></figure>
+<blockquote class="callout tip" data-callout="tip">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>数据局部性是 DOTS 存在的理由 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>ECS Archetype = 自动 SoA 分组，NativeArray = 连续 unmanaged 内存，Burst = 利用连续布局生成 SIMD 指令，Job System = 按数据批次并行处理。四个组件全部服务于数据局部性。</p>
+</div>
+</blockquote>
+<p>详见 <a href="../patterns-设计模式/data-locality-数据局部性" class="internal alias" data-slug="patterns-设计模式/data-locality-数据局部性">data-locality-数据局部性</a>。</p>
+<h3 id="脏标识dirty-flag">脏标识（Dirty Flag）<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#脏标识dirty-flag" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p><strong>核心意图</strong>：用一位标记追踪导出数据是否与原始数据一致，只在结果被请求时才重新计算。将工作延期至结果被需要的时刻——如果中间多次修改原始数据但最终没人读取，计算工作就完全省掉了。</p>
+<p><strong>经典场景</strong>：场景图 Transform 矩阵（父节点移动 → 子节点世界变换重算）、UI 布局（元素尺寸变化 → 重排）、材质属性（修改后统一提交 GPU）。</p>
+<p><strong>Unity 映射</strong>：<code>Transform.hasChanged</code> 是 Unity 暴露的脏标识。UGUI Layout 系统是脏标识的教科书级实现——修改布局属性时标记脏，下一帧 Layout 阶段统一重建。</p>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="csharp" data-theme="github-light github-dark"><code data-language="csharp" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 脏标识：只在读取时计算</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">public</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> class</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> SceneGraphNode</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    private</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> bool</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> _dirty</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> true</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">;</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    private</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Matrix4x4</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> _worldMatrix</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">;</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    public</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> void</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> SetLocal</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Transform</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> local</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">)</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    {</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">        LocalTransform </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">=</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> local;</span></span>
+<span data-line><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">        MarkDirty</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(); </span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 只标记，不计算！</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    }</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    public</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Matrix4x4</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> WorldMatrix</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    {</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">        get</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">        {</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">            if</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> (_dirty) </span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">RecalculateWorld</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">();</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">            return</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> _worldMatrix;</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">        }</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    }</span></span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">    // 一帧内 SetLocal 10 次 → 只标记了 10 次 dirty</span></span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">    // 最后渲染时读一次 WorldMatrix → 只计算了 1 次</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">}</span></span></code></pre></figure>
+<blockquote class="callout tip" data-callout="tip">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>脏标识的核心不是&quot;缓存&quot;，而是&quot;延期&quot; </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>缓存是副产品。GPP 的关键洞察：脏标识把不必要的工作推迟，直到确认它真的需要做。场景图中父节点移动导致子节点世界变换重算，是脏标识最经典的应用场景。</p>
+</div>
+</blockquote>
+<p>详见 <a href="../patterns-设计模式/dirty-flag-脏标识" class="internal alias" data-slug="patterns-设计模式/dirty-flag-脏标识">dirty-flag-脏标识</a>。</p>
+<h3 id="对象池object-pool">对象池（Object Pool）<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#对象池object-pool" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p><strong>核心意图</strong>：从固定池中重用对象，避免频繁分配/释放。预分配一批对象循环使用——“租借-归还”而非”新建-销毁”。核心收益：消除 GC Spike 和内存碎片，保证帧时间稳定。</p>
+<p><strong>经典场景</strong>：子弹、特效、敌人实例——频繁创建销毁的短生命周期对象。</p>
+<p><strong>Unity 映射</strong>：Unity 2021+ 内置 <code>UnityEngine.Pool.ObjectPool&lt;T></code>，是对象池模式的标准化实现。</p>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="csharp" data-theme="github-light github-dark"><code data-language="csharp" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// Unity 内置 ObjectPool&lt;T></span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">var</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> pool</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> new</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> ObjectPool</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Bullet</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">>(</span></span>
+<span data-line><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">    createFunc</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: () </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">=></span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Instantiate</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(bulletPrefab),</span></span>
+<span data-line><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">    actionOnGet</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: </span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">b</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =></span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> b.gameObject.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">SetActive</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">true</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">),</span></span>
+<span data-line><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">    actionOnRelease</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: </span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">b</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =></span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> b.gameObject.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">SetActive</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">false</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">),</span></span>
+<span data-line><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">    collectionCheck</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">true</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">,  </span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 防止重复 release</span></span>
+<span data-line><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">    defaultCapacity</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">100</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">,</span></span>
+<span data-line><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">    maxSize</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">500</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">);</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">var</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> bullet</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> pool.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Get</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">();       </span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// Rent：从池中取而非 Instantiate</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">pool.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Release</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(bullet);          </span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// Return：放回池而非 Destroy</span></span></code></pre></figure>
+<blockquote class="callout warning" data-callout="warning">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>对象池的前提是&quot;对象可复用&quot; </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>归还到池中的对象必须被彻底重置，否则下一个租借者会拿到脏数据。池化不是简单的”不 Destroy”，而是”Destroy 改成 Reset + 回收”。</p>
+</div>
+</blockquote>
+<p>详见 <a href="../patterns-设计模式/object-pool-对象池" class="internal alias" data-slug="patterns-设计模式/object-pool-对象池">object-pool-对象池</a>。</p>
+<h3 id="空间分区spatial-partition">空间分区（Spatial Partition）<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#空间分区spatial-partition" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p><strong>核心意图</strong>：根据空间位置组织对象到数据结构中，高效查询”某处附近有什么”。将 O(n²) 的暴力配对检测降至 O(n log n) 甚至 O(n)。</p>
+<p><strong>经典场景</strong>：碰撞检测、视野裁剪、AOI（Area of Interest）、战争迷雾、寻敌。</p>
+<p><strong>Unity 映射</strong>：PhysX 内部使用 BVH + Sweep and Prune 做碰撞 Broadphase，开发者通常用 <code>Physics.OverlapSphere</code> 等内建 API 即可，无需自实现。DOTS Physics 使用动态 AABB 树。</p>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="csharp" data-theme="github-light github-dark"><code data-language="csharp" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// Unity 内建空间查询：PhysX BVH 内部做空间分区</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">private</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> readonly</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Collider</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">[] </span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">_results</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> new</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Collider</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">[</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">32</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">];</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">private</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> void</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Update</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">()</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{</span></span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">    // PhysX 内部用 BVH 做空间分区，O(log n) 查询</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    int</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> count</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> Physics.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">OverlapSphereNonAlloc</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">        transform.position, DetectRadius, _results, _enemyLayerMask);</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    for</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> (</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">int</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> i</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> 0</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">; i </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">&lt;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> count; i</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">++</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">)</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    {</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">        var</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> enemy</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> _results[i].</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">GetComponent</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Enemy</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">>();</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">        if</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> (enemy </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">!=</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> null</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">) </span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">ReactToEnemy</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(enemy);</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    }</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">}</span></span></code></pre></figure>
+<blockquote class="callout tip" data-callout="tip">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>选择空间分区结构的关键因素 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>对象数量（少则暴力够用）、移动频率（静则 k-d 树，动则网格/松散 QuadTree）、分布均匀度（均匀则网格，不均则树）、查询类型（点查询、范围查询、最近邻）。</p>
+</div>
+</blockquote>
+<p>详见 <a href="../patterns-设计模式/spatial-partition-空间分区" class="internal alias" data-slug="patterns-设计模式/spatial-partition-空间分区">spatial-partition-空间分区</a>。</p>
+<h2 id="游戏开发深度">游戏开发深度<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#游戏开发深度" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<h3 id="数据局部性--对象池dots-的双重优化">数据局部性 + 对象池——DOTS 的双重优化<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#数据局部性--对象池dots-的双重优化" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>DOTS/ECS 同时利用了数据局部性和对象池两种模式：Archetype 保证数据连续（缓存友好），Entity 通过 EntityManager 复用 ID（避免分配）。两者组合形成了游戏开发中最强的性能优化：</p>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="csharp" data-theme="github-light github-dark"><code data-language="csharp" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// DOTS：数据局部性 + 对象池的终极形态</span></span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// Archetype = 数据连续（数据局部性）</span></span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// Entity 复用 = ID 复用（对象池）</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 创建实体时优先复用已销毁实体的 ID</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">var</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> entity</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> entityManager.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">CreateEntity</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(archetype);</span></span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 内部：如果 FreeList 有空闲 ID → 复用；否则新建</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 销毁实体时不释放 ID，而是放入 FreeList</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">entityManager.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">DestroyEntity</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(entity);</span></span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 内部：ID 归入 FreeList → 下次 CreateEntity 复用</span></span></code></pre></figure>
+<h3 id="脏标识--观察者变了吗与通知谁">脏标识 + 观察者——“变了吗”与”通知谁”<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#脏标识--观察者变了吗与通知谁" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>脏标识和观察者经常组合使用：观察者负责通知”数据变了”，脏标识负责决定”什么时候重算”。这解决了纯观察者”每次变化都重算”的性能问题：</p>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="csharp" data-theme="github-light github-dark"><code data-language="csharp" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 观察者 + 脏标识组合</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">public</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> class</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> ViewModel</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    private</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> int</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> _score</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">;</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    private</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> bool</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> _displayDirty</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> true</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">;</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    private</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> string</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> _cachedDisplay</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">;</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    public</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> int</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Score</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    {</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">        get</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =></span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> _score;</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">        set</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">        {</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">            if</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> (_score </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">==</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> value) </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">return</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">;</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">            _score </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">=</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> value;</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">            _displayDirty </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">=</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> true</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">;  </span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 脏标识：标记需要重算</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">            OnScoreChanged</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">?</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Invoke</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(value);  </span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 观察者：通知外部</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">        }</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    }</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    public</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> event</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Action</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">int</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">> </span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">OnScoreChanged</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">;</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    public</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> string</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> DisplayText</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    {</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">        get</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">        {</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">            if</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> (_displayDirty)</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">            {</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">                _cachedDisplay </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">=</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> $&quot;Score: {</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">_score</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">:</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">N0</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">}&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">;</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">                _displayDirty </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">=</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> false</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">;</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">            }</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">            return</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> _cachedDisplay;</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">        }</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    }</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">}</span></span></code></pre></figure>
+<h3 id="对象池--空间分区大规模单位管理">对象池 + 空间分区——大规模单位管理<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#对象池--空间分区大规模单位管理" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>RTS / SLG 游戏中大量单位需要同时池化和空间分区：池化保证创建销毁不卡顿，空间分区保证寻敌不 O(n²)：</p>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="csharp" data-theme="github-light github-dark"><code data-language="csharp" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 池化 + 空间分区组合</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">public</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> class</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> UnitManager</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    private</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> readonly</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Dictionary</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">UnitType</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">, </span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">ObjectPool</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Unit</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">>> </span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">_pools</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">;</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    private</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> readonly</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> SpatialGrid</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> _grid</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">;</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    public</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Unit</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Spawn</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">UnitType</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> type</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">, </span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Vector3</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> position</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">)</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    {</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">        var</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> unit</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> _pools[type].</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Get</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">();   </span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 池化取对象</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">        unit.transform.position </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">=</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> position;</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">        _grid.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Add</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(unit);                </span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 空间分区注册</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">        return</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> unit;</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    }</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    public</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> void</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Despawn</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Unit</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> unit</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">)</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    {</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">        _grid.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Remove</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(unit);             </span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 空间分区注销</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">        unit.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Reset</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">();</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">        _pools[unit.Type].</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Release</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(unit); </span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 池化归还</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    }</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    public</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> List</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Unit</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">> </span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">FindNearby</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Vector3</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> center</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">, </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">float</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> radius</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">)</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    {</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">        return</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> _grid.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Query</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(center, radius);  </span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// O(n) → O(log n)</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    }</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">}</span></span></code></pre></figure>
+<h3 id="细粒度脏标识位掩码方案">细粒度脏标识——位掩码方案<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#细粒度脏标识位掩码方案" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>当对象有多个可能独立变化的属性时，单个 <code>bool _dirty</code> 太粗糙——修改任意字段都触发全部重算。位掩码方案用每个 bit 代表一个字段的脏状态：</p>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="csharp" data-theme="github-light github-dark"><code data-language="csharp" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 细粒度脏标识：位掩码方案</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">[</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Flags</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">]</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">public</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> enum</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> TransformDirtyFlags</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{</span></span>
+<span data-line><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">    None</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> 0</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">,</span></span>
+<span data-line><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">    Position</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> 1</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> &lt;&lt;</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> 0</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">,</span></span>
+<span data-line><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">    Rotation</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> 1</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> &lt;&lt;</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> 1</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">,</span></span>
+<span data-line><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">    Scale</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> 1</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> &lt;&lt;</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> 2</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">,</span></span>
+<span data-line><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">    All</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> Position </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">|</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> Rotation </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">|</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> Scale</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">}</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">public</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> class</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> OptimizedSceneNode</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    private</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> TransformDirtyFlags</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> _dirty</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> TransformDirtyFlags.All;</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    public</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Vector3</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> LocalPosition</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    {</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">        get</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =></span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> _localPosition;</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">        set</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> { _localPosition </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">=</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> value; _dirty </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">|=</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> TransformDirtyFlags.Position; }</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    }</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">    // 只在位置或旋转脏时重算 World Matrix（Scale 变化不影响某些计算）</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    public</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Matrix4x4</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> WorldMatrix</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    {</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">        get</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">        {</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">            if</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> (_dirty </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">!=</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> TransformDirtyFlags.None)</span></span>
+<span data-line><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">                Recalculate</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(_dirty);</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">            return</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> _worldMatrix;</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">        }</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    }</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">}</span></span></code></pre></figure>
+<h2 id="变体与演进">变体与演进<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#变体与演进" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th>变体</th><th>说明</th><th>适用场景</th></tr></thead><tbody><tr><td><strong>Archetype ECS</strong></td><td>数据局部性的终极形态——同类型 Component 同 Chunk 连续，System 批量处理</td><td>大规模实体项目</td></tr><tr><td><strong>SoA vs AoS</strong></td><td>Array-of-Structs → Struct-of-Arrays，数据局部性的两种组织方式</td><td>批量数据处理</td></tr><tr><td><strong>热/冷数据分离</strong></td><td>脏标识的层次化延伸——热数据连续排列，冷数据按需加载</td><td>大结构体优化</td></tr><tr><td><strong>位掩码脏标识</strong></td><td>每个 bit 代表一个字段的脏状态，精确控制重算范围</td><td>多字段独立变化的对象</td></tr><tr><td><strong>带类型的对象池</strong></td><td><code>Pool&lt;T></code> 按 T 分池，避免异构对象的内存碎片</td><td>多种实体类型</td></tr><tr><td><strong>Freelist 池</strong></td><td>用空闲对象自身内存存链表指针，零额外开销（GPP 推荐）</td><td>性能敏感场景</td></tr><tr><td><strong>BVH / SBVH</strong></td><td>空间分区的渲染级变体——层次包围盒，支持动态物体的高效重建</td><td>光线追踪、物理碰撞</td></tr><tr><td><strong>Uniform Grid</strong></td><td>空间分区的简单变体——固定网格，O(1) 插入/查询，适合均匀分布</td><td>2D 游戏、弹幕</td></tr><tr><td><strong>松散四叉树</strong></td><td>QuadTree 的动态优化——节点边界扩展，减少跨越边界导致的频繁迁移</td><td>对象频繁移动</td></tr></tbody></table></div>
+<h3 id="优化模式的完整演进路径">优化模式的完整演进路径<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#优化模式的完整演进路径" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<pre><button class="expand-button" aria-label="Expand mermaid diagram" data-view-component="true"><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path fill-rule="evenodd" d="M3.72 3.72a.75.75 0 011.06 1.06L2.56 7h10.88l-2.22-2.22a.75.75 0 011.06-1.06l3.5 3.5a.75.75 0 010 1.06l-3.5 3.5a.75.75 0 11-1.06-1.06l2.22-2.22H2.56l2.22 2.22a.75.75 0 11-1.06 1.06l-3.5-3.5a.75.75 0 010-1.06l3.5-3.5z"></path></svg></button><code class="mermaid" data-clipboard="&quot;graph LR\n    A[\&quot;暴力遍历&lt;br>最简单&lt;br>O(n²)\&quot;] --> B[\&quot;空间分区&lt;br>缩小范围&lt;br>O(n log n)\&quot;]\n    B --> C[\&quot;数据局部性&lt;br>连续内存&lt;br>Cache Hit\&quot;]\n    C --> D[\&quot;对象池&lt;br>预分配复用&lt;br>无 GC\&quot;]\n    D --> E[\&quot;脏标识&lt;br>延期计算&lt;br>零浪费\&quot;]\n\n    A -->|\&quot;最常见\&quot;| B\n    C -->|\&quot;最常用组合\&quot;| D&quot;">graph LR
+    A[&quot;暴力遍历&lt;br>最简单&lt;br>O(n²)&quot;] --> B[&quot;空间分区&lt;br>缩小范围&lt;br>O(n log n)&quot;]
+    B --> C[&quot;数据局部性&lt;br>连续内存&lt;br>Cache Hit&quot;]
+    C --> D[&quot;对象池&lt;br>预分配复用&lt;br>无 GC&quot;]
+    D --> E[&quot;脏标识&lt;br>延期计算&lt;br>零浪费&quot;]
+
+    A -->|&quot;最常见&quot;| B
+    C -->|&quot;最常用组合&quot;| D
+</code><div id="mermaid-container" role="dialog"><div id="mermaid-space"><div class="mermaid-content"></div></div></div></pre>
+<h2 id="反模式">反模式<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#反模式" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<blockquote class="callout warning" data-callout="warning">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>过早优化——先 Profile 再优化 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>优化模式会牺牲代码可读性和灵活性。不要在项目早期就对所有数据做 SoA、对所有对象做池化——先用自然的方式写代码，用 Profiler 确认瓶颈后再针对性优化。Nystrom 的建议：“先让它跑起来，再让它跑得快，最后让它跑得优雅。”</p>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="csharp" data-theme="github-light github-dark"><code data-language="csharp" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 错误的开发顺序：</span></span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 1. 先设计 SoA 数据布局</span></span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 2. 再围绕数据布局写逻辑</span></span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 3. 发现需求变了，数据布局白设计了</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 正确的开发顺序：</span></span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 1. 用自然 OOP 方式写功能</span></span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 2. Profile 发现某个遍历是瓶颈</span></span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 3. 只对那个遍历做 SoA 优化</span></span></code></pre></figure>
+</div>
+</blockquote>
+<blockquote class="callout warning" data-callout="warning">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>忽视 Profiler 数据——凭感觉优化 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>“我觉得这里慢”是最危险的优化起点。必须用 Profiler 确认瓶颈在哪——可能是 CPU、可能是 GPU、可能是 GC、可能是 IO。优化模式解决的是 CPU 侧的性能问题，如果瓶颈在 GPU 渲染，优化 CPU 侧毫无意义。参见 <a href="../csharp-dotnet-CSharp与NET/garbage-collection-GC与内存" class="internal alias" data-slug="csharp-dotnet-CSharp与NET/garbage-collection-GC与内存">garbage-collection-GC与内存</a>。</p>
+</div>
+</blockquote>
+<blockquote class="callout warning" data-callout="warning">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>数据局部性的过度优化 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>不是所有数据都需要连续布局。只有”每帧遍历大量实例”的热路径才值得重组内存。冷数据用经典 OOP 就好——过度 SoA 导致代码可读性急剧下降，20 个字段拆成 20 个并行数组，每个操作都要同步维护 20 个索引。</p>
+</div>
+</blockquote>
+<blockquote class="callout warning" data-callout="warning">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>对象池的内存常驻 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>池化对象即使不用也占内存。如果峰值 1000 个子弹但平均只用 50 个，池化让 950 个子弹的内存始终占用。需根据实际峰值调池大小，或实现动态缩容。<code>ObjectPool&lt;T></code> 的 <code>maxSize</code> 参数控制池的最大容量——超过时 <code>Release</code> 会直接销毁。</p>
+</div>
+</blockquote>
+<blockquote class="callout warning" data-callout="warning">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>脏标识忘记设标记 = 缓存不一致 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>最常见也最难调试的 bug：修改了原始数据但忘记标记 dirty，导致导出数据返回过时的缓存值。防范：用属性封装所有对原始数据的修改，在 setter 中自动标记。绝不能绕过属性直接改字段。</p>
+</div>
+</blockquote>
+<blockquote class="callout warning" data-callout="warning">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>空间分区的维护开销超过查询收益 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>对象频繁移动时，空间分区的更新开销可能抵消查询收益。四叉树在动态场景中频繁分裂/合并，均匀网格在高密度区域退化。选择结构要看对象数量和移动频率。对象少于 100 个时，暴力 O(n²) 可能比空间分区更快。</p>
+</div>
+</blockquote>
+<h2 id="相关">相关<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#相关" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<h3 id="分类与-hub">分类与 Hub<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#分类与-hub" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<ul>
+<li><a href="../patterns-设计模式/game-programming-patterns-游戏编程模式" class="internal alias" data-slug="patterns-设计模式/game-programming-patterns-游戏编程模式">game-programming-patterns-游戏编程模式</a> — GPP 总览 Hub</li>
+<li><a href="../patterns-设计模式/decoupling-patterns-解耦" class="internal alias" data-slug="patterns-设计模式/decoupling-patterns-解耦">decoupling-patterns-解耦</a> — GPP 解耦模式（上一分类）</li>
+<li><a href="../patterns-设计模式/gpp-behavioral-patterns-GPP行为" class="internal alias" data-slug="patterns-设计模式/gpp-behavioral-patterns-GPP行为">gpp-behavioral-patterns-GPP行为</a> — GPP 行为模式</li>
+</ul>
+<h3 id="子模式详页">子模式详页<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#子模式详页" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<ul>
+<li><a href="../patterns-设计模式/data-locality-数据局部性" class="internal alias" data-slug="patterns-设计模式/data-locality-数据局部性">data-locality-数据局部性</a> — 数据局部性详页</li>
+<li><a href="../patterns-设计模式/dirty-flag-脏标识" class="internal alias" data-slug="patterns-设计模式/dirty-flag-脏标识">dirty-flag-脏标识</a> — 脏标识详页</li>
+<li><a href="../patterns-设计模式/object-pool-对象池" class="internal alias" data-slug="patterns-设计模式/object-pool-对象池">object-pool-对象池</a> — 对象池详页</li>
+<li><a href="../patterns-设计模式/spatial-partition-空间分区" class="internal alias" data-slug="patterns-设计模式/spatial-partition-空间分区">spatial-partition-空间分区</a> — 空间分区详页</li>
+</ul>
+<h3 id="performance-分支关联">performance 分支关联<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#performance-分支关联" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<ul>
+<li><a href="../performance-性能优化/job-system-作业系统" class="internal alias" data-slug="performance-性能优化/job-system-作业系统">job-system-作业系统</a> — 数据局部性的 Unity 工程落地</li>
+<li><a href="../performance-性能优化/native-container-Native容器" class="internal alias" data-slug="performance-性能优化/native-container-Native容器">native-container-Native容器</a> — 连续内存布局的 Unity 数据结构</li>
+<li><a href="../performance-性能优化/burst-compiler-Burst编译" class="internal alias" data-slug="performance-性能优化/burst-compiler-Burst编译">burst-compiler-Burst编译</a> — 连续数据 + SIMD 的编译优化</li>
+<li><a href="../csharp-dotnet-CSharp与NET/garbage-collection-GC与内存" class="internal alias" data-slug="csharp-dotnet-CSharp与NET/garbage-collection-GC与内存">garbage-collection-GC与内存</a> — GC 与对象池的关系</li>
+<li><a href="../unity-Unity引擎/dots-ecs-数据导向" class="internal alias" data-slug="unity-Unity引擎/dots-ecs-数据导向">dots-ecs-数据导向</a> — 数据局部性 + 对象池的终极形态</li>
+</ul></article><hr/><div class="page-footer"></div></div><div class="right sidebar"><div class="graph"><h3>关系图谱</h3><div class="graph-outer"><div class="graph-container" data-cfg="{&quot;drag&quot;:true,&quot;zoom&quot;:true,&quot;depth&quot;:1,&quot;scale&quot;:1.1,&quot;repelForce&quot;:0.5,&quot;centerForce&quot;:0.3,&quot;linkDistance&quot;:30,&quot;fontSize&quot;:0.6,&quot;opacityScale&quot;:1,&quot;showTags&quot;:true,&quot;removeTags&quot;:[],&quot;focusOnHover&quot;:false,&quot;enableRadial&quot;:false}"></div><button class="global-graph-icon" aria-label="Global Graph"><svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 55 55" fill="currentColor" xml:space="preserve"><path d="M49,0c-3.309,0-6,2.691-6,6c0,1.035,0.263,2.009,0.726,2.86l-9.829,9.829C32.542,17.634,30.846,17,29,17
+                s-3.542,0.634-4.898,1.688l-7.669-7.669C16.785,10.424,17,9.74,17,9c0-2.206-1.794-4-4-4S9,6.794,9,9s1.794,4,4,4
+                c0.74,0,1.424-0.215,2.019-0.567l7.669,7.669C21.634,21.458,21,23.154,21,25s0.634,3.542,1.688,4.897L10.024,42.562
+                C8.958,41.595,7.549,41,6,41c-3.309,0-6,2.691-6,6s2.691,6,6,6s6-2.691,6-6c0-1.035-0.263-2.009-0.726-2.86l12.829-12.829
+                c1.106,0.86,2.44,1.436,3.898,1.619v10.16c-2.833,0.478-5,2.942-5,5.91c0,3.309,2.691,6,6,6s6-2.691,6-6c0-2.967-2.167-5.431-5-5.91
+                v-10.16c1.458-0.183,2.792-0.759,3.898-1.619l7.669,7.669C41.215,39.576,41,40.26,41,41c0,2.206,1.794,4,4,4s4-1.794,4-4
+                s-1.794-4-4-4c-0.74,0-1.424,0.215-2.019,0.567l-7.669-7.669C36.366,28.542,37,26.846,37,25s-0.634-3.542-1.688-4.897l9.665-9.665
+                C46.042,11.405,47.451,12,49,12c3.309,0,6-2.691,6-6S52.309,0,49,0z M11,9c0-1.103,0.897-2,2-2s2,0.897,2,2s-0.897,2-2,2
+                S11,10.103,11,9z M6,51c-2.206,0-4-1.794-4-4s1.794-4,4-4s4,1.794,4,4S8.206,51,6,51z M33,49c0,2.206-1.794,4-4,4s-4-1.794-4-4
+                s1.794-4,4-4S33,46.794,33,49z M29,31c-3.309,0-6-2.691-6-6s2.691-6,6-6s6,2.691,6,6S32.309,31,29,31z M47,41c0,1.103-0.897,2-2,2
+                s-2-0.897-2-2s0.897-2,2-2S47,39.897,47,41z M49,10c-2.206,0-4-1.794-4-4s1.794-4,4-4s4,1.794,4,4S51.206,10,49,10z"></path></svg></button></div><div class="global-graph-outer"><div class="global-graph-container" data-cfg="{&quot;drag&quot;:true,&quot;zoom&quot;:true,&quot;depth&quot;:-1,&quot;scale&quot;:0.9,&quot;repelForce&quot;:0.5,&quot;centerForce&quot;:0.2,&quot;linkDistance&quot;:30,&quot;fontSize&quot;:0.6,&quot;opacityScale&quot;:1,&quot;showTags&quot;:true,&quot;removeTags&quot;:[],&quot;focusOnHover&quot;:true,&quot;enableRadial&quot;:true}"></div></div></div><div class="toc desktop-only"><button type="button" class="toc-header" aria-controls="toc-45" aria-expanded="true"><h3>目录</h3><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="fold"><polyline points="6 9 12 15 18 9"></polyline></svg></button><ul id="list-1" class="toc-content overflow"><li class="depth-0"><a href="#优化模式optimization-patterns" data-for="优化模式optimization-patterns">优化模式（Optimization Patterns）</a></li><li class="depth-1"><a href="#核心思想" data-for="核心思想">核心思想</a></li><li class="depth-1"><a href="#问题动机" data-for="问题动机">问题动机</a></li><li class="depth-1"><a href="#模式间关系" data-for="模式间关系">模式间关系</a></li><li class="depth-1"><a href="#参与者" data-for="参与者">参与者</a></li><li class="depth-1"><a href="#与-performance-分支的关系" data-for="与-performance-分支的关系">与 performance 分支的关系</a></li><li class="depth-1"><a href="#四种模式详解" data-for="四种模式详解">四种模式详解</a></li><li class="depth-2"><a href="#数据局部性data-locality" data-for="数据局部性data-locality">数据局部性（Data Locality）</a></li><li class="depth-2"><a href="#脏标识dirty-flag" data-for="脏标识dirty-flag">脏标识（Dirty Flag）</a></li><li class="depth-2"><a href="#对象池object-pool" data-for="对象池object-pool">对象池（Object Pool）</a></li><li class="depth-2"><a href="#空间分区spatial-partition" data-for="空间分区spatial-partition">空间分区（Spatial Partition）</a></li><li class="depth-1"><a href="#游戏开发深度" data-for="游戏开发深度">游戏开发深度</a></li><li class="depth-2"><a href="#数据局部性--对象池dots-的双重优化" data-for="数据局部性--对象池dots-的双重优化">数据局部性 + 对象池——DOTS 的双重优化</a></li><li class="depth-2"><a href="#脏标识--观察者变了吗与通知谁" data-for="脏标识--观察者变了吗与通知谁">脏标识 + 观察者——“变了吗”与”通知谁”</a></li><li class="depth-2"><a href="#对象池--空间分区大规模单位管理" data-for="对象池--空间分区大规模单位管理">对象池 + 空间分区——大规模单位管理</a></li><li class="depth-2"><a href="#细粒度脏标识位掩码方案" data-for="细粒度脏标识位掩码方案">细粒度脏标识——位掩码方案</a></li><li class="depth-1"><a href="#变体与演进" data-for="变体与演进">变体与演进</a></li><li class="depth-2"><a href="#优化模式的完整演进路径" data-for="优化模式的完整演进路径">优化模式的完整演进路径</a></li><li class="depth-1"><a href="#反模式" data-for="反模式">反模式</a></li><li class="depth-1"><a href="#相关" data-for="相关">相关</a></li><li class="depth-2"><a href="#分类与-hub" data-for="分类与-hub">分类与 Hub</a></li><li class="depth-2"><a href="#子模式详页" data-for="子模式详页">子模式详页</a></li><li class="depth-2"><a href="#performance-分支关联" data-for="performance-分支关联">performance 分支关联</a></li><li class="overflow-end"></li></ul></div><div class="backlinks"><h3>反向链接</h3><ul id="list-2" class="overflow"><li><a href="../" class="internal">index</a></li><li><a href="../patterns-设计模式/data-locality-数据局部性" class="internal">data-locality-数据局部性</a></li><li><a href="../patterns-设计模式/decoupling-patterns-解耦" class="internal">decoupling-patterns-解耦</a></li><li><a href="../patterns-设计模式/dirty-flag-脏标识" class="internal">dirty-flag-脏标识</a></li><li><a href="../patterns-设计模式/game-programming-patterns-游戏编程模式" class="internal">game-programming-patterns-游戏编程模式</a></li><li><a href="../patterns-设计模式/object-pool-对象池" class="internal">object-pool-对象池</a></li><li><a href="../patterns-设计模式/sequencing-patterns-序列模式" class="internal">sequencing-patterns-序列模式</a></li><li><a href="../patterns-设计模式/spatial-partition-空间分区" class="internal">spatial-partition-空间分区</a></li><li class="overflow-end"></li></ul></div></div><footer class><p>Created with <a href="https://quartz.jzhao.xyz/">Quartz v4.5.2</a> © 2026</p><ul><li><a href="https://github.com/jackyzha0/quartz">GitHub</a></li><li><a href="https://discord.gg/cRFFHYye7t">Discord Community</a></li></ul></footer></div></div></body><script type="application/javascript" data-persist="true">function n(){let t=this.parentElement;t.classList.toggle("is-collapsed");let e=t.getElementsByClassName("callout-content")[0];if(!e)return;let l=t.classList.contains("is-collapsed");e.style.gridTemplateRows=l?"0fr":"1fr"}function c(){let t=document.getElementsByClassName("callout is-collapsible");for(let e of t){let l=e.getElementsByClassName("callout-title")[0],s=e.getElementsByClassName("callout-content")[0];if(!l||!s)continue;l.addEventListener("click",n),window.addCleanup(()=>l.removeEventListener("click",n));let o=e.classList.contains("is-collapsed");s.style.gridTemplateRows=o?"0fr":"1fr"}}document.addEventListener("nav",c);
+</script><script type="module" data-persist="true">function E(c,e){if(!c)return;function t(s){s.target===this&&(s.preventDefault(),s.stopPropagation(),e())}function r(s){s.key.startsWith("Esc")&&(s.preventDefault(),e())}c?.addEventListener("click",t),window.addCleanup(()=>c?.removeEventListener("click",t)),document.addEventListener("keydown",r),window.addCleanup(()=>document.removeEventListener("keydown",r))}function y(c){for(;c.firstChild;)c.removeChild(c.firstChild)}var v=class{constructor(e,t){this.container=e;this.content=t;this.setupEventListeners(),this.setupNavigationControls(),this.resetTransform()}isDragging=!1;startPan={x:0,y:0};currentPan={x:0,y:0};scale=1;MIN_SCALE=.5;MAX_SCALE=3;cleanups=[];setupEventListeners(){let e=this.onMouseDown.bind(this),t=this.onMouseMove.bind(this),r=this.onMouseUp.bind(this),s=this.onTouchStart.bind(this),o=this.onTouchMove.bind(this),i=this.onTouchEnd.bind(this),n=this.resetTransform.bind(this);this.container.addEventListener("mousedown",e),document.addEventListener("mousemove",t),document.addEventListener("mouseup",r),this.container.addEventListener("touchstart",s,{passive:!1}),document.addEventListener("touchmove",o,{passive:!1}),document.addEventListener("touchend",i),window.addEventListener("resize",n),this.cleanups.push(()=>this.container.removeEventListener("mousedown",e),()=>document.removeEventListener("mousemove",t),()=>document.removeEventListener("mouseup",r),()=>this.container.removeEventListener("touchstart",s),()=>document.removeEventListener("touchmove",o),()=>document.removeEventListener("touchend",i),()=>window.removeEventListener("resize",n))}cleanup(){for(let e of this.cleanups)e()}setupNavigationControls(){let e=document.createElement("div");e.className="mermaid-controls";let t=this.createButton("+",()=>this.zoom(.1)),r=this.createButton("-",()=>this.zoom(-.1)),s=this.createButton("Reset",()=>this.resetTransform());e.appendChild(r),e.appendChild(s),e.appendChild(t),this.container.appendChild(e)}createButton(e,t){let r=document.createElement("button");return r.textContent=e,r.className="mermaid-control-button",r.addEventListener("click",t),window.addCleanup(()=>r.removeEventListener("click",t)),r}onMouseDown(e){e.button===0&&(this.isDragging=!0,this.startPan={x:e.clientX-this.currentPan.x,y:e.clientY-this.currentPan.y},this.container.style.cursor="grabbing")}onMouseMove(e){this.isDragging&&(e.preventDefault(),this.currentPan={x:e.clientX-this.startPan.x,y:e.clientY-this.startPan.y},this.updateTransform())}onMouseUp(){this.isDragging=!1,this.container.style.cursor="grab"}onTouchStart(e){if(e.touches.length!==1)return;this.isDragging=!0;let t=e.touches[0];this.startPan={x:t.clientX-this.currentPan.x,y:t.clientY-this.currentPan.y}}onTouchMove(e){if(!this.isDragging||e.touches.length!==1)return;e.preventDefault();let t=e.touches[0];this.currentPan={x:t.clientX-this.startPan.x,y:t.clientY-this.startPan.y},this.updateTransform()}onTouchEnd(){this.isDragging=!1}zoom(e){let t=Math.min(Math.max(this.scale+e,this.MIN_SCALE),this.MAX_SCALE),r=this.content.getBoundingClientRect(),s=r.width/2,o=r.height/2,i=t-this.scale;this.currentPan.x-=s*i,this.currentPan.y-=o*i,this.scale=t,this.updateTransform()}updateTransform(){this.content.style.transform=`translate(${this.currentPan.x}px, ${this.currentPan.y}px) scale(${this.scale})`}resetTransform(){let t=this.content.querySelector("svg").getBoundingClientRect(),r=t.width/this.scale,s=t.height/this.scale;this.scale=1,this.currentPan={x:(this.container.clientWidth-r)/2,y:(this.container.clientHeight-s)/2},this.updateTransform()}},T=["--secondary","--tertiary","--gray","--light","--lightgray","--highlight","--dark","--darkgray","--codeFont"],L;document.addEventListener("nav",async()=>{let e=document.querySelector(".center").querySelectorAll("code.mermaid");if(e.length===0)return;L||=await import("https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.4.0/mermaid.esm.min.mjs");let t=L.default,r=new WeakMap;for(let o of e){let i=o.getAttribute("data-clipboard"),n=o.innerText;if(i)try{n=JSON.parse(i)}catch{}r.set(o,n)}async function s(){for(let n of e){n.removeAttribute("data-processed");let a=r.get(n);a&&(n.textContent=a)}let o=T.reduce((n,a)=>(n[a]=window.getComputedStyle(document.documentElement).getPropertyValue(a),n),{}),i=document.documentElement.getAttribute("saved-theme")==="dark";t.initialize({startOnLoad:!1,securityLevel:"loose",theme:i?"dark":"base",themeVariables:{fontFamily:o["--codeFont"],primaryColor:o["--light"],primaryTextColor:o["--darkgray"],primaryBorderColor:o["--tertiary"],lineColor:o["--darkgray"],secondaryColor:o["--secondary"],tertiaryColor:o["--tertiary"],clusterBkg:o["--light"],edgeLabelBackground:o["--highlight"]}});for(let n=0;n<e.length;n++){let a=e[n],l=r.get(a);if(l)try{let u=`mermaid-svg-${Date.now()}-${n}`,{svg:p,bindFunctions:d}=await t.render(u,l);a.innerHTML=p,d&&d(a),a.setAttribute("data-processed","true")}catch(u){console.error(`mermaid render failed for node ${n}:`,u)}}}await s(),document.addEventListener("themechange",s),window.addCleanup(()=>document.removeEventListener("themechange",s));for(let o=0;o<e.length;o++){let g=function(){let f=d.querySelector("#mermaid-space"),m=d.querySelector(".mermaid-content");if(!m)return;y(m);let w=i.querySelector("svg").cloneNode(!0);m.appendChild(w),d.classList.add("active"),f.style.cursor="grab",h=new v(f,m)},M=function(){d.classList.remove("active"),h?.cleanup(),h=null},i=e[o],n=i.parentElement,a=n.querySelector(".clipboard-button"),l=n.querySelector(".expand-button"),u=window.getComputedStyle(a),p=a.offsetWidth+parseFloat(u.marginLeft||"0")+parseFloat(u.marginRight||"0");l.style.right=`calc(${p}px + 0.3rem)`,n.prepend(l);let d=n.querySelector("#mermaid-container");if(!d)return;let h=null;l.addEventListener("click",g),E(d,M),window.addCleanup(()=>{h?.cleanup(),l.removeEventListener("click",g)})}});
+</script><script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/copy-tex.min.js" type="application/javascript" data-persist="true"></script><script src="../postscript.js" type="module" data-persist="true"></script></html>

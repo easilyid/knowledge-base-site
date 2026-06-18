@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr"><head><title>garbage-collection-GC与内存</title><meta charset="utf-8"/><link rel="preconnect" href="https://fonts.googleapis.com"/><link rel="preconnect" href="https://fonts.gstatic.com"/><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted Grotesk:wght@400;700&amp;family=Source Sans Pro:ital,wght@0,400;0,600;1,400;1,600&amp;family=IBM Plex Mono:wght@400;600&amp;display=swap"/><link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin="anonymous"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><meta name="og:site_name" content="Unity / C# / .NET 游戏开发知识库"/><meta property="og:title" content="garbage-collection-GC与内存"/><meta property="og:type" content="website"/><meta name="twitter:card" content="summary_large_image"/><meta name="twitter:title" content="garbage-collection-GC与内存"/><meta name="twitter:description" content=".NET GC 与托管内存（.NET Garbage Collection） 核心思想 .NET GC 管理 managed heap 上对象的内存分配与释放。创建引用类型对象时，CLR 从 managed heap 分配内存；当可用空间不足或运行时判断合适时，GC 会查找应用不再使用的对象并回收其内存。 GC 解决的是普通托管对象内存的自动回收，不负责释放 unmanaged memory、文件句柄、native container 等外部资源——这些由 Dispose 模式（Dispose Pattern） 处理。 为什么重要 Unity 游戏对帧时间稳定性敏感。GC 暂停、临时对象、装箱..."/><meta property="og:description" content=".NET GC 与托管内存（.NET Garbage Collection） 核心思想 .NET GC 管理 managed heap 上对象的内存分配与释放。创建引用类型对象时，CLR 从 managed heap 分配内存；当可用空间不足或运行时判断合适时，GC 会查找应用不再使用的对象并回收其内存。 GC 解决的是普通托管对象内存的自动回收，不负责释放 unmanaged memory、文件句柄、native container 等外部资源——这些由 Dispose 模式（Dispose Pattern） 处理。 为什么重要 Unity 游戏对帧时间稳定性敏感。GC 暂停、临时对象、装箱..."/><meta property="og:image:alt" content=".NET GC 与托管内存（.NET Garbage Collection） 核心思想 .NET GC 管理 managed heap 上对象的内存分配与释放。创建引用类型对象时，CLR 从 managed heap 分配内存；当可用空间不足或运行时判断合适时，GC 会查找应用不再使用的对象并回收其内存。 GC 解决的是普通托管对象内存的自动回收，不负责释放 unmanaged memory、文件句柄、native container 等外部资源——这些由 Dispose 模式（Dispose Pattern） 处理。 为什么重要 Unity 游戏对帧时间稳定性敏感。GC 暂停、临时对象、装箱..."/><meta property="twitter:domain" content="easilyid.github.io/knowledge-base-site"/><meta property="og:url" content="https://easilyid.github.io/knowledge-base-site/csharp-dotnet-CSharp与NET/garbage-collection-GC与内存"/><meta property="twitter:url" content="https://easilyid.github.io/knowledge-base-site/csharp-dotnet-CSharp与NET/garbage-collection-GC与内存"/><link rel="icon" href="../static/icon.png"/><meta name="description" content=".NET GC 与托管内存（.NET Garbage Collection） 核心思想 .NET GC 管理 managed heap 上对象的内存分配与释放。创建引用类型对象时，CLR 从 managed heap 分配内存；当可用空间不足或运行时判断合适时，GC 会查找应用不再使用的对象并回收其内存。 GC 解决的是普通托管对象内存的自动回收，不负责释放 unmanaged memory、文件句柄、native container 等外部资源——这些由 Dispose 模式（Dispose Pattern） 处理。 为什么重要 Unity 游戏对帧时间稳定性敏感。GC 暂停、临时对象、装箱..."/><meta name="generator" content="Quartz"/><link href="../index.css" rel="stylesheet" type="text/css" data-persist="true"/><style>.expand-button {
+  position: absolute;
+  display: flex;
+  float: right;
+  padding: 0.4rem;
+  margin: 0.3rem;
+  right: 0;
+  color: var(--gray);
+  border-color: var(--dark);
+  background-color: var(--light);
+  border: 1px solid;
+  border-radius: 5px;
+  opacity: 0;
+  transition: 0.2s;
+}
+.expand-button > svg {
+  fill: var(--light);
+  filter: contrast(0.3);
+}
+.expand-button:hover {
+  cursor: pointer;
+  border-color: var(--secondary);
+}
+.expand-button:focus {
+  outline: 0;
+}
+
+pre:hover > .expand-button {
+  opacity: 1;
+  transition: 0.2s;
+}
+
+#mermaid-container {
+  position: fixed;
+  contain: layout;
+  z-index: 999;
+  left: 0;
+  top: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  display: none;
+  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.5);
+}
+#mermaid-container.active {
+  display: inline-block;
+}
+#mermaid-container > #mermaid-space {
+  border: 1px solid var(--lightgray);
+  background-color: var(--light);
+  border-radius: 5px;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  height: 80vh;
+  width: 80vw;
+  overflow: hidden;
+}
+#mermaid-container > #mermaid-space > .mermaid-content {
+  position: relative;
+  transform-origin: 0 0;
+  transition: transform 0.1s ease;
+  overflow: visible;
+  min-height: 200px;
+  min-width: 200px;
+}
+#mermaid-container > #mermaid-space > .mermaid-content pre {
+  margin: 0;
+  border: none;
+}
+#mermaid-container > #mermaid-space > .mermaid-content svg {
+  max-width: none;
+  height: auto;
+}
+#mermaid-container > #mermaid-space > .mermaid-controls {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+  background: var(--light);
+  border: 1px solid var(--lightgray);
+  border-radius: 6px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  z-index: 2;
+}
+#mermaid-container > #mermaid-space > .mermaid-controls .mermaid-control-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--lightgray);
+  background: var(--light);
+  color: var(--dark);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  font-family: var(--bodyFont);
+  transition: all 0.2s ease;
+}
+#mermaid-container > #mermaid-space > .mermaid-controls .mermaid-control-button:hover {
+  background: var(--lightgray);
+}
+#mermaid-container > #mermaid-space > .mermaid-controls .mermaid-control-button:active {
+  transform: translateY(1px);
+}
+#mermaid-container > #mermaid-space > .mermaid-controls .mermaid-control-button:nth-child(2) {
+  width: auto;
+  padding: 0 12px;
+  font-size: 14px;
+}
+/*# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VSb290IjoiL2hvbWUvcnVubmVyL3dvcmsvS25vd2xlZGdlLUJhc2UvS25vd2xlZGdlLUJhc2UvcXVhcnR6L3F1YXJ0ei9jb21wb25lbnRzL3N0eWxlcyIsInNvdXJjZXMiOlsibWVybWFpZC5pbmxpbmUuc2NzcyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiQUFBQTtFQUNFO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBOztBQUVBO0VBQ0U7RUFDQTs7QUFHRjtFQUNFO0VBQ0E7O0FBR0Y7RUFDRTs7O0FBS0Y7RUFDRTtFQUNBOzs7QUFJSjtFQUNFO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7O0FBRUE7RUFDRTs7QUFHRjtFQUNFO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBOztBQUVBO0VBQ0U7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBOztBQUVBO0VBQ0U7RUFDQTs7QUFHRjtFQUNFO0VBQ0E7O0FBSUo7RUFDRTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBOztBQUVBO0VBQ0U7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTs7QUFFQTtFQUNFOztBQUdGO0VBQ0U7O0FBSUY7RUFDRTtFQUNBO0VBQ0EiLCJzb3VyY2VzQ29udGVudCI6WyIuZXhwYW5kLWJ1dHRvbiB7XG4gIHBvc2l0aW9uOiBhYnNvbHV0ZTtcbiAgZGlzcGxheTogZmxleDtcbiAgZmxvYXQ6IHJpZ2h0O1xuICBwYWRkaW5nOiAwLjRyZW07XG4gIG1hcmdpbjogMC4zcmVtO1xuICByaWdodDogMDsgLy8gTk9URTogcmlnaHQgd2lsbCBiZSBzZXQgaW4gbWVybWFpZC5pbmxpbmUudHNcbiAgY29sb3I6IHZhcigtLWdyYXkpO1xuICBib3JkZXItY29sb3I6IHZhcigtLWRhcmspO1xuICBiYWNrZ3JvdW5kLWNvbG9yOiB2YXIoLS1saWdodCk7XG4gIGJvcmRlcjogMXB4IHNvbGlkO1xuICBib3JkZXItcmFkaXVzOiA1cHg7XG4gIG9wYWNpdHk6IDA7XG4gIHRyYW5zaXRpb246IDAuMnM7XG5cbiAgJiA+IHN2ZyB7XG4gICAgZmlsbDogdmFyKC0tbGlnaHQpO1xuICAgIGZpbHRlcjogY29udHJhc3QoMC4zKTtcbiAgfVxuXG4gICY6aG92ZXIge1xuICAgIGN1cnNvcjogcG9pbnRlcjtcbiAgICBib3JkZXItY29sb3I6IHZhcigtLXNlY29uZGFyeSk7XG4gIH1cblxuICAmOmZvY3VzIHtcbiAgICBvdXRsaW5lOiAwO1xuICB9XG59XG5cbnByZSB7XG4gICY6aG92ZXIgPiAuZXhwYW5kLWJ1dHRvbiB7XG4gICAgb3BhY2l0eTogMTtcbiAgICB0cmFuc2l0aW9uOiAwLjJzO1xuICB9XG59XG5cbiNtZXJtYWlkLWNvbnRhaW5lciB7XG4gIHBvc2l0aW9uOiBmaXhlZDtcbiAgY29udGFpbjogbGF5b3V0O1xuICB6LWluZGV4OiA5OTk7XG4gIGxlZnQ6IDA7XG4gIHRvcDogMDtcbiAgd2lkdGg6IDEwMHZ3O1xuICBoZWlnaHQ6IDEwMHZoO1xuICBvdmVyZmxvdzogaGlkZGVuO1xuICBkaXNwbGF5OiBub25lO1xuICBiYWNrZHJvcC1maWx0ZXI6IGJsdXIoNHB4KTtcbiAgYmFja2dyb3VuZDogcmdiYSgwLCAwLCAwLCAwLjUpO1xuXG4gICYuYWN0aXZlIHtcbiAgICBkaXNwbGF5OiBpbmxpbmUtYmxvY2s7XG4gIH1cblxuICAmID4gI21lcm1haWQtc3BhY2Uge1xuICAgIGJvcmRlcjogMXB4IHNvbGlkIHZhcigtLWxpZ2h0Z3JheSk7XG4gICAgYmFja2dyb3VuZC1jb2xvcjogdmFyKC0tbGlnaHQpO1xuICAgIGJvcmRlci1yYWRpdXM6IDVweDtcbiAgICBwb3NpdGlvbjogZml4ZWQ7XG4gICAgdG9wOiA1MCU7XG4gICAgbGVmdDogNTAlO1xuICAgIHRyYW5zZm9ybTogdHJhbnNsYXRlKC01MCUsIC01MCUpO1xuICAgIGhlaWdodDogODB2aDtcbiAgICB3aWR0aDogODB2dztcbiAgICBvdmVyZmxvdzogaGlkZGVuO1xuXG4gICAgJiA+IC5tZXJtYWlkLWNvbnRlbnQge1xuICAgICAgcG9zaXRpb246IHJlbGF0aXZlO1xuICAgICAgdHJhbnNmb3JtLW9yaWdpbjogMCAwO1xuICAgICAgdHJhbnNpdGlvbjogdHJhbnNmb3JtIDAuMXMgZWFzZTtcbiAgICAgIG92ZXJmbG93OiB2aXNpYmxlO1xuICAgICAgbWluLWhlaWdodDogMjAwcHg7XG4gICAgICBtaW4td2lkdGg6IDIwMHB4O1xuXG4gICAgICBwcmUge1xuICAgICAgICBtYXJnaW46IDA7XG4gICAgICAgIGJvcmRlcjogbm9uZTtcbiAgICAgIH1cblxuICAgICAgc3ZnIHtcbiAgICAgICAgbWF4LXdpZHRoOiBub25lO1xuICAgICAgICBoZWlnaHQ6IGF1dG87XG4gICAgICB9XG4gICAgfVxuXG4gICAgJiA+IC5tZXJtYWlkLWNvbnRyb2xzIHtcbiAgICAgIHBvc2l0aW9uOiBhYnNvbHV0ZTtcbiAgICAgIGJvdHRvbTogMjBweDtcbiAgICAgIHJpZ2h0OiAyMHB4O1xuICAgICAgZGlzcGxheTogZmxleDtcbiAgICAgIGdhcDogOHB4O1xuICAgICAgcGFkZGluZzogOHB4O1xuICAgICAgYmFja2dyb3VuZDogdmFyKC0tbGlnaHQpO1xuICAgICAgYm9yZGVyOiAxcHggc29saWQgdmFyKC0tbGlnaHRncmF5KTtcbiAgICAgIGJvcmRlci1yYWRpdXM6IDZweDtcbiAgICAgIGJveC1zaGFkb3c6IDAgMnB4IDRweCByZ2JhKDAsIDAsIDAsIDAuMSk7XG4gICAgICB6LWluZGV4OiAyO1xuXG4gICAgICAubWVybWFpZC1jb250cm9sLWJ1dHRvbiB7XG4gICAgICAgIGRpc3BsYXk6IGZsZXg7XG4gICAgICAgIGFsaWduLWl0ZW1zOiBjZW50ZXI7XG4gICAgICAgIGp1c3RpZnktY29udGVudDogY2VudGVyO1xuICAgICAgICB3aWR0aDogMzJweDtcbiAgICAgICAgaGVpZ2h0OiAzMnB4O1xuICAgICAgICBwYWRkaW5nOiAwO1xuICAgICAgICBib3JkZXI6IDFweCBzb2xpZCB2YXIoLS1saWdodGdyYXkpO1xuICAgICAgICBiYWNrZ3JvdW5kOiB2YXIoLS1saWdodCk7XG4gICAgICAgIGNvbG9yOiB2YXIoLS1kYXJrKTtcbiAgICAgICAgYm9yZGVyLXJhZGl1czogNHB4O1xuICAgICAgICBjdXJzb3I6IHBvaW50ZXI7XG4gICAgICAgIGZvbnQtc2l6ZTogMTZweDtcbiAgICAgICAgZm9udC1mYW1pbHk6IHZhcigtLWJvZHlGb250KTtcbiAgICAgICAgdHJhbnNpdGlvbjogYWxsIDAuMnMgZWFzZTtcblxuICAgICAgICAmOmhvdmVyIHtcbiAgICAgICAgICBiYWNrZ3JvdW5kOiB2YXIoLS1saWdodGdyYXkpO1xuICAgICAgICB9XG5cbiAgICAgICAgJjphY3RpdmUge1xuICAgICAgICAgIHRyYW5zZm9ybTogdHJhbnNsYXRlWSgxcHgpO1xuICAgICAgICB9XG5cbiAgICAgICAgLy8gU3R5bGUgdGhlIHJlc2V0IGJ1dHRvbiBkaWZmZXJlbnRseVxuICAgICAgICAmOm50aC1jaGlsZCgyKSB7XG4gICAgICAgICAgd2lkdGg6IGF1dG87XG4gICAgICAgICAgcGFkZGluZzogMCAxMnB4O1xuICAgICAgICAgIGZvbnQtc2l6ZTogMTRweDtcbiAgICAgICAgfVxuICAgICAgfVxuICAgIH1cbiAgfVxufVxuIl19 */</style><link href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" rel="stylesheet" type="text/css" data-persist="true"/><script src="../prescript.js" type="application/javascript" data-persist="true"></script><script type="application/javascript" data-persist="true">const fetchData = fetch("../static/contentIndex.json").then(data => data.json())</script><link rel="alternate" type="application/rss+xml" title="RSS Feed" href="https://easilyid.github.io/knowledge-base-site/index.xml"/><meta property="og:image:width" content="1200"/><meta property="og:image:height" content="630"/><meta property="og:image" content="https://easilyid.github.io/knowledge-base-site/csharp-dotnet-CSharp与NET/garbage-collection-GC与内存-og-image.webp"/><meta property="og:image:url" content="https://easilyid.github.io/knowledge-base-site/csharp-dotnet-CSharp与NET/garbage-collection-GC与内存-og-image.webp"/><meta name="twitter:image" content="https://easilyid.github.io/knowledge-base-site/csharp-dotnet-CSharp与NET/garbage-collection-GC与内存-og-image.webp"/><meta property="og:image:type" content="image/.webp"/></head><body data-slug="csharp-dotnet-CSharp与NET/garbage-collection-GC与内存"><div id="quartz-root" class="page"><div id="quartz-body"><div class="left sidebar"><h2 class="page-title"><a href="..">Unity / C# / .NET 游戏开发知识库</a></h2><div class="spacer mobile-only"></div><div class="flex-component" style="flex-direction: row; flex-wrap: nowrap; gap: 1rem;"><div style="flex-grow: 1; flex-shrink: 1; flex-basis: auto; order: 0; align-self: center; justify-self: center;"><div class="search"><button class="search-button"><svg role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 19.9 19.7"><title>Search</title><g class="search-path" fill="none"><path stroke-linecap="square" d="M18.5 18.3l-5.4-5.4"></path><circle cx="8" cy="8" r="7"></circle></g></svg><p>搜索</p></button><div class="search-container"><div class="search-space"><input autocomplete="off" class="search-bar" name="search" type="text" aria-label="搜索些什么" placeholder="搜索些什么"/><div class="search-layout" data-preview="true"></div></div></div></div></div><div style="flex-grow: 0; flex-shrink: 1; flex-basis: auto; order: 0; align-self: center; justify-self: center;"><button class="darkmode"><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" class="dayIcon" x="0px" y="0px" viewBox="0 0 35 35" style="enable-background:new 0 0 35 35" xml:space="preserve" aria-label="暗色模式"><title>暗色模式</title><path d="M6,17.5C6,16.672,5.328,16,4.5,16h-3C0.672,16,0,16.672,0,17.5    S0.672,19,1.5,19h3C5.328,19,6,18.328,6,17.5z M7.5,26c-0.414,0-0.789,0.168-1.061,0.439l-2,2C4.168,28.711,4,29.086,4,29.5    C4,30.328,4.671,31,5.5,31c0.414,0,0.789-0.168,1.06-0.44l2-2C8.832,28.289,9,27.914,9,27.5C9,26.672,8.329,26,7.5,26z M17.5,6    C18.329,6,19,5.328,19,4.5v-3C19,0.672,18.329,0,17.5,0S16,0.672,16,1.5v3C16,5.328,16.671,6,17.5,6z M27.5,9    c0.414,0,0.789-0.168,1.06-0.439l2-2C30.832,6.289,31,5.914,31,5.5C31,4.672,30.329,4,29.5,4c-0.414,0-0.789,0.168-1.061,0.44    l-2,2C26.168,6.711,26,7.086,26,7.5C26,8.328,26.671,9,27.5,9z M6.439,8.561C6.711,8.832,7.086,9,7.5,9C8.328,9,9,8.328,9,7.5    c0-0.414-0.168-0.789-0.439-1.061l-2-2C6.289,4.168,5.914,4,5.5,4C4.672,4,4,4.672,4,5.5c0,0.414,0.168,0.789,0.439,1.06    L6.439,8.561z M33.5,16h-3c-0.828,0-1.5,0.672-1.5,1.5s0.672,1.5,1.5,1.5h3c0.828,0,1.5-0.672,1.5-1.5S34.328,16,33.5,16z     M28.561,26.439C28.289,26.168,27.914,26,27.5,26c-0.828,0-1.5,0.672-1.5,1.5c0,0.414,0.168,0.789,0.439,1.06l2,2    C28.711,30.832,29.086,31,29.5,31c0.828,0,1.5-0.672,1.5-1.5c0-0.414-0.168-0.789-0.439-1.061L28.561,26.439z M17.5,29    c-0.829,0-1.5,0.672-1.5,1.5v3c0,0.828,0.671,1.5,1.5,1.5s1.5-0.672,1.5-1.5v-3C19,29.672,18.329,29,17.5,29z M17.5,7    C11.71,7,7,11.71,7,17.5S11.71,28,17.5,28S28,23.29,28,17.5S23.29,7,17.5,7z M17.5,25c-4.136,0-7.5-3.364-7.5-7.5    c0-4.136,3.364-7.5,7.5-7.5c4.136,0,7.5,3.364,7.5,7.5C25,21.636,21.636,25,17.5,25z"></path></svg><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" class="nightIcon" x="0px" y="0px" viewBox="0 0 100 100" style="enable-background:new 0 0 100 100" xml:space="preserve" aria-label="亮色模式"><title>亮色模式</title><path d="M96.76,66.458c-0.853-0.852-2.15-1.064-3.23-0.534c-6.063,2.991-12.858,4.571-19.655,4.571  C62.022,70.495,50.88,65.88,42.5,57.5C29.043,44.043,25.658,23.536,34.076,6.47c0.532-1.08,0.318-2.379-0.534-3.23  c-0.851-0.852-2.15-1.064-3.23-0.534c-4.918,2.427-9.375,5.619-13.246,9.491c-9.447,9.447-14.65,22.008-14.65,35.369  c0,13.36,5.203,25.921,14.65,35.368s22.008,14.65,35.368,14.65c13.361,0,25.921-5.203,35.369-14.65  c3.872-3.871,7.064-8.328,9.491-13.246C97.826,68.608,97.611,67.309,96.76,66.458z"></path></svg></button></div><div style="flex-grow: 0; flex-shrink: 1; flex-basis: auto; order: 0; align-self: center; justify-self: center;"><button class="readermode"><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" class="readerIcon" fill="currentColor" stroke="currentColor" stroke-width="0.2" stroke-linecap="round" stroke-linejoin="round" width="64px" height="64px" viewBox="0 0 24 24" aria-label="阅读模式"><title>阅读模式</title><g transform="translate(-1.8, -1.8) scale(1.15, 1.2)"><path d="M8.9891247,2.5 C10.1384702,2.5 11.2209868,2.96705384 12.0049645,3.76669482 C12.7883914,2.96705384 13.8709081,2.5 15.0202536,2.5 L18.7549359,2.5 C19.1691495,2.5 19.5049359,2.83578644 19.5049359,3.25 L19.5046891,4.004 L21.2546891,4.00457396 C21.6343849,4.00457396 21.9481801,4.28672784 21.9978425,4.6528034 L22.0046891,4.75457396 L22.0046891,20.25 C22.0046891,20.6296958 21.7225353,20.943491 21.3564597,20.9931534 L21.2546891,21 L2.75468914,21 C2.37499337,21 2.06119817,20.7178461 2.01153575,20.3517706 L2.00468914,20.25 L2.00468914,4.75457396 C2.00468914,4.37487819 2.28684302,4.061083 2.65291858,4.01142057 L2.75468914,4.00457396 L4.50368914,4.004 L4.50444233,3.25 C4.50444233,2.87030423 4.78659621,2.55650904 5.15267177,2.50684662 L5.25444233,2.5 L8.9891247,2.5 Z M4.50368914,5.504 L3.50468914,5.504 L3.50468914,19.5 L10.9478955,19.4998273 C10.4513189,18.9207296 9.73864328,18.5588115 8.96709342,18.5065584 L8.77307039,18.5 L5.25444233,18.5 C4.87474657,18.5 4.56095137,18.2178461 4.51128895,17.8517706 L4.50444233,17.75 L4.50368914,5.504 Z M19.5049359,17.75 C19.5049359,18.1642136 19.1691495,18.5 18.7549359,18.5 L15.2363079,18.5 C14.3910149,18.5 13.5994408,18.8724714 13.0614828,19.4998273 L20.5046891,19.5 L20.5046891,5.504 L19.5046891,5.504 L19.5049359,17.75 Z M18.0059359,3.999 L15.0202536,4 L14.8259077,4.00692283 C13.9889509,4.06666544 13.2254227,4.50975805 12.7549359,5.212 L12.7549359,17.777 L12.7782651,17.7601316 C13.4923805,17.2719483 14.3447024,17 15.2363079,17 L18.0059359,16.999 L18.0056891,4.798 L18.0033792,4.75457396 L18.0056891,4.71 L18.0059359,3.999 Z M8.9891247,4 L6.00368914,3.999 L6.00599909,4.75457396 L6.00599909,4.75457396 L6.00368914,4.783 L6.00368914,16.999 L8.77307039,17 C9.57551536,17 10.3461406,17.2202781 11.0128313,17.6202194 L11.2536891,17.776 L11.2536891,5.211 C10.8200889,4.56369974 10.1361548,4.13636104 9.37521067,4.02745763 L9.18347055,4.00692283 L8.9891247,4 Z"></path></g></svg></button></div></div><div class="explorer" data-behavior="link" data-collapsed="collapsed" data-savestate="true" data-data-fns="{&quot;order&quot;:[&quot;filter&quot;,&quot;map&quot;,&quot;sort&quot;],&quot;sortFn&quot;:&quot;(a,b)=>!a.isFolder&amp;&amp;!b.isFolder||a.isFolder&amp;&amp;b.isFolder?a.displayName.localeCompare(b.displayName,void 0,{numeric:!0,sensitivity:\&quot;base\&quot;}):!a.isFolder&amp;&amp;b.isFolder?1:-1&quot;,&quot;filterFn&quot;:&quot;node=>node.slugSegment!==\&quot;tags\&quot;&quot;,&quot;mapFn&quot;:&quot;node=>{let override={\&quot;unity-Unity\\u5F15\\u64CE\&quot;:\&quot;Unity\&quot;,\&quot;csharp-dotnet-CSharp\\u4E0ENET\&quot;:\&quot;C#/.NET\&quot;,\&quot;patterns-\\u8BBE\\u8BA1\\u6A21\\u5F0F\&quot;:\&quot;\\u8BBE\\u8BA1\\u6A21\\u5F0F\&quot;,\&quot;performance-\\u6027\\u80FD\\u4F18\\u5316\&quot;:\&quot;\\u6027\\u80FD\&quot;,\&quot;tools-\\u5DE5\\u5177\\u4E0E\\u5DE5\\u4F5C\\u6D41\&quot;:\&quot;\\u5DE5\\u5177\&quot;,\&quot;gamedesign-\\u6E38\\u620F\\u8BBE\\u8BA1\&quot;:\&quot;\\u6E38\\u620F\\u8BBE\\u8BA1\&quot;,\&quot;sources-\\u6765\\u6E90\\u6458\\u8981\&quot;:\&quot;\\u6765\\u6E90\\u6458\\u8981\&quot;}[node.displayName];if(override){node.displayName=override;return}let segments=node.displayName.split(\&quot;-\&quot;),cjkStart=segments.findIndex(segment=>/[一-鿿]/.test(segment));cjkStart>-1&amp;&amp;(node.displayName=segments.slice(cjkStart).join(\&quot;-\&quot;))}&quot;}"><button type="button" class="explorer-toggle mobile-explorer hide-until-loaded" data-mobile="true" aria-controls="explorer-10"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide-menu"><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button><button type="button" class="title-button explorer-toggle desktop-explorer" data-mobile="false" aria-expanded="true"><h2>探索</h2><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="5 8 14 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="fold"><polyline points="6 9 12 15 18 9"></polyline></svg></button><div id="explorer-10" class="explorer-content" aria-expanded="false" role="group"><ul class="explorer-ul overflow" id="list-0"><li class="overflow-end"></li></ul></div><template id="template-file"><li><a href="#"></a></li></template><template id="template-folder"><li><div class="folder-container"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="5 8 14 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="folder-icon"><polyline points="6 9 12 15 18 9"></polyline></svg><div><button class="folder-button"><span class="folder-title"></span></button></div></div><div class="folder-outer"><ul class="content"></ul></div></li></template></div></div><div class="center"><div class="page-header"><div class="popover-hint"><nav class="breadcrumb-container" aria-label="breadcrumbs"><div class="breadcrumb-element"><a href="../">Home</a><p> ❯ </p></div><div class="breadcrumb-element"><a href="../csharp-dotnet-CSharp与NET/">C#/.NET</a><p> ❯ </p></div><div class="breadcrumb-element"><a href>GC与内存</a></div></nav><h1 class="article-title">garbage-collection-GC与内存</h1><p show-comma="true" class="content-meta"><time datetime="2026-05-17T00:00:00.000Z">2026年5月17日</time><span>28分钟阅读</span></p></div></div><article class="popover-hint"><h1 id="net-gc-与托管内存net-garbage-collection">.NET GC 与托管内存（.NET Garbage Collection）<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#net-gc-与托管内存net-garbage-collection" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h1>
+<h2 id="核心思想">核心思想<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#核心思想" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<p>.NET GC 管理 managed heap 上对象的内存分配与释放。创建引用类型对象时，CLR 从 managed heap 分配内存；当可用空间不足或运行时判断合适时，GC 会查找应用不再使用的对象并回收其内存。</p>
+<p>GC 解决的是普通托管对象内存的自动回收，不负责释放 unmanaged memory、文件句柄、native container 等外部资源——这些由 <a href="../csharp-dotnet-CSharp与NET/dispose-pattern-释放模式" class="internal alias" data-slug="csharp-dotnet-CSharp与NET/dispose-pattern-释放模式">Dispose 模式（Dispose Pattern）</a> 处理。</p>
+<h2 id="为什么重要">为什么重要<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#为什么重要" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<p>Unity 游戏对帧时间稳定性敏感。GC 暂停、临时对象、装箱、闭包和 LINQ 分配都会造成帧尖峰。理解 GC 能帮助判断哪些 C# 写法在编辑器工具里没问题，但不适合 gameplay hot path。</p>
+<p>更重要的是：Unity 当前使用 <strong>Boehm GC</strong>（非分代、保守式、不移动对象），但正在迁移向 <strong>CoreCLR GC</strong>（分代、精确式、可移动）。两种 GC 的行为差异巨大，了解两者有助于为未来迁移做代码准备。</p>
+<h2 id="分代-gc-模型">分代 GC 模型<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#分代-gc-模型" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<h3 id="三代结构">三代结构<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#三代结构" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>.NET CoreCLR GC 把 managed heap 分为三代：</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th>世代</th><th>定位</th><th>内容</th><th>分配预算</th></tr></thead><tbody><tr><td>Gen 0</td><td>最年轻，短命对象</td><td>临时变量、函数局部引用、LINQ 中间结果</td><td>动态预算（由 GC 根据存活率调整，无公开固定值；.NET 10+ DATAS 公式 <code>(20 - 5) / sqrt(app_size_MB)</code> 计算）</td></tr><tr><td>Gen 1</td><td>缓冲层</td><td>从 Gen 0 存活下来的短期对象</td><td>与 Gen 0 共用 ephemeral segment</td></tr><tr><td>Gen 2</td><td>长寿对象</td><td>静态字段引用、缓存、单例、LOH 上的大数组</td><td>无上限，仅受物理内存约束</td></tr></tbody></table></div>
+<blockquote class="callout info" data-callout="info">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>Ephemeral Segment 大小（含 Gen 0 + Gen 1） </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>Workstation GC 64-bit = 256 MB / Server GC 64-bit = 4 GB / Server GC > 4 CPU = 2 GB / > 8 CPU = 1 GB（来自 <a href="https://learn.microsoft.com/en-us/dotnet/standard/garbage-collection/fundamentals" class="external">Microsoft Learn · GC Fundamentals<svg aria-hidden="true" class="external-icon" style="max-width:0.8em;max-height:0.8em;" viewBox="0 0 512 512"><path d="M320 0H288V64h32 82.7L201.4 265.4 178.7 288 224 333.3l22.6-22.6L448 109.3V192v32h64V192 32 0H480 320zM32 32H0V64 480v32H32 456h32V480 352 320H424v32 96H64V96h96 32V32H160 32z"></path></svg></a>）。<strong>Gen 0 自身预算不等于 ephemeral segment 大小</strong>——前者是触发回收的阈值，后者是物理内存槽位。</p>
+</div>
+</blockquote>
+<p>设计依据是”弱代假说”（generational hypothesis）：<strong>大多数对象死得早</strong>。在典型服务器应用中，Gen 0 回收能释放绝大部分垃圾，无需扫描整堆。</p>
+<h3 id="分配与提升逻辑">分配与提升逻辑<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#分配与提升逻辑" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="text" data-theme="github-light github-dark"><code data-language="text" data-theme="github-light github-dark" style="display:grid;"><span data-line><span>新对象 → Gen 0 分配（bump pointer，近乎栈速度）</span></span>
+<span data-line><span>  ↓ Gen 0 回收时仍可达</span></span>
+<span data-line><span>Gen 1（缓冲层）</span></span>
+<span data-line><span>  ↓ Gen 1 回收时仍可达</span></span>
+<span data-line><span>Gen 2（长寿区）</span></span>
+<span data-line><span>  ↓ Gen 2 回收时仍可达</span></span>
+<span data-line><span>继续留在 Gen 2</span></span></code></pre></figure>
+<ul>
+<li>用户代码只能在 Gen 0（小对象）或 LOH（大对象）上分配。Gen 1 和 Gen 2 只通过提升填充。</li>
+<li>收集某代时，<strong>该代及所有更年轻的代一起回收</strong>。Gen 1 回收 = Gen 1 + Gen 0；Gen 2 回收 = 全堆（Full GC）。</li>
+<li>GC 会根据各代存活率动态调整预算：存活率高 → 增大预算 → 下次回收更多空间。</li>
+</ul>
+<h3 id="gen-0-arena-分配速度">Gen 0 “Arena” 分配速度<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#gen-0-arena-分配速度" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>Gen 0 分配使用 bump pointer 机制：只需把指针向前移动对象大小即可，<strong>速度接近栈分配</strong>。这比 native heap 的 <code>malloc</code>/<code>free</code>（需遍历 free list）快得多。</p>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="csharp" data-theme="github-light github-dark"><code data-language="csharp" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 连续分配三个对象，bump pointer 依次前进</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">var</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> a</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> new</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Vector3</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">[</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">10</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">];   </span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// bump + 40 bytes (header) + 80 bytes (data)</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">var</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> b</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> new</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> EnemyData</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">();   </span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// bump + header + sizeof(EnemyData)</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">var</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> c</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> &quot;hello&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">;           </span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// bump + header + char array</span></span></code></pre></figure>
+<blockquote class="callout note" data-callout="note">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>Boehm GC 的分配速度 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>Boehm GC 同样使用 bump pointer 分配，但其回收不按代分离，每次都扫描全堆，导致回收代价远高于分代 GC。</p>
+</div>
+</blockquote>
+<h3 id="短命代ephemeral-generations">短命代（Ephemeral Generations）<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#短命代ephemeral-generations" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>Gen 0 和 Gen 1 合称短命代（ephemeral generations），它们共享同一个内存段——短命段（ephemeral segment）。短命段的大小取决于 GC 模式和平台：</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th>GC 模式</th><th>32-bit</th><th>64-bit</th></tr></thead><tbody><tr><td>Workstation</td><td>16 MB</td><td>256 MB</td></tr><tr><td>Server</td><td>64 MB</td><td>4 GB</td></tr><tr><td>Server > 4 逻辑 CPU</td><td>32 MB</td><td>2 GB</td></tr><tr><td>Server > 8 逻辑 CPU</td><td>16 MB</td><td>1 GB</td></tr></tbody></table></div>
+<p>短命段的容量决定了单次 ephemeral GC 能释放多少内存。</p>
+<h2 id="lohlarge-object-heap">LOH（Large Object Heap）<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#lohlarge-object-heap" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<h3 id="大对象判定">大对象判定<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#大对象判定" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p><strong>>= 85,000 字节</strong>的对象直接分配到 LOH，不经过 Gen 0。这个阈值是在性能调优中确定的，85,000 字节意味着 <code>byte[85000]</code> 或 <code>double[10625]</code> 都会进入 LOH。</p>
+<blockquote>
+<p>典型大对象：大型数组（纹理数据、音频缓冲、序列化字节）、巨大的字符串。</p>
+</blockquote>
+<h3 id="loh-是-gen-2-的一部分">LOH 是 Gen 2 的一部分<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#loh-是-gen-2-的一部分" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>LOH 有时被称为”Gen 3”——这是物理上的独立区域，但<strong>逻辑上随 Gen 2 一起回收</strong>。这意味着：</p>
+<ul>
+<li>任何大对象的回收都伴随 Full GC（Gen 2 + Gen 1 + Gen 0 + LOH 全部扫描）。</li>
+<li>频繁创建和丢弃大对象会导致频繁 Full GC，这是性能杀手。</li>
+</ul>
+<h3 id="碎片问题">碎片问题<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#碎片问题" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>LOH <strong>默认不压缩</strong>（移动大对象代价太高）。回收时只做 sweep：标记死对象，把相邻死对象合并到 free list，供后续大对象分配复用。但 free list 中的空闲块大小不一定匹配新的分配请求，导致<strong>碎片化</strong>：</p>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="text" data-theme="github-light github-dark"><code data-language="text" data-theme="github-light github-dark" style="display:grid;"><span data-line><span>[Live 16MB] [Free 4MB] [Live 32MB] [Free 8MB] [Live 16MB]</span></span>
+<span data-line><span>                                  ↑ 需要 6MB → 无法利用 4MB 空隙</span></span></code></pre></figure>
+<blockquote class="callout warning" data-callout="warning">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>临时大对象是 Full GC 和碎片化的双重来源 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>如果你的代码每帧创建 <code>new byte[100000]</code> 再丢弃，LOH 碎片会持续增长，Full GC 频率上升，帧率崩溃。</p>
+</div>
+</blockquote>
+<h3 id="loh-压缩">LOH 压缩<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#loh-压缩" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>.NET Core / .NET 5+ 提供按需压缩 LOH 的能力：</p>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="csharp" data-theme="github-light github-dark"><code data-language="csharp" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 强制下一次 Full GC 时压缩 LOH</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">System.Runtime.GCSettings.LargeObjectHeapCompactionMode </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">=</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    GCLargeObjectHeapCompactionMode.CompactOnce;</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 触发 Full GC（带压缩）</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">GC.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Collect</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">2</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">, GCCollectionMode.Forced, </span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">blocking</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">true</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">, </span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">compacting</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">true</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">);</span></span></code></pre></figure>
+<p>此外，当设置了 <code>GCHeapHardLimit</code> 或容器内存限制时，LOH 会自动压缩。</p>
+<blockquote class="callout tip" data-callout="tip">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>Unity 中的 LOH 风险 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>Unity 中大数组、纹理的 managed 副本、大型序列化缓冲都会进入 LOH。Boehm GC 对大对象的处理更粗糙——它是 conservative GC，无法精确识别大数组中的指针 vs 数据，扫描代价随数组长度线性增长。CoreCLR GC 对不含引用的纯值类型数组（如 <code>byte[]</code>）可以跳过引用扫描。</p>
+</div>
+</blockquote>
+<h2 id="gc-模式">GC 模式<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#gc-模式" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<h3 id="workstation-vs-server-gc">Workstation vs Server GC<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#workstation-vs-server-gc" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th>维度</th><th>Workstation GC</th><th>Server GC</th></tr></thead><tbody><tr><td>堆/线程数</td><td>1 个堆，1 个 GC 线程</td><td>每逻辑 CPU 1 个堆 + 1 个 GC 线程</td></tr><tr><td>分配吞吐</td><td>较低</td><td>高（并行分配）</td></tr><tr><td>暂停时间</td><td>较短（堆更小）</td><td>可更长（需同步多个堆）</td></tr><tr><td>适用场景</td><td>桌面/客户端/Unity 游戏客户端</td><td>服务器/后端</td></tr><tr><td>默认配置</td><td>.NET 桌面应用默认</td><td>ASP.NET 默认</td></tr></tbody></table></div>
+<blockquote class="callout info" data-callout="info">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>Unity 使用 Workstation GC </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>Unity 游戏是客户端应用，运行时使用 Workstation GC。Server GC 对游戏无意义——游戏不需要多堆并行分配，且 Server GC 的暂停时间更长。</p>
+</div>
+</blockquote>
+<h3 id="concurrent--background-gc">Concurrent / Background GC<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#concurrent--background-gc" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th>模式</th><th>行为</th><th>适用版本</th></tr></thead><tbody><tr><td>Non-concurrent</td><td>GC 时暂停所有托管线程（stop-the-world）</td><td>早期 .NET</td></tr><tr><td>Concurrent GC</td><td>Gen 2 回收期间允许托管线程运行（1 个专用 GC 线程）</td><td>.NET Framework 3.5 及之前</td></tr><tr><td>Background GC</td><td>Gen 2 回收期间允许托管线程运行 + 允许 Gen 0/1 foreground GC 插入</td><td>.NET Framework 4+（默认开启）</td></tr></tbody></table></div>
+<p>Background GC 是当前默认模式。它在 Gen 2 回收期间使用专用线程执行标记和清扫，此时如果 Gen 0 预算耗尽，可以插入 foreground ephemeral GC（短暂暂停所有线程），然后 background GC 继续。</p>
+<blockquote class="callout note" data-callout="note">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>Unity Boehm GC 的增量模式 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>Unity Boehm GC 的 Incremental 模式不是 Background GC——它只是把一次 stop-the-world 回收分摊到多帧执行，每帧执行一部分。Project Settings > Player > “Use Incremental GC” 开启。这对减少单帧卡顿有效，但不减少总回收时间。</p>
+</div>
+</blockquote>
+<h3 id="unity-运行时-gc-对比">Unity 运行时 GC 对比<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#unity-运行时-gc-对比" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th>维度</th><th>Boehm（Unity Mono/IL2CPP 当前）</th><th>SGen（Mono 可选）</th><th>CoreCLR GC（Unity 7 目标）</th></tr></thead><tbody><tr><td>类型</td><td>保守式（conservative）</td><td>分代、精确式</td><td>分代、精确式</td></tr><tr><td>分代</td><td>无</td><td>有（nursery + major）</td><td>有（Gen 0/1/2 + LOH）</td></tr><tr><td>移动对象</td><td>不移动</td><td>移动（nursery）</td><td>移动（SOH 可压缩）</td></tr><tr><td>碎片化</td><td>高（不压缩、不移动）</td><td>较低</td><td>低（可压缩）</td></tr><tr><td>大对象阈值</td><td>无特殊处理</td><td>8 KB（<code>MAX_SMALL_OBJ_SIZE</code>）</td><td>85,000 bytes</td></tr><tr><td>增量/并发</td><td>Incremental GC（分帧）</td><td>并发 major GC</td><td>Background GC</td></tr><tr><td>扫描精度</td><td>把整数误认为指针（保守）</td><td>精确跟踪</td><td>精确跟踪</td></tr><tr><td>Unity 状态</td><td>当前默认</td><td>未使用</td><td>Unity 7 预计引入</td></tr></tbody></table></div>
+<blockquote class="callout warning" data-callout="warning">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>Boehm GC 的致命局限 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>Boehm 是 conservative GC——它无法区分栈/堆上的整数和托管引用。如果一个整数恰好值等于某个托管对象地址，该对象就无法被回收（false retention）。此外，不移动对象意味着碎片无法通过压缩修复。这是 Unity 迁移 CoreCLR GC 的核心动机。</p>
+</div>
+</blockquote>
+<h2 id="gc-触发条件">GC 触发条件<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#gc-触发条件" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<h3 id="net-coreclr-触发条件">.NET CoreCLR 触发条件<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#net-coreclr-触发条件" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<ol>
+<li><strong>Gen 0 预算耗尽</strong>：新对象分配时 Gen 0 空间不足 → 触发 ephemeral GC（最常见的触发原因）</li>
+<li><strong>LOH 预算耗尽</strong>：大对象分配时 LOH 空间不足 → 触发 Full GC</li>
+<li><strong>系统低内存</strong>：OS 发出低内存通知，GC 判断 Full GC 有意义时触发</li>
+<li><strong>显式 <code>GC.Collect</code></strong>：用户代码调用（应避免）</li>
+<li><strong><code>GC.AddMemoryPressure</code> / <code>GC.RemoveMemoryPressure</code></strong>：告知 GC 存在 unmanaged 内存占用，影响 GC 决策</li>
+</ol>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="csharp" data-theme="github-light github-dark"><code data-language="csharp" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 当持有大量 native 内存时，通知 GC 调整回收激进程度</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">GC.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">AddMemoryPressure</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(nativeBufferSize);</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 释放 native 内存后，移除压力</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">GC.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">RemoveMemoryPressure</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(nativeBufferSize);</span></span></code></pre></figure>
+<h3 id="unity-boehm-gc-触发条件">Unity Boehm GC 触发条件<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#unity-boehm-gc-触发条件" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>Boehm GC 的触发更简单粗暴：<strong>当分配时堆上无足够连续空间</strong>，触发一次全堆扫描。没有分代预算、没有 LOH 独立触发。</p>
+<p>Unity 在帧结束时会提供 collection hint：</p>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="csharp" data-theme="github-light github-dark"><code data-language="csharp" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// Unity 内部在帧尾调用（简化说明）</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">GarbageCollector.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">CollectIfNeeded</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">();</span></span></code></pre></figure>
+<p>Incremental GC 开启时，GC 在每帧最多执行 <code>GarbageCollector.incrementalTimeSliceNanoseconds</code> 纳秒的回收工作，未完成部分留到下一帧继续。</p>
+<blockquote class="callout tip" data-callout="tip">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>控制 Unity 增量 GC 时间片 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="csharp" data-theme="github-light github-dark"><code data-language="csharp" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 设置每帧 GC 时间预算（纳秒）</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">GarbageCollector.incrementalTimeSliceNanoseconds </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">=</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> 2_000_000</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">; </span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 2 ms</span></span></code></pre></figure>
+<p>时间片过小 → GC 永远追不上分配，堆持续增长；过大 → 单帧卡顿。2 ms 是常见起点。</p>
+</div>
+</blockquote>
+<h2 id="碎片与钉住fragmentation-and-pinning">碎片与钉住（Fragmentation and Pinning）<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#碎片与钉住fragmentation-and-pinning" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<h3 id="什么是钉住">什么是钉住<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#什么是钉住" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>钉住（pinning）阻止 GC 移动某个托管对象。在 GC 压缩阶段，被钉住的对象留在原位，导致其周围产生无法合并的空闲间隙。</p>
+<h3 id="钉住的三种来源">钉住的三种来源<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#钉住的三种来源" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<ol>
+<li><strong><code>GCHandle</code></strong>：显式钉住托管对象，用于 P/Invoke 传递托管引用给 native 代码</li>
+</ol>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="csharp" data-theme="github-light github-dark"><code data-language="csharp" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">var</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> handle</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> GCHandle.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Alloc</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(buffer, GCHandleType.Pinned);</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">try</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{</span></span>
+<span data-line><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">    IntPtr</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> ptr</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> handle.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">AddrOfPinnedObject</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">();</span></span>
+<span data-line><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">    NativeMethod</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(ptr);</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">}</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">finally</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    handle.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Free</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(); </span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 必须释放！</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">}</span></span></code></pre></figure>
+<ol start="2">
+<li><strong><code>fixed</code> 语句</strong>：C# 语言级钉住，通常作用域很短</li>
+</ol>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="csharp" data-theme="github-light github-dark"><code data-language="csharp" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">fixed</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> (</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">byte</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">* </span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">ptr</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> byteArray)</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{</span></span>
+<span data-line><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">    NativeMethod</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(ptr);</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">} </span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 离开作用域自动解钉</span></span></code></pre></figure>
+<ol start="3">
+<li><strong>P/Invoke 参数自动钉住</strong>：interop marshaller 在调用期间自动钉住 <code>string</code> 等类型</li>
+</ol>
+<h3 id="钉住对-gen-01-的影响">钉住对 Gen 0/1 的影响<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#钉住对-gen-01-的影响" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<blockquote class="callout warning" data-callout="warning">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>钉住是 SOH 碎片的唯一用户来源 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>根据 .NET GC 团队的分析，钉住是 SOH 碎片化的唯一用户级原因。即使少量钉住对象，如果它们与短命代对象交错分布，也会阻止压缩，导致 Gen 0 可用空间碎片化。</p>
+<p><strong>最佳实践</strong>：钉住持续时间越短越好。如果 GC 不在钉住期间发生，钉住几乎无开销。理想情况是在钉住期间无分配（无 GC 触发）。</p>
+</div>
+</blockquote>
+<p>长期钉住的缓冲区应放在 Gen 2（先让它在几次 GC 中自然提升），再钉住——Gen 2 碎片对性能影响较小。</p>
+<h3 id="net-5-pinned-object-heap">.NET 5+ Pinned Object Heap<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#net-5-pinned-object-heap" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>.NET 5 引入了 Pinned Object Heap（POH），专门存放需要长期钉住的对象：</p>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="csharp" data-theme="github-light github-dark"><code data-language="csharp" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// .NET 5+：分配到 POH，避免碎片化 SOH</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">var</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> pinnedArray</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> GC.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">AllocateUnpinnedArray</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">byte</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">>(size); </span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 不钉住</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">var</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> pinnedBuf</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">   =</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> GC.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">AllocateArray</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">byte</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">>(size, </span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">pinned</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">true</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">); </span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 分配到 POH</span></span></code></pre></figure>
+<p>POH 上的对象从一开始就在独立堆段，不会碎片化 SOH 的短命代。</p>
+<blockquote class="callout note" data-callout="note">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>Unity 中 POH 不可用 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>Unity 当前运行时（Mono/IL2CPP + Boehm）不支持 POH。迁移 CoreCLR 后将可用。</p>
+</div>
+</blockquote>
+<h2 id="unity-gc-性能分析">Unity GC 性能分析<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#unity-gc-性能分析" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<h3 id="profiler-gc-alloc-列">Profiler GC Alloc 列<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#profiler-gc-alloc-列" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>Unity CPU Profiler 的模块详情区有 <strong>GC.Alloc</strong> 列，显示该帧、该线程的托管堆分配字节数。Timeline 视图中 GC.Alloc 样本以亮洋红色标记。</p>
+<p><strong>工作流</strong>：</p>
+<ol>
+<li>深性能分析（Deep Profile）或选中帧</li>
+<li>按 GC.Alloc 降序排列</li>
+<li>点击高分配行 → 跳转到调用栈</li>
+<li>识别热点函数，消除分配</li>
+</ol>
+<h3 id="profiler-内存-api">Profiler 内存 API<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#profiler-内存-api" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="csharp" data-theme="github-light github-dark"><code data-language="csharp" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 运行时监控托管堆大小</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">long</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> monoUsed</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> Profiler.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">GetMonoUsedSizeLong</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">();    </span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 当前使用量</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">long</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> monoHeap</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> Profiler.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">GetMonoHeapSizeLong</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">();     </span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 已预留堆大小</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 使用 ProfilerRecorder 持续采样</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">using</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> var</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> gcAllocRecorder</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> ProfilerRecorder.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">StartNew</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    ProfilerCategory.Memory, </span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;GC Reserved Memory&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">);</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">void</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Update</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">()</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    if</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> (gcAllocRecorder.Valid)</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">        Debug.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Log</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">$&quot;GC Reserved: {</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">gcAllocRecorder</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">.</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">LastValue</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">} bytes&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">);</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">}</span></span></code></pre></figure>
+<h3 id="memory-profiler-包">Memory Profiler 包<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#memory-profiler-包" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p><code>com.unity.memoryprofiler</code> 提供快照式深度分析：</p>
+<ul>
+<li>拍摄堆快照 → 查看所有托管对象</li>
+<li>按类型统计大小和数量</li>
+<li>追踪引用链（谁持有这个对象？）</li>
+<li>对比两个快照（Diff）找到泄漏</li>
+</ul>
+<blockquote class="callout tip" data-callout="tip">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>推荐工作流 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<ol>
+<li>CPU Profiler 的 GC.Alloc 列 → 发现帧内分配热点</li>
+<li>Memory Profiler 快照 → 确认哪些类型持续增长</li>
+<li>Diff 两个快照 → 定位泄漏引用链</li>
+</ol>
+</div>
+</blockquote>
+<h3 id="gcalloc-与-gccollect-标记">GC.Alloc 与 GC.Collect 标记<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#gcalloc-与-gccollect-标记" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>Unity Profiler 有两个 GC 相关标记：</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th>标记</th><th>含义</th></tr></thead><tbody><tr><td><code>GC.Alloc</code></td><td>在 managed heap 上分配了新对象</td></tr><tr><td><code>GC.Collect</code></td><td>GC 执行了回收，暂停了程序</td></tr></tbody></table></div>
+<p>GC.Collect 的持续时间直接对应帧卡顿时间。GC.Alloc 的总字节数间接反映 GC 压力。</p>
+<h2 id="零-gc-模式unity">零 GC 模式（Unity）<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#零-gc-模式unity" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<h3 id="nativearray--nativelist--nativehashmap">NativeArray / NativeList / NativeHashMap<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#nativearray--nativelist--nativehashmap" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>Unity Collections 的 <code>Native-</code> 系列类型使用 unmanaged 内存，不触发 GC：</p>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="csharp" data-theme="github-light github-dark"><code data-language="csharp" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">using</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Unity</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Collections</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">;</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// NativeArray：固定大小，零 GC</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">var</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> positions</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> new</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> NativeArray</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Vector3</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">>(</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">1024</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">, Allocator.TempJob);</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">try</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    for</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> (</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">int</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> i</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> 0</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">; i </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">&lt;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> positions.Length; i</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">++</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">)</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">        positions[i] </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">=</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> CalculatePosition</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(i);</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">}</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">finally</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> { positions.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Dispose</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(); }</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// NativeList：可变长，零 GC</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">var</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> enemies</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> new</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> NativeList</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">int</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">>(Allocator.TempJob);</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">enemies.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Add</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">42</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">);</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">enemies.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Dispose</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">();</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// NativeHashMap：哈希表，零 GC</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">var</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> lookup</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> new</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> NativeHashMap</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">int</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">, </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">float</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">>(</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">64</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">, Allocator.TempJob);</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">lookup[</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">10</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">] </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">=</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> 3.14f</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">;</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">lookup.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Dispose</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">();</span></span></code></pre></figure>
+<p>详见 <a href="../performance-性能优化/collections-package-集合包" class="internal alias" data-slug="performance-性能优化/collections-package-集合包">Unity Collections 包（Unity Collections Package）</a> 和 <a href="../performance-性能优化/native-container-Native容器" class="internal alias" data-slug="performance-性能优化/native-container-Native容器">NativeContainer 与 Allocator</a>。</p>
+<h3 id="unsafe-系列">Unsafe 系列<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#unsafe-系列" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p><code>Unity.Collections.LowLevel.Unsafe</code> 命名空间下的 <code>UnsafeList</code>、<code>UnsafeHashMap</code> 等类型放弃安全检查，换取更少限制和更小开销：</p>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="csharp" data-theme="github-light github-dark"><code data-language="csharp" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">using</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Unity</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Collections</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">LowLevel</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Unsafe</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">;</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">var</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> list</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> new</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> UnsafeList</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">float</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">>(</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">64</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">, Allocator.Temp);</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">list.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Add</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">1.0f</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">);</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">list.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Dispose</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">();</span></span></code></pre></figure>
+<blockquote class="callout warning" data-callout="warning">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>Unsafe 类型无安全网 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>无越界检查、无分配追踪、无 Use-after-Free 检测。仅在安全检查已在更高层保证时使用。</p>
+</div>
+</blockquote>
+<h3 id="fixedlist-系列栈分配">FixedList 系列（栈分配）<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#fixedlist-系列栈分配" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p><code>FixedList32Bytes</code> 到 <code>FixedList4096Bytes</code> 是值类型，整个列表内容直接存储在 struct 内部，可以栈分配或嵌入其他 struct：</p>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="csharp" data-theme="github-light github-dark"><code data-language="csharp" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">using</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Unity</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Collections</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">;</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 栈分配，零 GC，无需 Dispose</span></span>
+<span data-line><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">FixedList128Bytes</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">int</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">> </span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">nearbyEnemies</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> default</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">;</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">nearbyEnemies.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Add</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">1</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">);</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">nearbyEnemies.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Add</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">2</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">);</span></span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 离开作用域自动释放</span></span></code></pre></figure>
+<h3 id="nativereference">NativeReference<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#nativereference" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p><code>NativeReference&lt;T></code> 是单个值的 native 容器，相当于 <code>NativeArray&lt;T></code> 长度为 1 的特化：</p>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="csharp" data-theme="github-light github-dark"><code data-language="csharp" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">var</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> result</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> new</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> NativeReference</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">float</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">>(Allocator.TempJob);</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">var</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> job</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> new</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> ComputeJob</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> { Result </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">=</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> result };</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">job.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Schedule</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">().</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Complete</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">();</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">Debug.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Log</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(result.Value);</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">result.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Dispose</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">();</span></span></code></pre></figure>
+<h3 id="ref-返回值">ref 返回值<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#ref-返回值" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p><code>ref return</code> 允许直接返回 struct 内部字段的引用，避免值复制和堆分配：</p>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="csharp" data-theme="github-light github-dark"><code data-language="csharp" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">public</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> ref</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> float</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> GetSpeedRef</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">int</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> index</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">)</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    return</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> ref</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> speeds[index]; </span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 返回引用，无分配</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">}</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 调用方可以直接修改</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">ref</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> float</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> speed</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> ref</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> GetSpeedRef</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">0</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">);</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">speed </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">*=</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> 1.5f</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">;</span></span></code></pre></figure>
+<h3 id="stackalloc-与-span">stackalloc 与 Span<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#stackalloc-与-span" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p><code>stackalloc</code> 在栈上分配内存，<code>Span&lt;T></code> 可以安全包装栈内存或 native 内存：</p>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="csharp" data-theme="github-light github-dark"><code data-language="csharp" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 栈上分配临时缓冲，零 GC</span></span>
+<span data-line><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Span</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">byte</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">> </span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">buffer</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> stackalloc</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> byte</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">[</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">256</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">];</span></span>
+<span data-line><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">ProcessBuffer</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(buffer);</span></span></code></pre></figure>
+<blockquote class="callout note" data-callout="note">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>Burst 编译限制 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p><code>stackalloc</code> 在 Burst 编译的 Job 中可用，但 <code>Span&lt;T></code> 在 Burst 中受限。Job 内部优先使用 <code>NativeArray</code> 或 <code>UnsafeList</code>。</p>
+</div>
+</blockquote>
+<h3 id="字符串零-gc-模式">字符串零 GC 模式<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#字符串零-gc-模式" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="csharp" data-theme="github-light github-dark"><code data-language="csharp" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 避免：每次拼接产生新字符串</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">string</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> name</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> &quot;Enemy_&quot;</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> +</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> id </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">+</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> &quot;_&quot;</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> +</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> type; </span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 分配</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 方案 1：缓存 StringBuilder</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">private</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> StringBuilder</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> _sb</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> new</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> StringBuilder</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">64</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">);</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">_sb.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Clear</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">().</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Append</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;Enemy_&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">).</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Append</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(id).</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Append</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;_&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">).</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Append</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(type);</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">string</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> name</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> _sb.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">ToString</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(); </span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 仍有一次分配，但拼接过程零 GC</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 方案 2：string.Create（.NET 6+，Unity CoreCLR 后可用）</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">string</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> name</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> string</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Create</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">stackalloc</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> char</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">[</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">64</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">], </span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">$&quot;Enemy_{</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">id</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">}_{</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">type</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">}&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">);</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 方案 3：Unity FixedString（Collections 包）</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">using</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Unity</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Collections</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">;</span></span>
+<span data-line><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">FixedString128Bytes</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> name</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> default</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">;</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">name.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Append</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;Enemy_&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">);</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">name.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Append</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(id);</span></span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// FixedString 是值类型，零 GC</span></span></code></pre></figure>
+<h3 id="预分配集合">预分配集合<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#预分配集合" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="csharp" data-theme="github-light github-dark"><code data-language="csharp" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 避免：默认容量导致多次扩容（每次扩容 = 新数组分配 + 旧数组变垃圾）</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">var</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> list</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> new</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> List</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Enemy</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">>(); </span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 容量 0 → 4 → 8 → 16 → ...</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 推荐：预分配足够容量</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">var</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> list</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> new</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> List</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Enemy</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">>(maxEnemyCount);</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">list.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Clear</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(); </span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 清空内容，保留容量</span></span></code></pre></figure>
+<h2 id="dots-语境下的-gc">DOTS 语境下的 GC<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#dots-语境下的-gc" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<h3 id="ecs-如何避免-gc">ECS 如何避免 GC<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#ecs-如何避免-gc" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>ECS 架构从根基上规避 GC：</p>
+<ul>
+<li><strong>Entity</strong>：轻量 ID（index + version），是值类型，不产生堆分配</li>
+<li><strong>IComponentData</strong>：<code>unmanaged struct</code>，纯数据，存储在 Archetype Chunk 的 SoA 布局中</li>
+<li><strong>ISystem</strong>：<code>unmanaged</code>，<code>OnUpdate</code> 可被 Burst 编译，整个系统无堆分配</li>
+<li><strong>Chunk</strong>：16 KiB 的 NativeArray-backed 内存块，数据紧密排列</li>
+</ul>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="csharp" data-theme="github-light github-dark"><code data-language="csharp" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// IComponentData：unmanaged struct，零 GC</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">public</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> struct</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Health</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> : </span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">IComponentData</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    public</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> int</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Current</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">;</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    public</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> int</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Max</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">;</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">}</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// ISystem：unmanaged，OnUpdate 可 Burst 编译</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">[</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">BurstCompile</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">]</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">public</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> partial</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> struct</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> DamageSystem</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> : </span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">ISystem</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    [</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">BurstCompile</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">]</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    public</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> void</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> OnUpdate</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">ref</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> SystemState</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> state</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">)</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    {</span></span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">        // 全部在 native 内存上操作，零 GC</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    }</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">}</span></span></code></pre></figure>
+<h3 id="managed-componentdata-例外">Managed ComponentData 例外<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#managed-componentdata-例外" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p><code>IComponentData</code> 也可以是 managed（class），但这会引入 GC 压力：</p>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="csharp" data-theme="github-light github-dark"><code data-language="csharp" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// managed component — 会产生 GC 压力</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">public</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> class</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> DialogueData</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> : </span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">IComponentData</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    public</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> string</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Text</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">;    </span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 引用类型</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    public</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> List</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">int</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">> </span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Choices</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">;</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">}</span></span></code></pre></figure>
+<blockquote class="callout warning" data-callout="warning">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>Managed Component 的代价 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>Managed Component 违背了 DOTS 的数据导向设计原则：无法被 Burst 编译，无法在 Chunk 中紧密排列，需要 GC 跟踪，访问时需要指针解引用。仅在确实需要托管引用（如 Unity Object 引用）时使用。</p>
+</div>
+</blockquote>
+<h3 id="systembase-vs-isystem-的-gc-影响">SystemBase vs ISystem 的 GC 影响<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#systembase-vs-isystem-的-gc-影响" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th>维度</th><th>ISystem</th><th>SystemBase</th></tr></thead><tbody><tr><td>类型</td><td><code>unmanaged</code></td><td><code>managed class</code></td></tr><tr><td>OnUpdate 可 Burst</td><td>是</td><td>否</td></tr><tr><td>可存储托管字段</td><td>否</td><td>是</td></tr><tr><td>GC 分配</td><td>无</td><td>系统实例本身在 managed heap</td></tr><tr><td>推荐</td><td>默认选择</td><td>仅在需要托管数据时</td></tr></tbody></table></div>
+<p>详见 <a href="../unity-Unity引擎/dots-ecs-数据导向" class="internal alias" data-slug="unity-Unity引擎/dots-ecs-数据导向"> ECS（数据导向技术栈）</a> 中的 ISystem vs SystemBase 对比。</p>
+<h3 id="ecb-分配模式">ECB 分配模式<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#ecb-分配模式" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>EntityCommandBuffer（ECB）使用 native 内存队列，<strong>自身不产生托管堆分配</strong>：</p>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="csharp" data-theme="github-light github-dark"><code data-language="csharp" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">[</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">BurstCompile</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">]</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">public</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> partial</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> struct</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> SpawnSystem</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> : </span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">ISystem</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    [</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">BurstCompile</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">]</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    public</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> void</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> OnUpdate</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">ref</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> SystemState</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> state</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">)</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    {</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">        var</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> ecb</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> new</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> EntityCommandBuffer</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(Allocator.TempJob);</span></span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">        // 队列命令到 native 内存</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">        ecb.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">AddComponent</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Alive</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">>(entity);</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">        ecb.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Playback</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(state.EntityManager);</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">        ecb.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Dispose</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">();</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    }</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">}</span></span></code></pre></figure>
+<blockquote class="callout tip" data-callout="tip">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>ECB 的真正好处不是&quot;无 GC&quot; </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>ECB 的核心价值是<strong>延迟结构变更到安全点</strong>，避免遍历中修改导致异常。无 GC 是 native 内存的副产品，不是主要设计目标。</p>
+</div>
+</blockquote>
+<h2 id="内存诊断-api">内存诊断 API<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#内存诊断-api" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<h3 id="net-gc-诊断-api">.NET GC 诊断 API<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#net-gc-诊断-api" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th>API</th><th>用途</th></tr></thead><tbody><tr><td><code>GC.GetTotalAllocatedBytes(precise)</code></td><td>进程生命周期总分配字节数（不含 native）</td></tr><tr><td><code>GC.GetAllocatedBytesForCurrentThread()</code></td><td>当前线程总分配字节数，适合测量代码段分配量</td></tr><tr><td><code>GC.GetGeneration(obj)</code></td><td>获取对象所在世代</td></tr><tr><td><code>GC.CollectionCount(generation)</code></td><td>指定世代回收次数</td></tr><tr><td><code>GC.GetTotalMemory(forceFullCollection)</code></td><td>托管堆已使用字节数（不含碎片）</td></tr><tr><td><code>GC.GetGCMemoryInfo()</code></td><td>返回 <code>GCMemoryInfo</code> 结构，含各代大小、碎片率、提交内存等</td></tr><tr><td><code>GC.GetGCMemoryInfo(GCKind)</code></td><td>指定查看 ephemeral / full / background 类型的信息</td></tr></tbody></table></div>
+<h3 id="测量代码段分配量">测量代码段分配量<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#测量代码段分配量" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="csharp" data-theme="github-light github-dark"><code data-language="csharp" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">long</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> before</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> GC.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">GetAllocatedBytesForCurrentThread</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">();</span></span>
+<span data-line><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">RunHotPath</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">();</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">long</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> allocated</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> GC.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">GetAllocatedBytesForCurrentThread</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">() </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">-</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> before;</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">Debug.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Log</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">$&quot;Hot path allocated: {</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">allocated</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">} bytes&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">);</span></span></code></pre></figure>
+<h3 id="gcmemoryinfo-详细属性">GCMemoryInfo 详细属性<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#gcmemoryinfo-详细属性" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="csharp" data-theme="github-light github-dark"><code data-language="csharp" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">var</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> info</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> GC.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">GetGCMemoryInfo</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(GCKind.Full);</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">Debug.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Log</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">$&quot;Heap size: {</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">info</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">.</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">HeapSizeBytes</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">}&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">);</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">Debug.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Log</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">$&quot;Committed: {</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">info</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">.</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">TotalCommittedBytes</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">}&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">);</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">Debug.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Log</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">$&quot;Available: {</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">info</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">.</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">TotalAvailableMemoryBytes</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">}&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">);</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">Debug.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Log</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">$&quot;Memory load: {</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">info</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">.</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">MemoryLoadBytes</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">}&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">);</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">Debug.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Log</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">$&quot;High memory threshold: {</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">info</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">.</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">HighMemoryLoadThresholdBytes</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">}&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">);</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 各代信息</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">for</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> (</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">int</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> gen</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> 0</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">; gen </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">&lt;=</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> GC.MaxGeneration; gen</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">++</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">)</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    var</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> genInfo</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> info.GenerationInfo[gen];</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    Debug.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Log</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">$&quot;Gen {</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">gen</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">}: SizeBefore={</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">genInfo</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">.</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">SizeBeforeBytes</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">}, &quot;</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> +</span></span>
+<span data-line><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">              $&quot;SizeAfter={</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">genInfo</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">.</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">SizeAfterBytes</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">}, &quot;</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> +</span></span>
+<span data-line><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">              $&quot;Fragmentation={</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">genInfo</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">.</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">FragmentationAfterBytes</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">}&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">);</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">}</span></span></code></pre></figure>
+<h3 id="dotnet-counters">dotnet-counters<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#dotnet-counters" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p><code>dotnet-counters</code> 是 .NET CLI 诊断工具，实时监控 GC 指标：</p>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="bash" data-theme="github-light github-dark"><code data-language="bash" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;"># 安装</span></span>
+<span data-line><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">dotnet</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> tool</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> install</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> --global</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> dotnet-counters</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;"># 监控进程的 GC 指标</span></span>
+<span data-line><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">dotnet-counters</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> monitor</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> --process-id</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> &lt;</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">PI</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">D</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">></span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> --counters</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> System.Runtime</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;"># 关注指标：</span></span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">#   dotnet.gc.collections          - GC 回收次数</span></span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">#   dotnet.gc.heap.total_allocated - 总分配字节</span></span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">#   dotnet.gc.last_collection.memory.committed_size - 提交内存</span></span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">#   dotnet.gc.last_collection.fragmentation.size    - 碎片大小</span></span></code></pre></figure>
+<h3 id="dotnet-gcdump">dotnet-gcdump<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#dotnet-gcdump" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p><code>dotnet-gcdump</code> 生成堆快照，分析对象类型分布和引用链：</p>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="bash" data-theme="github-light github-dark"><code data-language="bash" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">dotnet</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> tool</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> install</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> --global</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> dotnet-gcdump</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;"># 采集当前进程的 GC dump</span></span>
+<span data-line><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">dotnet-gcdump</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> collect</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> --process-id</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> &lt;</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">PI</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">D</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">></span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;"># 生成报告</span></span>
+<span data-line><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">dotnet-gcdump</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> report</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> &lt;</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">output.gcdum</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">p</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">></span></span></code></pre></figure>
+<blockquote class="callout note" data-callout="note">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>诊断工具在 Unity 中的可用性 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p><code>dotnet-counters</code> 和 <code>dotnet-gcdump</code> 依赖 .NET 运行时 EventPipe，在 Unity Mono/IL2CPP 后端不可用。迁移 CoreCLR 后将可用。当前 Unity 开发者应依赖 Unity Profiler 和 Memory Profiler 包。</p>
+</div>
+</blockquote>
+<h2 id="反模式">反模式<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#反模式" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<h3 id="gccollect-in-update">GC.Collect in Update<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#gccollect-in-update" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="csharp" data-theme="github-light github-dark"><code data-language="csharp" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 绝对不要这样做！</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">void</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Update</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">()</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    GC.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Collect</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(); </span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 每帧触发 Full GC → 帧率腰斩</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">}</span></span></code></pre></figure>
+<blockquote class="callout warning" data-callout="warning">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>手动 GC.Collect 通常是错误优化 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>试图”控制 GC 时机”往往适得其反。GC 的预算调整算法依赖自然分配模式。手动 Collect 干扰算法学习，让后续 GC 更频繁。正确做法是减少分配。</p>
+</div>
+</blockquote>
+<h3 id="单例事件订阅泄漏">单例事件订阅泄漏<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#单例事件订阅泄漏" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="csharp" data-theme="github-light github-dark"><code data-language="csharp" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 错误：订阅但从不取消</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">void</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> OnEnable</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">()</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    EventBus.OnDamage </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">+=</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> HandleDamage;</span></span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">    // 如果 OnDisable 中忘记 -=，HandleDamage 引用会</span></span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">    // 通过 delegate 捕获 this，阻止整个 MonoBehaviour 被 GC 回收</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">}</span></span></code></pre></figure>
+<blockquote class="callout warning" data-callout="warning">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>事件订阅是最常见的泄漏源 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p><code>+=</code> 在委托中隐式捕获 <code>this</code>。如果 <code>OnDisable</code> / <code>OnDestroy</code> 不对称 <code>-=</code>，订阅者永远不会被 GC 回收。静态事件尤其危险——它们的生命周期等于进程生命周期。</p>
+</div>
+</blockquote>
+<h3 id="静态集合无限增长">静态集合无限增长<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#静态集合无限增长" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="csharp" data-theme="github-light github-dark"><code data-language="csharp" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 错误：静态缓存只增不减</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">static</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> readonly</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Dictionary</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">string</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">, </span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Texture2D</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">> </span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Cache</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> new</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">();</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">void</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> LoadTexture</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">string</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> name</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">)</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    if</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> (</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">!</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">Cache.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">ContainsKey</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(name))</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">        Cache[name] </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">=</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> Resources.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Load</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Texture2D</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">>(name);</span></span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">    // 永远不移除 → 缓存在 Gen 2 持续增长</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">}</span></span></code></pre></figure>
+<h3 id="闭包捕获在热路径">闭包捕获在热路径<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#闭包捕获在热路径" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="csharp" data-theme="github-light github-dark"><code data-language="csharp" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 错误：lambda 捕获局部变量 → 每次分配闭包类实例</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">void</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Update</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">()</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    enemies.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">ForEach</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">e</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =></span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> TakeDamage</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(e, damageMultiplier));</span></span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">    // C# 编译器生成隐藏类，捕获 damageMultiplier</span></span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">    // 每帧分配一个闭包对象</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">}</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 修正：使用显式方法</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">void</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Update</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">()</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    for</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> (</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">int</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> i</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> 0</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">; i </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">&lt;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> enemies.Count; i</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">++</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">)</span></span>
+<span data-line><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">        TakeDamage</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(enemies[i], damageMultiplier);</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">}</span></span></code></pre></figure>
+<h3 id="foreach-on-list旧-mono-陷阱">foreach on List<t>（旧 Mono 陷阱）</t><a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#foreach-on-list旧-mono-陷阱" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>Unity 5.5 之前，<code>foreach</code> 遍历非数组集合会产生一次装箱分配（<code>IEnumerator</code> 是引用类型，<code>List&lt;T>.GetEnumerator()</code> 返回值类型，但通过 <code>IEnumerable</code> 接口调用时被装箱）。</p>
+<p>Unity 5.5+ 修复了 <code>List&lt;T></code> 的 <code>foreach</code> 装箱问题。但在<strong>通过接口类型</strong>（如 <code>IList&lt;T></code>、<code>IReadOnlyList&lt;T></code>）遍历时，装箱仍然发生：</p>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="csharp" data-theme="github-light github-dark"><code data-language="csharp" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 无装箱（编译器直接调用 List&lt;T>.GetEnumerator）</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">foreach</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> (</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">var</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> e</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> in</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> myList) { }</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 仍会装箱（通过 IEnumerable&lt;T> 接口调用）</span></span>
+<span data-line><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">IReadOnlyList</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Enemy</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">> </span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">list</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> myList;</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">foreach</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> (</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">var</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> e</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> in</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> list) { } </span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// GetEnumerator() 返回 IEnumerator → 装箱</span></span></code></pre></figure>
+<blockquote class="callout warning" data-callout="warning">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>始终优先使用 for 循环 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>在 hot path 中，<code>for</code> 循环比 <code>foreach</code> 更可靠：不依赖编译器优化细节，不依赖集合类型，不会因接口类型变更突然引入分配。</p>
+</div>
+</blockquote>
+<h3 id="debuglog--gameobjecttag-隐藏装箱">Debug.Log / GameObject.tag 隐藏装箱<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#debuglog--gameobjecttag-隐藏装箱" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="csharp" data-theme="github-light github-dark"><code data-language="csharp" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// Debug.Log 参数是 object → int 装箱</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">Debug.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Log</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;Score: &quot;</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> +</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> score); </span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// score 装箱 + 字符串拼接分配</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// GameObject.tag 返回新字符串</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">if</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> (go.tag </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">==</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> &quot;Enemy&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">) { } </span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 每次访问分配新 string</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 修正：使用 CompareTag，避免分配</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">if</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> (go.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">CompareTag</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;Enemy&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">)) { } </span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 零分配</span></span></code></pre></figure>
+<h3 id="协程-yield-return-null-分配">协程 yield return null 分配<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#协程-yield-return-null-分配" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="csharp" data-theme="github-light github-dark"><code data-language="csharp" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// Unity &lt; 2023：yield return null 每次分配一个新的 YieldInstruction</span></span>
+<span data-line><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">IEnumerator</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Loop</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">()</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    while</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> (</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">true</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">)</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    {</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">        yield</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> return</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> null</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">; </span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 分配</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    }</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">}</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 修正：缓存</span></span>
+<span data-line><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">WaitForEndOfFrame</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> waitForEndOfFrame</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> new</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> WaitForEndOfFrame</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">();</span></span>
+<span data-line><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">IEnumerator</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Loop</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">()</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    while</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> (</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">true</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">)</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    {</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">        yield</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> return</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> waitForEndOfFrame; </span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 复用，零分配</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    }</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">}</span></span></code></pre></figure>
+<blockquote class="callout info" data-callout="info">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>Unity 2023.1+ 的改进 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>Unity 2023.1 对 <code>yield return null</code> 做了内部优化，不再每次分配新对象。但其他 YieldInstruction（如 <code>WaitForSeconds</code>、<code>WaitForFixedUpdate</code>）仍建议缓存。</p>
+</div>
+</blockquote>
+<h3 id="stringformat-在热路径">string.Format 在热路径<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#stringformat-在热路径" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="csharp" data-theme="github-light github-dark"><code data-language="csharp" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 每次调用产生多个临时字符串</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">void</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Update</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">()</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    label.text </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">=</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> string</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Format</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;HP: {0}/{1}&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">, hp, maxHp);</span></span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">    // → &quot;HP: &quot; + hp.ToString() + &quot;/&quot; + maxHp.ToString()</span></span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">    // 至少 3 次字符串分配</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">}</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 修正：预格式化或使用值类型渲染</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">void</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Update</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">()</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    _sb.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Clear</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">();</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    _sb.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Append</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;HP: &quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">).</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Append</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(hp).</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Append</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">'/'</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">).</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Append</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(maxHp);</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    label.text </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">=</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> _sb.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">ToString</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(); </span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 仍有一次分配，但比 Format 少</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">}</span></span></code></pre></figure>
+<h2 id="相关">相关<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#相关" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<ul>
+<li><a href="../csharp-dotnet-CSharp与NET/dispose-pattern-释放模式" class="internal alias" data-slug="csharp-dotnet-CSharp与NET/dispose-pattern-释放模式">Dispose 模式（Dispose Pattern）</a> — GC 不负责的外部资源释放</li>
+<li><a href="../csharp-dotnet-CSharp与NET/value-types-vs-reference-types-值与引用" class="internal alias" data-slug="csharp-dotnet-CSharp与NET/value-types-vs-reference-types-值与引用">值类型 vs 引用类型（Value Types vs Reference Types）</a> — 装箱、栈 vs 堆、复制语义</li>
+<li><a href="../csharp-dotnet-CSharp与NET/generic-collections-泛型集合" class="internal alias" data-slug="csharp-dotnet-CSharp与NET/generic-collections-泛型集合">C＃ 泛型集合（Generic Collections）</a> — 集合扩容与 GC 压力</li>
+<li><a href="../csharp-dotnet-CSharp与NET/linq-查询与延迟" class="internal alias" data-slug="csharp-dotnet-CSharp与NET/linq-查询与延迟">LINQ 与延迟执行（LINQ and Deferred Execution）</a> — LINQ 的分配陷阱</li>
+<li><a href="../performance-性能优化/collections-package-集合包" class="internal alias" data-slug="performance-性能优化/collections-package-集合包">Unity Collections 包（Unity Collections Package）</a> — 零 GC native 集合</li>
+<li><a href="../performance-性能优化/native-container-Native容器" class="internal alias" data-slug="performance-性能优化/native-container-Native容器">NativeContainer 与 Allocator</a> — native 内存分配器</li>
+<li><a href="../unity-Unity引擎/dots-ecs-数据导向" class="internal alias" data-slug="unity-Unity引擎/dots-ecs-数据导向"> ECS（数据导向技术栈）</a> — ECS 如何从架构层面规避 GC</li>
+<li><a href="../csharp-dotnet-CSharp与NET/managed-execution-托管执行" class="internal alias" data-slug="csharp-dotnet-CSharp与NET/managed-execution-托管执行">.NET 托管执行流程（Managed Execution）</a> — CLR / JIT / GC 在执行流程中的位置</li>
+<li><a href="../patterns-设计模式/object-pool-对象池" class="internal alias" data-slug="patterns-设计模式/object-pool-对象池">对象池（Object Pool）</a> — 复用实例消除 GC Spike</li>
+</ul></article><hr/><div class="page-footer"></div></div><div class="right sidebar"><div class="graph"><h3>关系图谱</h3><div class="graph-outer"><div class="graph-container" data-cfg="{&quot;drag&quot;:true,&quot;zoom&quot;:true,&quot;depth&quot;:1,&quot;scale&quot;:1.1,&quot;repelForce&quot;:0.5,&quot;centerForce&quot;:0.3,&quot;linkDistance&quot;:30,&quot;fontSize&quot;:0.6,&quot;opacityScale&quot;:1,&quot;showTags&quot;:true,&quot;removeTags&quot;:[],&quot;focusOnHover&quot;:false,&quot;enableRadial&quot;:false}"></div><button class="global-graph-icon" aria-label="Global Graph"><svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 55 55" fill="currentColor" xml:space="preserve"><path d="M49,0c-3.309,0-6,2.691-6,6c0,1.035,0.263,2.009,0.726,2.86l-9.829,9.829C32.542,17.634,30.846,17,29,17
+                s-3.542,0.634-4.898,1.688l-7.669-7.669C16.785,10.424,17,9.74,17,9c0-2.206-1.794-4-4-4S9,6.794,9,9s1.794,4,4,4
+                c0.74,0,1.424-0.215,2.019-0.567l7.669,7.669C21.634,21.458,21,23.154,21,25s0.634,3.542,1.688,4.897L10.024,42.562
+                C8.958,41.595,7.549,41,6,41c-3.309,0-6,2.691-6,6s2.691,6,6,6s6-2.691,6-6c0-1.035-0.263-2.009-0.726-2.86l12.829-12.829
+                c1.106,0.86,2.44,1.436,3.898,1.619v10.16c-2.833,0.478-5,2.942-5,5.91c0,3.309,2.691,6,6,6s6-2.691,6-6c0-2.967-2.167-5.431-5-5.91
+                v-10.16c1.458-0.183,2.792-0.759,3.898-1.619l7.669,7.669C41.215,39.576,41,40.26,41,41c0,2.206,1.794,4,4,4s4-1.794,4-4
+                s-1.794-4-4-4c-0.74,0-1.424,0.215-2.019,0.567l-7.669-7.669C36.366,28.542,37,26.846,37,25s-0.634-3.542-1.688-4.897l9.665-9.665
+                C46.042,11.405,47.451,12,49,12c3.309,0,6-2.691,6-6S52.309,0,49,0z M11,9c0-1.103,0.897-2,2-2s2,0.897,2,2s-0.897,2-2,2
+                S11,10.103,11,9z M6,51c-2.206,0-4-1.794-4-4s1.794-4,4-4s4,1.794,4,4S8.206,51,6,51z M33,49c0,2.206-1.794,4-4,4s-4-1.794-4-4
+                s1.794-4,4-4S33,46.794,33,49z M29,31c-3.309,0-6-2.691-6-6s2.691-6,6-6s6,2.691,6,6S32.309,31,29,31z M47,41c0,1.103-0.897,2-2,2
+                s-2-0.897-2-2s0.897-2,2-2S47,39.897,47,41z M49,10c-2.206,0-4-1.794-4-4s1.794-4,4-4s4,1.794,4,4S51.206,10,49,10z"></path></svg></button></div><div class="global-graph-outer"><div class="global-graph-container" data-cfg="{&quot;drag&quot;:true,&quot;zoom&quot;:true,&quot;depth&quot;:-1,&quot;scale&quot;:0.9,&quot;repelForce&quot;:0.5,&quot;centerForce&quot;:0.2,&quot;linkDistance&quot;:30,&quot;fontSize&quot;:0.6,&quot;opacityScale&quot;:1,&quot;showTags&quot;:true,&quot;removeTags&quot;:[],&quot;focusOnHover&quot;:true,&quot;enableRadial&quot;:true}"></div></div></div><div class="toc desktop-only"><button type="button" class="toc-header" aria-controls="toc-4" aria-expanded="true"><h3>目录</h3><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="fold"><polyline points="6 9 12 15 18 9"></polyline></svg></button><ul id="list-1" class="toc-content overflow"><li class="depth-0"><a href="#net-gc-与托管内存net-garbage-collection" data-for="net-gc-与托管内存net-garbage-collection">.NET GC 与托管内存（.NET Garbage Collection）</a></li><li class="depth-1"><a href="#核心思想" data-for="核心思想">核心思想</a></li><li class="depth-1"><a href="#为什么重要" data-for="为什么重要">为什么重要</a></li><li class="depth-1"><a href="#分代-gc-模型" data-for="分代-gc-模型">分代 GC 模型</a></li><li class="depth-2"><a href="#三代结构" data-for="三代结构">三代结构</a></li><li class="depth-2"><a href="#分配与提升逻辑" data-for="分配与提升逻辑">分配与提升逻辑</a></li><li class="depth-2"><a href="#gen-0-arena-分配速度" data-for="gen-0-arena-分配速度">Gen 0 “Arena” 分配速度</a></li><li class="depth-2"><a href="#短命代ephemeral-generations" data-for="短命代ephemeral-generations">短命代（Ephemeral Generations）</a></li><li class="depth-1"><a href="#lohlarge-object-heap" data-for="lohlarge-object-heap">LOH（Large Object Heap）</a></li><li class="depth-2"><a href="#大对象判定" data-for="大对象判定">大对象判定</a></li><li class="depth-2"><a href="#loh-是-gen-2-的一部分" data-for="loh-是-gen-2-的一部分">LOH 是 Gen 2 的一部分</a></li><li class="depth-2"><a href="#碎片问题" data-for="碎片问题">碎片问题</a></li><li class="depth-2"><a href="#loh-压缩" data-for="loh-压缩">LOH 压缩</a></li><li class="depth-1"><a href="#gc-模式" data-for="gc-模式">GC 模式</a></li><li class="depth-2"><a href="#workstation-vs-server-gc" data-for="workstation-vs-server-gc">Workstation vs Server GC</a></li><li class="depth-2"><a href="#concurrent--background-gc" data-for="concurrent--background-gc">Concurrent / Background GC</a></li><li class="depth-2"><a href="#unity-运行时-gc-对比" data-for="unity-运行时-gc-对比">Unity 运行时 GC 对比</a></li><li class="depth-1"><a href="#gc-触发条件" data-for="gc-触发条件">GC 触发条件</a></li><li class="depth-2"><a href="#net-coreclr-触发条件" data-for="net-coreclr-触发条件">.NET CoreCLR 触发条件</a></li><li class="depth-2"><a href="#unity-boehm-gc-触发条件" data-for="unity-boehm-gc-触发条件">Unity Boehm GC 触发条件</a></li><li class="depth-1"><a href="#碎片与钉住fragmentation-and-pinning" data-for="碎片与钉住fragmentation-and-pinning">碎片与钉住（Fragmentation and Pinning）</a></li><li class="depth-2"><a href="#什么是钉住" data-for="什么是钉住">什么是钉住</a></li><li class="depth-2"><a href="#钉住的三种来源" data-for="钉住的三种来源">钉住的三种来源</a></li><li class="depth-2"><a href="#钉住对-gen-01-的影响" data-for="钉住对-gen-01-的影响">钉住对 Gen 0/1 的影响</a></li><li class="depth-2"><a href="#net-5-pinned-object-heap" data-for="net-5-pinned-object-heap">.NET 5+ Pinned Object Heap</a></li><li class="depth-1"><a href="#unity-gc-性能分析" data-for="unity-gc-性能分析">Unity GC 性能分析</a></li><li class="depth-2"><a href="#profiler-gc-alloc-列" data-for="profiler-gc-alloc-列">Profiler GC Alloc 列</a></li><li class="depth-2"><a href="#profiler-内存-api" data-for="profiler-内存-api">Profiler 内存 API</a></li><li class="depth-2"><a href="#memory-profiler-包" data-for="memory-profiler-包">Memory Profiler 包</a></li><li class="depth-2"><a href="#gcalloc-与-gccollect-标记" data-for="gcalloc-与-gccollect-标记">GC.Alloc 与 GC.Collect 标记</a></li><li class="depth-1"><a href="#零-gc-模式unity" data-for="零-gc-模式unity">零 GC 模式（Unity）</a></li><li class="depth-2"><a href="#nativearray--nativelist--nativehashmap" data-for="nativearray--nativelist--nativehashmap">NativeArray / NativeList / NativeHashMap</a></li><li class="depth-2"><a href="#unsafe-系列" data-for="unsafe-系列">Unsafe 系列</a></li><li class="depth-2"><a href="#fixedlist-系列栈分配" data-for="fixedlist-系列栈分配">FixedList 系列（栈分配）</a></li><li class="depth-2"><a href="#nativereference" data-for="nativereference">NativeReference</a></li><li class="depth-2"><a href="#ref-返回值" data-for="ref-返回值">ref 返回值</a></li><li class="depth-2"><a href="#stackalloc-与-span" data-for="stackalloc-与-span">stackalloc 与 Span</a></li><li class="depth-2"><a href="#字符串零-gc-模式" data-for="字符串零-gc-模式">字符串零 GC 模式</a></li><li class="depth-2"><a href="#预分配集合" data-for="预分配集合">预分配集合</a></li><li class="depth-1"><a href="#dots-语境下的-gc" data-for="dots-语境下的-gc">DOTS 语境下的 GC</a></li><li class="depth-2"><a href="#ecs-如何避免-gc" data-for="ecs-如何避免-gc">ECS 如何避免 GC</a></li><li class="depth-2"><a href="#managed-componentdata-例外" data-for="managed-componentdata-例外">Managed ComponentData 例外</a></li><li class="depth-2"><a href="#systembase-vs-isystem-的-gc-影响" data-for="systembase-vs-isystem-的-gc-影响">SystemBase vs ISystem 的 GC 影响</a></li><li class="depth-2"><a href="#ecb-分配模式" data-for="ecb-分配模式">ECB 分配模式</a></li><li class="depth-1"><a href="#内存诊断-api" data-for="内存诊断-api">内存诊断 API</a></li><li class="depth-2"><a href="#net-gc-诊断-api" data-for="net-gc-诊断-api">.NET GC 诊断 API</a></li><li class="depth-2"><a href="#测量代码段分配量" data-for="测量代码段分配量">测量代码段分配量</a></li><li class="depth-2"><a href="#gcmemoryinfo-详细属性" data-for="gcmemoryinfo-详细属性">GCMemoryInfo 详细属性</a></li><li class="depth-2"><a href="#dotnet-counters" data-for="dotnet-counters">dotnet-counters</a></li><li class="depth-2"><a href="#dotnet-gcdump" data-for="dotnet-gcdump">dotnet-gcdump</a></li><li class="depth-1"><a href="#反模式" data-for="反模式">反模式</a></li><li class="depth-2"><a href="#gccollect-in-update" data-for="gccollect-in-update">GC.Collect in Update</a></li><li class="depth-2"><a href="#单例事件订阅泄漏" data-for="单例事件订阅泄漏">单例事件订阅泄漏</a></li><li class="depth-2"><a href="#静态集合无限增长" data-for="静态集合无限增长">静态集合无限增长</a></li><li class="depth-2"><a href="#闭包捕获在热路径" data-for="闭包捕获在热路径">闭包捕获在热路径</a></li><li class="depth-2"><a href="#foreach-on-listt旧-mono-陷阱" data-for="foreach-on-listt旧-mono-陷阱">foreach on List&lt;T>（旧 Mono 陷阱）</a></li><li class="depth-2"><a href="#debuglog--gameobjecttag-隐藏装箱" data-for="debuglog--gameobjecttag-隐藏装箱">Debug.Log / GameObject.tag 隐藏装箱</a></li><li class="depth-2"><a href="#协程-yield-return-null-分配" data-for="协程-yield-return-null-分配">协程 yield return null 分配</a></li><li class="depth-2"><a href="#stringformat-在热路径" data-for="stringformat-在热路径">string.Format 在热路径</a></li><li class="depth-1"><a href="#相关" data-for="相关">相关</a></li><li class="overflow-end"></li></ul></div><div class="backlinks"><h3>反向链接</h3><ul id="list-2" class="overflow"><li><a href="../csharp-dotnet-CSharp与NET/async-await-internals-异步机制" class="internal">async-await-internals-异步机制</a></li><li><a href="../csharp-dotnet-CSharp与NET/async-await-task-异步与Task" class="internal">async-await-task-异步与Task</a></li><li><a href="../csharp-dotnet-CSharp与NET/dispose-pattern-释放模式" class="internal">dispose-pattern-释放模式</a></li><li><a href="../csharp-dotnet-CSharp与NET/generic-collections-泛型集合" class="internal">generic-collections-泛型集合</a></li><li><a href="../csharp-dotnet-CSharp与NET/linq-查询与延迟" class="internal">linq-查询与延迟</a></li><li><a href="../csharp-dotnet-CSharp与NET/managed-execution-托管执行" class="internal">managed-execution-托管执行</a></li><li><a href="../csharp-dotnet-CSharp与NET/native-aot-原生AOT" class="internal">native-aot-原生AOT</a></li><li><a href="../csharp-dotnet-CSharp与NET/type-system-类型系统" class="internal">type-system-类型系统</a></li><li><a href="../csharp-dotnet-CSharp与NET/value-types-vs-reference-types-值与引用" class="internal">value-types-vs-reference-types-值与引用</a></li><li><a href="../" class="internal">index</a></li><li><a href="../patterns-设计模式/abstract-factory-抽象工厂" class="internal">abstract-factory-抽象工厂</a></li><li><a href="../patterns-设计模式/behavioral-patterns-行为型" class="internal">behavioral-patterns-行为型</a></li><li><a href="../patterns-设计模式/builder-pattern-生成器" class="internal">builder-pattern-生成器</a></li><li><a href="../patterns-设计模式/creational-patterns-创建型" class="internal">creational-patterns-创建型</a></li><li><a href="../patterns-设计模式/data-locality-数据局部性" class="internal">data-locality-数据局部性</a></li><li><a href="../patterns-设计模式/design-patterns-设计模式" class="internal">design-patterns-设计模式</a></li><li><a href="../patterns-设计模式/factory-method-工厂方法" class="internal">factory-method-工厂方法</a></li><li><a href="../patterns-设计模式/flyweight-pattern-享元" class="internal">flyweight-pattern-享元</a></li><li><a href="../patterns-设计模式/game-programming-patterns-游戏编程模式" class="internal">game-programming-patterns-游戏编程模式</a></li><li><a href="../patterns-设计模式/iterator-pattern-迭代器" class="internal">iterator-pattern-迭代器</a></li><li><a href="../patterns-设计模式/memento-pattern-备忘录" class="internal">memento-pattern-备忘录</a></li><li><a href="../patterns-设计模式/object-pool-对象池" class="internal">object-pool-对象池</a></li><li><a href="../patterns-设计模式/observer-pattern-观察者" class="internal">observer-pattern-观察者</a></li><li><a href="../patterns-设计模式/optimization-patterns-优化" class="internal">optimization-patterns-优化</a></li><li><a href="../patterns-设计模式/prototype-pattern-原型" class="internal">prototype-pattern-原型</a></li><li><a href="../patterns-设计模式/proxy-pattern-代理" class="internal">proxy-pattern-代理</a></li><li><a href="../patterns-设计模式/singleton-pattern-单例" class="internal">singleton-pattern-单例</a></li><li><a href="../patterns-设计模式/structural-patterns-结构型" class="internal">structural-patterns-结构型</a></li><li><a href="../patterns-设计模式/update-method-更新方法" class="internal">update-method-更新方法</a></li><li><a href="../performance-性能优化/burst-compiler-Burst编译" class="internal">burst-compiler-Burst编译</a></li><li><a href="../sources-来源摘要/2026-05-16-csharp-dotnet-foundations-overview" class="internal">2026-05-16-csharp-dotnet-foundations-overview</a></li><li><a href="../unity-Unity引擎/gameobject-component-对象与组件" class="internal">gameobject-component-对象与组件</a></li><li><a href="../unity-Unity引擎/scriptableobject-deep-dive-深入" class="internal">scriptableobject-deep-dive-深入</a></li><li><a href="../unity-Unity引擎/serialization-序列化" class="internal">serialization-序列化</a></li><li class="overflow-end"></li></ul></div></div><footer class><p>Created with <a href="https://quartz.jzhao.xyz/">Quartz v4.5.2</a> © 2026</p><ul><li><a href="https://github.com/jackyzha0/quartz">GitHub</a></li><li><a href="https://discord.gg/cRFFHYye7t">Discord Community</a></li></ul></footer></div></div></body><script type="application/javascript" data-persist="true">function n(){let t=this.parentElement;t.classList.toggle("is-collapsed");let e=t.getElementsByClassName("callout-content")[0];if(!e)return;let l=t.classList.contains("is-collapsed");e.style.gridTemplateRows=l?"0fr":"1fr"}function c(){let t=document.getElementsByClassName("callout is-collapsible");for(let e of t){let l=e.getElementsByClassName("callout-title")[0],s=e.getElementsByClassName("callout-content")[0];if(!l||!s)continue;l.addEventListener("click",n),window.addCleanup(()=>l.removeEventListener("click",n));let o=e.classList.contains("is-collapsed");s.style.gridTemplateRows=o?"0fr":"1fr"}}document.addEventListener("nav",c);
+</script><script type="module" data-persist="true">function E(c,e){if(!c)return;function t(s){s.target===this&&(s.preventDefault(),s.stopPropagation(),e())}function r(s){s.key.startsWith("Esc")&&(s.preventDefault(),e())}c?.addEventListener("click",t),window.addCleanup(()=>c?.removeEventListener("click",t)),document.addEventListener("keydown",r),window.addCleanup(()=>document.removeEventListener("keydown",r))}function y(c){for(;c.firstChild;)c.removeChild(c.firstChild)}var v=class{constructor(e,t){this.container=e;this.content=t;this.setupEventListeners(),this.setupNavigationControls(),this.resetTransform()}isDragging=!1;startPan={x:0,y:0};currentPan={x:0,y:0};scale=1;MIN_SCALE=.5;MAX_SCALE=3;cleanups=[];setupEventListeners(){let e=this.onMouseDown.bind(this),t=this.onMouseMove.bind(this),r=this.onMouseUp.bind(this),s=this.onTouchStart.bind(this),o=this.onTouchMove.bind(this),i=this.onTouchEnd.bind(this),n=this.resetTransform.bind(this);this.container.addEventListener("mousedown",e),document.addEventListener("mousemove",t),document.addEventListener("mouseup",r),this.container.addEventListener("touchstart",s,{passive:!1}),document.addEventListener("touchmove",o,{passive:!1}),document.addEventListener("touchend",i),window.addEventListener("resize",n),this.cleanups.push(()=>this.container.removeEventListener("mousedown",e),()=>document.removeEventListener("mousemove",t),()=>document.removeEventListener("mouseup",r),()=>this.container.removeEventListener("touchstart",s),()=>document.removeEventListener("touchmove",o),()=>document.removeEventListener("touchend",i),()=>window.removeEventListener("resize",n))}cleanup(){for(let e of this.cleanups)e()}setupNavigationControls(){let e=document.createElement("div");e.className="mermaid-controls";let t=this.createButton("+",()=>this.zoom(.1)),r=this.createButton("-",()=>this.zoom(-.1)),s=this.createButton("Reset",()=>this.resetTransform());e.appendChild(r),e.appendChild(s),e.appendChild(t),this.container.appendChild(e)}createButton(e,t){let r=document.createElement("button");return r.textContent=e,r.className="mermaid-control-button",r.addEventListener("click",t),window.addCleanup(()=>r.removeEventListener("click",t)),r}onMouseDown(e){e.button===0&&(this.isDragging=!0,this.startPan={x:e.clientX-this.currentPan.x,y:e.clientY-this.currentPan.y},this.container.style.cursor="grabbing")}onMouseMove(e){this.isDragging&&(e.preventDefault(),this.currentPan={x:e.clientX-this.startPan.x,y:e.clientY-this.startPan.y},this.updateTransform())}onMouseUp(){this.isDragging=!1,this.container.style.cursor="grab"}onTouchStart(e){if(e.touches.length!==1)return;this.isDragging=!0;let t=e.touches[0];this.startPan={x:t.clientX-this.currentPan.x,y:t.clientY-this.currentPan.y}}onTouchMove(e){if(!this.isDragging||e.touches.length!==1)return;e.preventDefault();let t=e.touches[0];this.currentPan={x:t.clientX-this.startPan.x,y:t.clientY-this.startPan.y},this.updateTransform()}onTouchEnd(){this.isDragging=!1}zoom(e){let t=Math.min(Math.max(this.scale+e,this.MIN_SCALE),this.MAX_SCALE),r=this.content.getBoundingClientRect(),s=r.width/2,o=r.height/2,i=t-this.scale;this.currentPan.x-=s*i,this.currentPan.y-=o*i,this.scale=t,this.updateTransform()}updateTransform(){this.content.style.transform=`translate(${this.currentPan.x}px, ${this.currentPan.y}px) scale(${this.scale})`}resetTransform(){let t=this.content.querySelector("svg").getBoundingClientRect(),r=t.width/this.scale,s=t.height/this.scale;this.scale=1,this.currentPan={x:(this.container.clientWidth-r)/2,y:(this.container.clientHeight-s)/2},this.updateTransform()}},T=["--secondary","--tertiary","--gray","--light","--lightgray","--highlight","--dark","--darkgray","--codeFont"],L;document.addEventListener("nav",async()=>{let e=document.querySelector(".center").querySelectorAll("code.mermaid");if(e.length===0)return;L||=await import("https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.4.0/mermaid.esm.min.mjs");let t=L.default,r=new WeakMap;for(let o of e){let i=o.getAttribute("data-clipboard"),n=o.innerText;if(i)try{n=JSON.parse(i)}catch{}r.set(o,n)}async function s(){for(let n of e){n.removeAttribute("data-processed");let a=r.get(n);a&&(n.textContent=a)}let o=T.reduce((n,a)=>(n[a]=window.getComputedStyle(document.documentElement).getPropertyValue(a),n),{}),i=document.documentElement.getAttribute("saved-theme")==="dark";t.initialize({startOnLoad:!1,securityLevel:"loose",theme:i?"dark":"base",themeVariables:{fontFamily:o["--codeFont"],primaryColor:o["--light"],primaryTextColor:o["--darkgray"],primaryBorderColor:o["--tertiary"],lineColor:o["--darkgray"],secondaryColor:o["--secondary"],tertiaryColor:o["--tertiary"],clusterBkg:o["--light"],edgeLabelBackground:o["--highlight"]}});for(let n=0;n<e.length;n++){let a=e[n],l=r.get(a);if(l)try{let u=`mermaid-svg-${Date.now()}-${n}`,{svg:p,bindFunctions:d}=await t.render(u,l);a.innerHTML=p,d&&d(a),a.setAttribute("data-processed","true")}catch(u){console.error(`mermaid render failed for node ${n}:`,u)}}}await s(),document.addEventListener("themechange",s),window.addCleanup(()=>document.removeEventListener("themechange",s));for(let o=0;o<e.length;o++){let g=function(){let f=d.querySelector("#mermaid-space"),m=d.querySelector(".mermaid-content");if(!m)return;y(m);let w=i.querySelector("svg").cloneNode(!0);m.appendChild(w),d.classList.add("active"),f.style.cursor="grab",h=new v(f,m)},M=function(){d.classList.remove("active"),h?.cleanup(),h=null},i=e[o],n=i.parentElement,a=n.querySelector(".clipboard-button"),l=n.querySelector(".expand-button"),u=window.getComputedStyle(a),p=a.offsetWidth+parseFloat(u.marginLeft||"0")+parseFloat(u.marginRight||"0");l.style.right=`calc(${p}px + 0.3rem)`,n.prepend(l);let d=n.querySelector("#mermaid-container");if(!d)return;let h=null;l.addEventListener("click",g),E(d,M),window.addCleanup(()=>{h?.cleanup(),l.removeEventListener("click",g)})}});
+</script><script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/copy-tex.min.js" type="application/javascript" data-persist="true"></script><script src="../postscript.js" type="module" data-persist="true"></script></html>

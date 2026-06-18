@@ -1,0 +1,1080 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr"><head><title>prefab-system-预制体</title><meta charset="utf-8"/><link rel="preconnect" href="https://fonts.googleapis.com"/><link rel="preconnect" href="https://fonts.gstatic.com"/><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted Grotesk:wght@400;700&amp;family=Source Sans Pro:ital,wght@0,400;0,600;1,400;1,600&amp;family=IBM Plex Mono:wght@400;600&amp;display=swap"/><link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin="anonymous"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><meta name="og:site_name" content="Unity / C# / .NET 游戏开发知识库"/><meta property="og:title" content="prefab-system-预制体"/><meta property="og:type" content="website"/><meta name="twitter:card" content="summary_large_image"/><meta name="twitter:title" content="prefab-system-预制体"/><meta name="twitter:description" content="Prefab 系统深入（Prefab System Deep Dive） 核心思想 Prefab 系统是 Unity 内容复用的基础架构。一个 Prefab asset 是一组序列化的 GameObject + Component 数据，场景中的 Prefab instance 通过”源引用 + 修改列表”模型与 asset 保持连接——instance 并非 asset 的完整拷贝，而是 asset 的增量描述。理解这个内部模型是避免 override 累积、深层嵌套、变体链过长等失控局面的前提。 为什么重要 中大型 Unity 项目的 Prefab 数量可达数千。Override 累积、深..."/><meta property="og:description" content="Prefab 系统深入（Prefab System Deep Dive） 核心思想 Prefab 系统是 Unity 内容复用的基础架构。一个 Prefab asset 是一组序列化的 GameObject + Component 数据，场景中的 Prefab instance 通过”源引用 + 修改列表”模型与 asset 保持连接——instance 并非 asset 的完整拷贝，而是 asset 的增量描述。理解这个内部模型是避免 override 累积、深层嵌套、变体链过长等失控局面的前提。 为什么重要 中大型 Unity 项目的 Prefab 数量可达数千。Override 累积、深..."/><meta property="og:image:alt" content="Prefab 系统深入（Prefab System Deep Dive） 核心思想 Prefab 系统是 Unity 内容复用的基础架构。一个 Prefab asset 是一组序列化的 GameObject + Component 数据，场景中的 Prefab instance 通过”源引用 + 修改列表”模型与 asset 保持连接——instance 并非 asset 的完整拷贝，而是 asset 的增量描述。理解这个内部模型是避免 override 累积、深层嵌套、变体链过长等失控局面的前提。 为什么重要 中大型 Unity 项目的 Prefab 数量可达数千。Override 累积、深..."/><meta property="twitter:domain" content="easilyid.github.io/knowledge-base-site"/><meta property="og:url" content="https://easilyid.github.io/knowledge-base-site/unity-Unity引擎/prefab-system-预制体"/><meta property="twitter:url" content="https://easilyid.github.io/knowledge-base-site/unity-Unity引擎/prefab-system-预制体"/><link rel="icon" href="../static/icon.png"/><meta name="description" content="Prefab 系统深入（Prefab System Deep Dive） 核心思想 Prefab 系统是 Unity 内容复用的基础架构。一个 Prefab asset 是一组序列化的 GameObject + Component 数据，场景中的 Prefab instance 通过”源引用 + 修改列表”模型与 asset 保持连接——instance 并非 asset 的完整拷贝，而是 asset 的增量描述。理解这个内部模型是避免 override 累积、深层嵌套、变体链过长等失控局面的前提。 为什么重要 中大型 Unity 项目的 Prefab 数量可达数千。Override 累积、深..."/><meta name="generator" content="Quartz"/><link href="../index.css" rel="stylesheet" type="text/css" data-persist="true"/><style>.expand-button {
+  position: absolute;
+  display: flex;
+  float: right;
+  padding: 0.4rem;
+  margin: 0.3rem;
+  right: 0;
+  color: var(--gray);
+  border-color: var(--dark);
+  background-color: var(--light);
+  border: 1px solid;
+  border-radius: 5px;
+  opacity: 0;
+  transition: 0.2s;
+}
+.expand-button > svg {
+  fill: var(--light);
+  filter: contrast(0.3);
+}
+.expand-button:hover {
+  cursor: pointer;
+  border-color: var(--secondary);
+}
+.expand-button:focus {
+  outline: 0;
+}
+
+pre:hover > .expand-button {
+  opacity: 1;
+  transition: 0.2s;
+}
+
+#mermaid-container {
+  position: fixed;
+  contain: layout;
+  z-index: 999;
+  left: 0;
+  top: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  display: none;
+  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.5);
+}
+#mermaid-container.active {
+  display: inline-block;
+}
+#mermaid-container > #mermaid-space {
+  border: 1px solid var(--lightgray);
+  background-color: var(--light);
+  border-radius: 5px;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  height: 80vh;
+  width: 80vw;
+  overflow: hidden;
+}
+#mermaid-container > #mermaid-space > .mermaid-content {
+  position: relative;
+  transform-origin: 0 0;
+  transition: transform 0.1s ease;
+  overflow: visible;
+  min-height: 200px;
+  min-width: 200px;
+}
+#mermaid-container > #mermaid-space > .mermaid-content pre {
+  margin: 0;
+  border: none;
+}
+#mermaid-container > #mermaid-space > .mermaid-content svg {
+  max-width: none;
+  height: auto;
+}
+#mermaid-container > #mermaid-space > .mermaid-controls {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+  background: var(--light);
+  border: 1px solid var(--lightgray);
+  border-radius: 6px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  z-index: 2;
+}
+#mermaid-container > #mermaid-space > .mermaid-controls .mermaid-control-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--lightgray);
+  background: var(--light);
+  color: var(--dark);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  font-family: var(--bodyFont);
+  transition: all 0.2s ease;
+}
+#mermaid-container > #mermaid-space > .mermaid-controls .mermaid-control-button:hover {
+  background: var(--lightgray);
+}
+#mermaid-container > #mermaid-space > .mermaid-controls .mermaid-control-button:active {
+  transform: translateY(1px);
+}
+#mermaid-container > #mermaid-space > .mermaid-controls .mermaid-control-button:nth-child(2) {
+  width: auto;
+  padding: 0 12px;
+  font-size: 14px;
+}
+/*# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VSb290IjoiL2hvbWUvcnVubmVyL3dvcmsvS25vd2xlZGdlLUJhc2UvS25vd2xlZGdlLUJhc2UvcXVhcnR6L3F1YXJ0ei9jb21wb25lbnRzL3N0eWxlcyIsInNvdXJjZXMiOlsibWVybWFpZC5pbmxpbmUuc2NzcyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiQUFBQTtFQUNFO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBOztBQUVBO0VBQ0U7RUFDQTs7QUFHRjtFQUNFO0VBQ0E7O0FBR0Y7RUFDRTs7O0FBS0Y7RUFDRTtFQUNBOzs7QUFJSjtFQUNFO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7O0FBRUE7RUFDRTs7QUFHRjtFQUNFO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBOztBQUVBO0VBQ0U7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBOztBQUVBO0VBQ0U7RUFDQTs7QUFHRjtFQUNFO0VBQ0E7O0FBSUo7RUFDRTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBOztBQUVBO0VBQ0U7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTs7QUFFQTtFQUNFOztBQUdGO0VBQ0U7O0FBSUY7RUFDRTtFQUNBO0VBQ0EiLCJzb3VyY2VzQ29udGVudCI6WyIuZXhwYW5kLWJ1dHRvbiB7XG4gIHBvc2l0aW9uOiBhYnNvbHV0ZTtcbiAgZGlzcGxheTogZmxleDtcbiAgZmxvYXQ6IHJpZ2h0O1xuICBwYWRkaW5nOiAwLjRyZW07XG4gIG1hcmdpbjogMC4zcmVtO1xuICByaWdodDogMDsgLy8gTk9URTogcmlnaHQgd2lsbCBiZSBzZXQgaW4gbWVybWFpZC5pbmxpbmUudHNcbiAgY29sb3I6IHZhcigtLWdyYXkpO1xuICBib3JkZXItY29sb3I6IHZhcigtLWRhcmspO1xuICBiYWNrZ3JvdW5kLWNvbG9yOiB2YXIoLS1saWdodCk7XG4gIGJvcmRlcjogMXB4IHNvbGlkO1xuICBib3JkZXItcmFkaXVzOiA1cHg7XG4gIG9wYWNpdHk6IDA7XG4gIHRyYW5zaXRpb246IDAuMnM7XG5cbiAgJiA+IHN2ZyB7XG4gICAgZmlsbDogdmFyKC0tbGlnaHQpO1xuICAgIGZpbHRlcjogY29udHJhc3QoMC4zKTtcbiAgfVxuXG4gICY6aG92ZXIge1xuICAgIGN1cnNvcjogcG9pbnRlcjtcbiAgICBib3JkZXItY29sb3I6IHZhcigtLXNlY29uZGFyeSk7XG4gIH1cblxuICAmOmZvY3VzIHtcbiAgICBvdXRsaW5lOiAwO1xuICB9XG59XG5cbnByZSB7XG4gICY6aG92ZXIgPiAuZXhwYW5kLWJ1dHRvbiB7XG4gICAgb3BhY2l0eTogMTtcbiAgICB0cmFuc2l0aW9uOiAwLjJzO1xuICB9XG59XG5cbiNtZXJtYWlkLWNvbnRhaW5lciB7XG4gIHBvc2l0aW9uOiBmaXhlZDtcbiAgY29udGFpbjogbGF5b3V0O1xuICB6LWluZGV4OiA5OTk7XG4gIGxlZnQ6IDA7XG4gIHRvcDogMDtcbiAgd2lkdGg6IDEwMHZ3O1xuICBoZWlnaHQ6IDEwMHZoO1xuICBvdmVyZmxvdzogaGlkZGVuO1xuICBkaXNwbGF5OiBub25lO1xuICBiYWNrZHJvcC1maWx0ZXI6IGJsdXIoNHB4KTtcbiAgYmFja2dyb3VuZDogcmdiYSgwLCAwLCAwLCAwLjUpO1xuXG4gICYuYWN0aXZlIHtcbiAgICBkaXNwbGF5OiBpbmxpbmUtYmxvY2s7XG4gIH1cblxuICAmID4gI21lcm1haWQtc3BhY2Uge1xuICAgIGJvcmRlcjogMXB4IHNvbGlkIHZhcigtLWxpZ2h0Z3JheSk7XG4gICAgYmFja2dyb3VuZC1jb2xvcjogdmFyKC0tbGlnaHQpO1xuICAgIGJvcmRlci1yYWRpdXM6IDVweDtcbiAgICBwb3NpdGlvbjogZml4ZWQ7XG4gICAgdG9wOiA1MCU7XG4gICAgbGVmdDogNTAlO1xuICAgIHRyYW5zZm9ybTogdHJhbnNsYXRlKC01MCUsIC01MCUpO1xuICAgIGhlaWdodDogODB2aDtcbiAgICB3aWR0aDogODB2dztcbiAgICBvdmVyZmxvdzogaGlkZGVuO1xuXG4gICAgJiA+IC5tZXJtYWlkLWNvbnRlbnQge1xuICAgICAgcG9zaXRpb246IHJlbGF0aXZlO1xuICAgICAgdHJhbnNmb3JtLW9yaWdpbjogMCAwO1xuICAgICAgdHJhbnNpdGlvbjogdHJhbnNmb3JtIDAuMXMgZWFzZTtcbiAgICAgIG92ZXJmbG93OiB2aXNpYmxlO1xuICAgICAgbWluLWhlaWdodDogMjAwcHg7XG4gICAgICBtaW4td2lkdGg6IDIwMHB4O1xuXG4gICAgICBwcmUge1xuICAgICAgICBtYXJnaW46IDA7XG4gICAgICAgIGJvcmRlcjogbm9uZTtcbiAgICAgIH1cblxuICAgICAgc3ZnIHtcbiAgICAgICAgbWF4LXdpZHRoOiBub25lO1xuICAgICAgICBoZWlnaHQ6IGF1dG87XG4gICAgICB9XG4gICAgfVxuXG4gICAgJiA+IC5tZXJtYWlkLWNvbnRyb2xzIHtcbiAgICAgIHBvc2l0aW9uOiBhYnNvbHV0ZTtcbiAgICAgIGJvdHRvbTogMjBweDtcbiAgICAgIHJpZ2h0OiAyMHB4O1xuICAgICAgZGlzcGxheTogZmxleDtcbiAgICAgIGdhcDogOHB4O1xuICAgICAgcGFkZGluZzogOHB4O1xuICAgICAgYmFja2dyb3VuZDogdmFyKC0tbGlnaHQpO1xuICAgICAgYm9yZGVyOiAxcHggc29saWQgdmFyKC0tbGlnaHRncmF5KTtcbiAgICAgIGJvcmRlci1yYWRpdXM6IDZweDtcbiAgICAgIGJveC1zaGFkb3c6IDAgMnB4IDRweCByZ2JhKDAsIDAsIDAsIDAuMSk7XG4gICAgICB6LWluZGV4OiAyO1xuXG4gICAgICAubWVybWFpZC1jb250cm9sLWJ1dHRvbiB7XG4gICAgICAgIGRpc3BsYXk6IGZsZXg7XG4gICAgICAgIGFsaWduLWl0ZW1zOiBjZW50ZXI7XG4gICAgICAgIGp1c3RpZnktY29udGVudDogY2VudGVyO1xuICAgICAgICB3aWR0aDogMzJweDtcbiAgICAgICAgaGVpZ2h0OiAzMnB4O1xuICAgICAgICBwYWRkaW5nOiAwO1xuICAgICAgICBib3JkZXI6IDFweCBzb2xpZCB2YXIoLS1saWdodGdyYXkpO1xuICAgICAgICBiYWNrZ3JvdW5kOiB2YXIoLS1saWdodCk7XG4gICAgICAgIGNvbG9yOiB2YXIoLS1kYXJrKTtcbiAgICAgICAgYm9yZGVyLXJhZGl1czogNHB4O1xuICAgICAgICBjdXJzb3I6IHBvaW50ZXI7XG4gICAgICAgIGZvbnQtc2l6ZTogMTZweDtcbiAgICAgICAgZm9udC1mYW1pbHk6IHZhcigtLWJvZHlGb250KTtcbiAgICAgICAgdHJhbnNpdGlvbjogYWxsIDAuMnMgZWFzZTtcblxuICAgICAgICAmOmhvdmVyIHtcbiAgICAgICAgICBiYWNrZ3JvdW5kOiB2YXIoLS1saWdodGdyYXkpO1xuICAgICAgICB9XG5cbiAgICAgICAgJjphY3RpdmUge1xuICAgICAgICAgIHRyYW5zZm9ybTogdHJhbnNsYXRlWSgxcHgpO1xuICAgICAgICB9XG5cbiAgICAgICAgLy8gU3R5bGUgdGhlIHJlc2V0IGJ1dHRvbiBkaWZmZXJlbnRseVxuICAgICAgICAmOm50aC1jaGlsZCgyKSB7XG4gICAgICAgICAgd2lkdGg6IGF1dG87XG4gICAgICAgICAgcGFkZGluZzogMCAxMnB4O1xuICAgICAgICAgIGZvbnQtc2l6ZTogMTRweDtcbiAgICAgICAgfVxuICAgICAgfVxuICAgIH1cbiAgfVxufVxuIl19 */</style><link href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" rel="stylesheet" type="text/css" data-persist="true"/><script src="../prescript.js" type="application/javascript" data-persist="true"></script><script type="application/javascript" data-persist="true">const fetchData = fetch("../static/contentIndex.json").then(data => data.json())</script><link rel="alternate" type="application/rss+xml" title="RSS Feed" href="https://easilyid.github.io/knowledge-base-site/index.xml"/><meta property="og:image:width" content="1200"/><meta property="og:image:height" content="630"/><meta property="og:image" content="https://easilyid.github.io/knowledge-base-site/unity-Unity引擎/prefab-system-预制体-og-image.webp"/><meta property="og:image:url" content="https://easilyid.github.io/knowledge-base-site/unity-Unity引擎/prefab-system-预制体-og-image.webp"/><meta name="twitter:image" content="https://easilyid.github.io/knowledge-base-site/unity-Unity引擎/prefab-system-预制体-og-image.webp"/><meta property="og:image:type" content="image/.webp"/></head><body data-slug="unity-Unity引擎/prefab-system-预制体"><div id="quartz-root" class="page"><div id="quartz-body"><div class="left sidebar"><h2 class="page-title"><a href="..">Unity / C# / .NET 游戏开发知识库</a></h2><div class="spacer mobile-only"></div><div class="flex-component" style="flex-direction: row; flex-wrap: nowrap; gap: 1rem;"><div style="flex-grow: 1; flex-shrink: 1; flex-basis: auto; order: 0; align-self: center; justify-self: center;"><div class="search"><button class="search-button"><svg role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 19.9 19.7"><title>Search</title><g class="search-path" fill="none"><path stroke-linecap="square" d="M18.5 18.3l-5.4-5.4"></path><circle cx="8" cy="8" r="7"></circle></g></svg><p>搜索</p></button><div class="search-container"><div class="search-space"><input autocomplete="off" class="search-bar" name="search" type="text" aria-label="搜索些什么" placeholder="搜索些什么"/><div class="search-layout" data-preview="true"></div></div></div></div></div><div style="flex-grow: 0; flex-shrink: 1; flex-basis: auto; order: 0; align-self: center; justify-self: center;"><button class="darkmode"><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" class="dayIcon" x="0px" y="0px" viewBox="0 0 35 35" style="enable-background:new 0 0 35 35" xml:space="preserve" aria-label="暗色模式"><title>暗色模式</title><path d="M6,17.5C6,16.672,5.328,16,4.5,16h-3C0.672,16,0,16.672,0,17.5    S0.672,19,1.5,19h3C5.328,19,6,18.328,6,17.5z M7.5,26c-0.414,0-0.789,0.168-1.061,0.439l-2,2C4.168,28.711,4,29.086,4,29.5    C4,30.328,4.671,31,5.5,31c0.414,0,0.789-0.168,1.06-0.44l2-2C8.832,28.289,9,27.914,9,27.5C9,26.672,8.329,26,7.5,26z M17.5,6    C18.329,6,19,5.328,19,4.5v-3C19,0.672,18.329,0,17.5,0S16,0.672,16,1.5v3C16,5.328,16.671,6,17.5,6z M27.5,9    c0.414,0,0.789-0.168,1.06-0.439l2-2C30.832,6.289,31,5.914,31,5.5C31,4.672,30.329,4,29.5,4c-0.414,0-0.789,0.168-1.061,0.44    l-2,2C26.168,6.711,26,7.086,26,7.5C26,8.328,26.671,9,27.5,9z M6.439,8.561C6.711,8.832,7.086,9,7.5,9C8.328,9,9,8.328,9,7.5    c0-0.414-0.168-0.789-0.439-1.061l-2-2C6.289,4.168,5.914,4,5.5,4C4.672,4,4,4.672,4,5.5c0,0.414,0.168,0.789,0.439,1.06    L6.439,8.561z M33.5,16h-3c-0.828,0-1.5,0.672-1.5,1.5s0.672,1.5,1.5,1.5h3c0.828,0,1.5-0.672,1.5-1.5S34.328,16,33.5,16z     M28.561,26.439C28.289,26.168,27.914,26,27.5,26c-0.828,0-1.5,0.672-1.5,1.5c0,0.414,0.168,0.789,0.439,1.06l2,2    C28.711,30.832,29.086,31,29.5,31c0.828,0,1.5-0.672,1.5-1.5c0-0.414-0.168-0.789-0.439-1.061L28.561,26.439z M17.5,29    c-0.829,0-1.5,0.672-1.5,1.5v3c0,0.828,0.671,1.5,1.5,1.5s1.5-0.672,1.5-1.5v-3C19,29.672,18.329,29,17.5,29z M17.5,7    C11.71,7,7,11.71,7,17.5S11.71,28,17.5,28S28,23.29,28,17.5S23.29,7,17.5,7z M17.5,25c-4.136,0-7.5-3.364-7.5-7.5    c0-4.136,3.364-7.5,7.5-7.5c4.136,0,7.5,3.364,7.5,7.5C25,21.636,21.636,25,17.5,25z"></path></svg><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" class="nightIcon" x="0px" y="0px" viewBox="0 0 100 100" style="enable-background:new 0 0 100 100" xml:space="preserve" aria-label="亮色模式"><title>亮色模式</title><path d="M96.76,66.458c-0.853-0.852-2.15-1.064-3.23-0.534c-6.063,2.991-12.858,4.571-19.655,4.571  C62.022,70.495,50.88,65.88,42.5,57.5C29.043,44.043,25.658,23.536,34.076,6.47c0.532-1.08,0.318-2.379-0.534-3.23  c-0.851-0.852-2.15-1.064-3.23-0.534c-4.918,2.427-9.375,5.619-13.246,9.491c-9.447,9.447-14.65,22.008-14.65,35.369  c0,13.36,5.203,25.921,14.65,35.368s22.008,14.65,35.368,14.65c13.361,0,25.921-5.203,35.369-14.65  c3.872-3.871,7.064-8.328,9.491-13.246C97.826,68.608,97.611,67.309,96.76,66.458z"></path></svg></button></div><div style="flex-grow: 0; flex-shrink: 1; flex-basis: auto; order: 0; align-self: center; justify-self: center;"><button class="readermode"><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" class="readerIcon" fill="currentColor" stroke="currentColor" stroke-width="0.2" stroke-linecap="round" stroke-linejoin="round" width="64px" height="64px" viewBox="0 0 24 24" aria-label="阅读模式"><title>阅读模式</title><g transform="translate(-1.8, -1.8) scale(1.15, 1.2)"><path d="M8.9891247,2.5 C10.1384702,2.5 11.2209868,2.96705384 12.0049645,3.76669482 C12.7883914,2.96705384 13.8709081,2.5 15.0202536,2.5 L18.7549359,2.5 C19.1691495,2.5 19.5049359,2.83578644 19.5049359,3.25 L19.5046891,4.004 L21.2546891,4.00457396 C21.6343849,4.00457396 21.9481801,4.28672784 21.9978425,4.6528034 L22.0046891,4.75457396 L22.0046891,20.25 C22.0046891,20.6296958 21.7225353,20.943491 21.3564597,20.9931534 L21.2546891,21 L2.75468914,21 C2.37499337,21 2.06119817,20.7178461 2.01153575,20.3517706 L2.00468914,20.25 L2.00468914,4.75457396 C2.00468914,4.37487819 2.28684302,4.061083 2.65291858,4.01142057 L2.75468914,4.00457396 L4.50368914,4.004 L4.50444233,3.25 C4.50444233,2.87030423 4.78659621,2.55650904 5.15267177,2.50684662 L5.25444233,2.5 L8.9891247,2.5 Z M4.50368914,5.504 L3.50468914,5.504 L3.50468914,19.5 L10.9478955,19.4998273 C10.4513189,18.9207296 9.73864328,18.5588115 8.96709342,18.5065584 L8.77307039,18.5 L5.25444233,18.5 C4.87474657,18.5 4.56095137,18.2178461 4.51128895,17.8517706 L4.50444233,17.75 L4.50368914,5.504 Z M19.5049359,17.75 C19.5049359,18.1642136 19.1691495,18.5 18.7549359,18.5 L15.2363079,18.5 C14.3910149,18.5 13.5994408,18.8724714 13.0614828,19.4998273 L20.5046891,19.5 L20.5046891,5.504 L19.5046891,5.504 L19.5049359,17.75 Z M18.0059359,3.999 L15.0202536,4 L14.8259077,4.00692283 C13.9889509,4.06666544 13.2254227,4.50975805 12.7549359,5.212 L12.7549359,17.777 L12.7782651,17.7601316 C13.4923805,17.2719483 14.3447024,17 15.2363079,17 L18.0059359,16.999 L18.0056891,4.798 L18.0033792,4.75457396 L18.0056891,4.71 L18.0059359,3.999 Z M8.9891247,4 L6.00368914,3.999 L6.00599909,4.75457396 L6.00599909,4.75457396 L6.00368914,4.783 L6.00368914,16.999 L8.77307039,17 C9.57551536,17 10.3461406,17.2202781 11.0128313,17.6202194 L11.2536891,17.776 L11.2536891,5.211 C10.8200889,4.56369974 10.1361548,4.13636104 9.37521067,4.02745763 L9.18347055,4.00692283 L8.9891247,4 Z"></path></g></svg></button></div></div><div class="explorer" data-behavior="link" data-collapsed="collapsed" data-savestate="true" data-data-fns="{&quot;order&quot;:[&quot;filter&quot;,&quot;map&quot;,&quot;sort&quot;],&quot;sortFn&quot;:&quot;(a,b)=>!a.isFolder&amp;&amp;!b.isFolder||a.isFolder&amp;&amp;b.isFolder?a.displayName.localeCompare(b.displayName,void 0,{numeric:!0,sensitivity:\&quot;base\&quot;}):!a.isFolder&amp;&amp;b.isFolder?1:-1&quot;,&quot;filterFn&quot;:&quot;node=>node.slugSegment!==\&quot;tags\&quot;&quot;,&quot;mapFn&quot;:&quot;node=>{let override={\&quot;unity-Unity\\u5F15\\u64CE\&quot;:\&quot;Unity\&quot;,\&quot;csharp-dotnet-CSharp\\u4E0ENET\&quot;:\&quot;C#/.NET\&quot;,\&quot;patterns-\\u8BBE\\u8BA1\\u6A21\\u5F0F\&quot;:\&quot;\\u8BBE\\u8BA1\\u6A21\\u5F0F\&quot;,\&quot;performance-\\u6027\\u80FD\\u4F18\\u5316\&quot;:\&quot;\\u6027\\u80FD\&quot;,\&quot;tools-\\u5DE5\\u5177\\u4E0E\\u5DE5\\u4F5C\\u6D41\&quot;:\&quot;\\u5DE5\\u5177\&quot;,\&quot;gamedesign-\\u6E38\\u620F\\u8BBE\\u8BA1\&quot;:\&quot;\\u6E38\\u620F\\u8BBE\\u8BA1\&quot;,\&quot;sources-\\u6765\\u6E90\\u6458\\u8981\&quot;:\&quot;\\u6765\\u6E90\\u6458\\u8981\&quot;}[node.displayName];if(override){node.displayName=override;return}let segments=node.displayName.split(\&quot;-\&quot;),cjkStart=segments.findIndex(segment=>/[一-鿿]/.test(segment));cjkStart>-1&amp;&amp;(node.displayName=segments.slice(cjkStart).join(\&quot;-\&quot;))}&quot;}"><button type="button" class="explorer-toggle mobile-explorer hide-until-loaded" data-mobile="true" aria-controls="explorer-132"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide-menu"><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button><button type="button" class="title-button explorer-toggle desktop-explorer" data-mobile="false" aria-expanded="true"><h2>探索</h2><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="5 8 14 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="fold"><polyline points="6 9 12 15 18 9"></polyline></svg></button><div id="explorer-132" class="explorer-content" aria-expanded="false" role="group"><ul class="explorer-ul overflow" id="list-0"><li class="overflow-end"></li></ul></div><template id="template-file"><li><a href="#"></a></li></template><template id="template-folder"><li><div class="folder-container"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="5 8 14 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="folder-icon"><polyline points="6 9 12 15 18 9"></polyline></svg><div><button class="folder-button"><span class="folder-title"></span></button></div></div><div class="folder-outer"><ul class="content"></ul></div></li></template></div></div><div class="center"><div class="page-header"><div class="popover-hint"><nav class="breadcrumb-container" aria-label="breadcrumbs"><div class="breadcrumb-element"><a href="../">Home</a><p> ❯ </p></div><div class="breadcrumb-element"><a href="../unity-Unity引擎/">Unity</a><p> ❯ </p></div><div class="breadcrumb-element"><a href>预制体</a></div></nav><h1 class="article-title">prefab-system-预制体</h1><p show-comma="true" class="content-meta"><time datetime="2026-05-17T00:00:00.000Z">2026年5月17日</time><span>29分钟阅读</span></p></div></div><article class="popover-hint"><h1 id="prefab-系统深入prefab-system-deep-dive">Prefab 系统深入（Prefab System Deep Dive）<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#prefab-系统深入prefab-system-deep-dive" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h1>
+<h2 id="核心思想">核心思想<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#核心思想" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<p>Prefab 系统是 Unity 内容复用的基础架构。一个 Prefab asset 是一组序列化的 GameObject + Component 数据，场景中的 Prefab instance 通过”源引用 + 修改列表”模型与 asset 保持连接——instance 并非 asset 的完整拷贝，而是 asset 的增量描述。理解这个内部模型是避免 override 累积、深层嵌套、变体链过长等失控局面的前提。</p>
+<h2 id="为什么重要">为什么重要<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#为什么重要" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<p>中大型 Unity 项目的 Prefab 数量可达数千。Override 累积、深层嵌套、变体链过长、运行时误用 Editor API 等问题都会导致”改 Prefab 不知道哪些 instance 会变”的失控局面。Prefab 是 Unity 内容生产的核心单位——角色、敌人、子弹、特效、UI 面板、道具、机关通常都通过 Prefab 复用和实例化。没有 Prefab，项目会迅速陷入复制粘贴和配置漂移。</p>
+<hr/>
+<h2 id="1-prefab-instance-override-系统">1. Prefab Instance Override 系统<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#1-prefab-instance-override-系统" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<h3 id="11-override-的三种类型">1.1 Override 的三种类型<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#11-override-的三种类型" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>Unity 在 Prefab instance 上识别以下 override：</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th>Override 类型</th><th>含义</th><th>Inspector 标记</th></tr></thead><tbody><tr><td>属性修改（Modified Property）</td><td>实例上某属性值与 asset 不同</td><td>属性值加粗 + 蓝色左划线</td></tr><tr><td>添加组件（Added Component）</td><td>实例上有 asset 中不存在的 Component</td><td>组件图标叠加 <code>+</code> 徽章</td></tr><tr><td>移除组件（Removed Component）</td><td>实例上移除了 asset 中存在的 Component</td><td>组件图标叠加 <code>-</code> 徽章</td></tr><tr><td>添加子 GameObject（Added GameObject）</td><td>实例下新增了 asset 中不存在的子对象</td><td>层级中绿色 <code>+</code> 图标</td></tr><tr><td>移除子 GameObject</td><td>—</td><td>只能 Deactivate（视为属性修改），不能真正删除</td></tr></tbody></table></div>
+<blockquote class="callout note" data-callout="note">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>Transform 位置与旋转不算 Override </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>Prefab instance 根的 Position 和 Rotation 默认就与 asset 不同，Unity 不把它们视为显式 override——因为几乎所有 instance 都需要放在不同位置。</p>
+</div>
+</blockquote>
+<h3 id="12-override-优先级规则">1.2 Override 优先级规则<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#12-override-优先级规则" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p><strong>Override 永远优先于 asset 值</strong>：如果一个属性在 instance 上被 override 了，那么修改 asset 上的同一属性不会影响该 instance。这是最常见的”改了 Prefab 但某个 instance 没变”的原因。</p>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="csharp" data-theme="github-light github-dark"><code data-language="csharp" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 检测某对象是否是 Prefab instance 的一部分</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">bool</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> isInstance</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> PrefabUtility.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">IsPartOfPrefabInstance</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(gameObject);</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 获取 instance 对应的 asset 源对象</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">var</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> source</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> PrefabUtility.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">GetCorrespondingObjectFromSource</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(gameObject);</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 获取原始源（跨 variant 链追溯到底）</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">var</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> originalSource</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> PrefabUtility.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">GetCorrespondingObjectFromOriginalSource</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(gameObject);</span></span></code></pre></figure>
+<h3 id="13-apply-与-revert">1.3 Apply 与 Revert<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#13-apply-与-revert" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<ul>
+<li><strong>Apply</strong>：将 instance 上的 override 写回 Prefab asset，override 消失，asset 获得新值，所有其他 instance 也会受影响。</li>
+<li><strong>Revert</strong>：丢弃 instance 上的 override，恢复为 asset 原值。</li>
+</ul>
+<p>可以通过 <code>PrefabUtility</code> API 编程操作：</p>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="csharp" data-theme="github-light github-dark"><code data-language="csharp" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 应用单个属性 override 到 asset</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">PrefabUtility.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">ApplyPropertyOverride</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(property, assetPath, InteractionMode.AutomatedAction);</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 应用添加的组件</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">PrefabUtility.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">ApplyAddedComponent</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(addedComponent, assetPath, InteractionMode.AutomatedAction);</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 应用添加的 GameObject</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">PrefabUtility.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">ApplyAddedGameObject</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(addedGameObject, assetPath, InteractionMode.AutomatedAction);</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 应用移除的组件</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">PrefabUtility.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">ApplyRemovedComponent</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(instanceRoot, removedComponent, assetPath, InteractionMode.AutomatedAction);</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// Revert 单个 override</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">PrefabUtility.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">RevertObjectOverride</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(instanceRoot, InteractionMode.AutomatedAction);</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// Revert 所有 override</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">PrefabUtility.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">RevertAllOverrides</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(instanceRoot, InteractionMode.AutomatedAction);</span></span></code></pre></figure>
+<h3 id="14-editor-vs-runtime-的根本区别">1.4 Editor vs Runtime 的根本区别<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#14-editor-vs-runtime-的根本区别" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th>维度</th><th>Editor</th><th>Runtime（Built Player）</th></tr></thead><tbody><tr><td>Prefab 概念</td><td>存在——instance 与 asset 有连接</td><td><strong>不存在</strong>——所有 Prefab/Nested Prefab/Variant 在 build 时被”预烘焙”为扁平独立对象</td></tr><tr><td>Override 解析</td><td>实时从 asset + modification list 合成</td><td>无需解析——build 时已将 override 烘焙进实例数据</td></tr><tr><td>Apply/Revert</td><td>可用</td><td>不可用（PrefabUtility 是 Editor 命名空间）</td></tr><tr><td>CPU 开销</td><td>有（需要 diff 合成）</td><td><strong>零</strong>——所有内容已预烘焙</td></tr></tbody></table></div>
+<blockquote class="callout tip" data-callout="tip">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>Runtime 没有 Prefab 连接 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>在 built player 中，Nested Prefab、Variant、override 等概念完全不存在。Build 过程把所有 instance 烘焙成完全独立的 GameObject 副本。这意味着运行时没有任何 CPU 开销花在解析嵌套或应用 override 上——但也意味着每个实例的 GameObject 和 Component 数据在磁盘和内存中是完全独立的拷贝，不存在共享。</p>
+</div>
+</blockquote>
+<h3 id="15-unused-override-数据">1.5 Unused Override 数据<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#15-unused-override-数据" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>当声明 override 的脚本被修改或删除时，override 可能变成”unused”。Unity 提供了清理入口：</p>
+<ul>
+<li>Overrides 下拉窗口中会显示”Remove Unused Overrides”选项</li>
+<li><code>PrefabUtility</code> 提供了相关 API</li>
+</ul>
+<hr/>
+<h2 id="2-prefab-variant-vs-nested-prefab">2. Prefab Variant vs Nested Prefab<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#2-prefab-variant-vs-nested-prefab" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<h3 id="21-定义差异">2.1 定义差异<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#21-定义差异" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th></th><th>Prefab Variant</th><th>Nested Prefab</th></tr></thead><tbody><tr><td>本质</td><td><strong>根级别</strong>的 Prefab，以另一个 Prefab 为 base，根表现为一个 Prefab instance</td><td><strong>子级别</strong>的 Prefab instance，嵌入在另一个 Prefab 内部</td></tr><tr><td>存储位置</td><td>项目中的独立 <code>.prefab</code> 文件</td><td>作为外层 Prefab 的 override 记录在 <code>m_Modification</code> 中</td></tr><tr><td>Override 可复用性</td><td>Override 保存在项目文件中，可被多场景多 instance 共享</td><td>Override 保存在场景或外层 Prefab 中，只有该场景/外层 Prefab 的 instance 受影响</td></tr><tr><td>继承链</td><td>可以层层嵌套 variant（Variant of Variant），形成继承链</td><td>保持与源 Prefab 的连接，但不在项目级形成独立资产</td></tr></tbody></table></div>
+<h3 id="22-何时使用">2.2 何时使用<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#22-何时使用" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p><strong>用 Prefab Variant 的场景</strong>：</p>
+<ul>
+<li>同一类敌人有多个配置版本（如 <code>Enemy_Goblin</code> → <code>Enemy_Goblin_Elite</code>、<code>Enemy_Goblin_Archer</code>）</li>
+<li>需要在一处修改影响所有使用该 Variant 的 instance</li>
+<li>Variant 本身是项目级资产，可以被多个场景引用</li>
+</ul>
+<p><strong>用 Nested Prefab 的场景</strong>：</p>
+<ul>
+<li>复合对象包含可独立修改的子部件（如 <code>Car</code> 包含嵌套的 <code>Wheel</code> Prefab）</li>
+<li>子部件需要独立于父 Prefab 演化——修改 <code>Wheel</code> asset 会反映到所有包含它的父 Prefab</li>
+<li>不需要把子部件的 override 提升为独立资产</li>
+</ul>
+<blockquote class="callout warning" data-callout="warning">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>Variant vs Nested 的关键区别：Override 的宿主 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>Variant 的 override 存在 <code>.prefab</code> 文件中，是项目级资产，所有引用该 Variant 的 instance 都共享这些 override。Nested Prefab 的 override 存在<strong>外层 Prefab 或场景</strong>中——如果你在场景中修改了一个 Nested Prefab instance，这个 override 仅存在于该场景，不会影响其他场景的同名 instance。如果同一 override 需要复用，应先创建 Variant。</p>
+</div>
+</blockquote>
+<h3 id="23-override-传播规则">2.3 Override 传播规则<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#23-override-传播规则" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>多层 Prefab 结构中，override 传播遵循以下规则：</p>
+<ol>
+<li>
+<p><strong>Apply All</strong> 按钮总是 Apply 到<strong>最外层</strong> Prefab</p>
+</li>
+<li>
+<p>单个 override 的 Apply 可以<strong>选择目标</strong>：</p>
+<ul>
+<li>Apply to inner Prefab Asset → 修改内层 Prefab，所有使用该内层 Prefab 的 instance 受影响</li>
+<li>Apply as Override in outer Prefab → 在外层 Prefab 内创建 override，不影响内层 asset</li>
+</ul>
+</li>
+<li>
+<p>当选择 Apply to inner Prefab Asset 时，如果外层 Prefab 已有同一属性的 override，<strong>外层的 override 会被自动 Revert</strong>，以确保 instance 上的值不变</p>
+</li>
+</ol>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="text" data-theme="github-light github-dark"><code data-language="text" data-theme="github-light github-dark" style="display:grid;"><span data-line><span>例：Table Prefab 内含 Vase Nested Prefab</span></span>
+<span data-line><span>场景 instance 上修改 Vase 的颜色</span></span>
+<span data-line> </span>
+<span data-line><span>选择&quot;Apply to Prefab 'Vase'&quot;：</span></span>
+<span data-line><span>  → Vase.prefab 被修改</span></span>
+<span data-line><span>  → 所有使用 Vase 的地方（不仅仅是 Table 内的）都会变色</span></span>
+<span data-line><span>  → 如果 Table.prefab 内已有该属性的 override，该 override 被 revert</span></span>
+<span data-line> </span>
+<span data-line><span>选择&quot;Apply as Override in Prefab 'Table'&quot;：</span></span>
+<span data-line><span>  → Table.prefab 内的 Vase instance 获得新 override</span></span>
+<span data-line><span>  → Vase.prefab 不受影响</span></span>
+<span data-line><span>  → 只有 Table 的 instance 受影响</span></span></code></pre></figure>
+<h3 id="24-source-与-original-source">2.4 Source 与 Original Source<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#24-source-与-original-source" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th>Prefab 类型</th><th>Source（直接源）</th><th>Original Source（原始源）</th></tr></thead><tbody><tr><td>普通 instance</td><td>原 Prefab asset</td><td>同 Source</td></tr><tr><td>Prefab Variant</td><td>Variant 自身</td><td>Variant 链根部的原始 Prefab asset</td></tr><tr><td>Nested Prefab</td><td>嵌套的那个 Prefab asset</td><td>同 Source（嵌套 asset 自身就是原始源）</td></tr></tbody></table></div>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="csharp" data-theme="github-light github-dark"><code data-language="csharp" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 获取直接源</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">var</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> source</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> PrefabUtility.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">GetCorrespondingObjectFromSource</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(go);</span></span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 跨 variant 链获取原始源</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">var</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> original</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> PrefabUtility.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">GetCorrespondingObjectFromOriginalSource</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(go);</span></span></code></pre></figure>
+<hr/>
+<h2 id="3-objectinstantiate-vs-prefabutilityinstantiateprefab">3. Object.Instantiate vs PrefabUtility.InstantiatePrefab<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#3-objectinstantiate-vs-prefabutilityinstantiateprefab" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<h3 id="31-核心差异">3.1 核心差异<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#31-核心差异" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th>维度</th><th><code>Object.Instantiate</code></th><th><code>PrefabUtility.InstantiatePrefab</code></th></tr></thead><tbody><tr><td>命名空间</td><td><code>UnityEngine</code>（运行时可用）</td><td><code>UnityEditor</code>（仅 Editor 可用）</td></tr><tr><td>Prefab 连接</td><td><strong>不保留</strong>——产生普通克隆，与源 Prefab 无连接</td><td><strong>保留</strong>——创建的 instance 保持与 Prefab asset 的连接</td></tr><tr><td>位置/旋转参数</td><td>支持（<code>Instantiate(prefab, pos, rot)</code>）</td><td>不支持（需实例化后手动设置 <code>transform.position</code>）</td></tr><tr><td>父对象参数</td><td>支持</td><td>不支持（需实例化后 <code>SetParent</code>）</td></tr><tr><td>适用场景</td><td>运行时实例化、游戏逻辑</td><td>Editor 工具、自定义 Inspector、编辑器脚本</td></tr></tbody></table></div>
+<h3 id="32-editor-中的影响">3.2 Editor 中的影响<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#32-editor-中的影响" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>在 Editor 中使用 <code>Object.Instantiate</code> 实例化 Prefab asset 时：</p>
+<ul>
+<li>产生的对象<strong>丢失 Prefab 连接</strong>——在 Hierarchy 中不显示蓝色 Prefab 标记</li>
+<li>修改源 Prefab asset <strong>不会</strong>影响这些克隆对象</li>
+<li>Overrides 下拉窗口<strong>不可用</strong></li>
+</ul>
+<p>使用 <code>PrefabUtility.InstantiatePrefab</code> 时：</p>
+<ul>
+<li>产生的对象<strong>保留 Prefab 连接</strong>——显示蓝色 Prefab 标记</li>
+<li>修改源 Prefab asset <strong>会</strong>反映到这些 instance</li>
+<li>Overrides 下拉窗口可用，可以 Apply/Revert</li>
+</ul>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="csharp" data-theme="github-light github-dark"><code data-language="csharp" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// Editor 工具中正确实例化 Prefab</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">#</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">if</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> UNITY_EDITOR</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">var</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> instance</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> PrefabUtility.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">InstantiatePrefab</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(prefabAsset) </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">as</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> GameObject</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">;</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">instance.transform.position </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">=</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> spawnPosition;  </span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 位置需要单独设置</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">instance.transform.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">SetParent</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(parentTransform);</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">#</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">endif</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 运行时实例化（built player 中唯一选择）</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">var</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> instance</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Instantiate</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(prefabAsset, spawnPosition, Quaternion.identity);</span></span></code></pre></figure>
+<blockquote class="callout warning" data-callout="warning">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>Editor 脚本误用 Object.Instantiate </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>如果在 Editor 工具代码中使用 <code>Object.Instantiate</code> 而非 <code>PrefabUtility.InstantiatePrefab</code>，生成的对象会丢失 Prefab 连接。这在大型项目中非常危险——修改 Prefab asset 后，这些”断联”的 instance 不会更新，导致配置漂移。</p>
+</div>
+</blockquote>
+<h3 id="33-实例化过程内部流程">3.3 实例化过程内部流程<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#33-实例化过程内部流程" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p><code>Object.Instantiate</code> 在 Editor 和 Runtime 都遵循相同的三步序列化流程：</p>
+<ol>
+<li><strong>序列化</strong>源对象（包括所有 <code>UnityEngine.Object</code> 派生类数据）</li>
+<li><strong>创建新 GameObject</strong> 并反序列化数据到新对象</li>
+<li><strong>修补引用</strong>：运行序列化代码的另一变体来报告所有引用的 <code>UnityEngine.Object</code>——外部引用（如 Texture）保持不变，内部引用（如子 GameObject）修补到对应副本</li>
+</ol>
+<p>这意味着 <code>Instantiate</code> 本质上是<strong>序列化 → 反序列化</strong>，而非简单的内存拷贝。</p>
+<hr/>
+<h2 id="4-prefab-内存布局与序列化">4. Prefab 内存布局与序列化<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#4-prefab-内存布局与序列化" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<h3 id="41-prefab-asset-在磁盘上的结构">4.1 Prefab Asset 在磁盘上的结构<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#41-prefab-asset-在磁盘上的结构" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>Prefab asset 以 YAML 格式存储为 <code>.prefab</code> 文件：</p>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="yaml" data-theme="github-light github-dark"><code data-language="yaml" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;"># 每个 GameObject 和 Component 是独立的 YAML 文档</span></span>
+<span data-line><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">---</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> !u!1</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> &amp;</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">1234567890</span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">       # !u!1 = GameObject class</span></span>
+<span data-line><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">GameObject</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">:</span></span>
+<span data-line><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">  m_Name</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: </span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">Enemy</span></span>
+<span data-line><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">  m_Component</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">:</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    - </span><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">component</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: {</span><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">fileID</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">2345678901</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">}</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">---</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> !u!4</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> &amp;</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">2345678901</span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">       # !u!4 = Transform class</span></span>
+<span data-line><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">Transform</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">:</span></span>
+<span data-line><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">  m_LocalPosition</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: {</span><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">x</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">0</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">, </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">y</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">0</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">, </span><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">z</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">0</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">}</span></span>
+<span data-line><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">  m_GameObject</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: {</span><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">fileID</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">1234567890</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">}</span></span></code></pre></figure>
+<p>关键概念：</p>
+<ul>
+<li><code>!u!{ClassID}</code> — Unity 内部对象类的 ID</li>
+<li><code>&amp;{fileID}</code> — 文件内唯一标识</li>
+<li>跨文件引用使用 <code>GUID</code>（来自 <code>.meta</code> 文件）+ <code>fileID</code> + <code>type</code></li>
+</ul>
+<h3 id="42-prefab-instance-在场景文件中的结构">4.2 Prefab Instance 在场景文件中的结构<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#42-prefab-instance-在场景文件中的结构" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>场景中的 Prefab instance 不是完整拷贝，而是<strong>引用 + 增量</strong>：</p>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="yaml" data-theme="github-light github-dark"><code data-language="yaml" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">---</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> !u!1001</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> &amp;</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">11866470</span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">      # !u!1001 = PrefabInstance class</span></span>
+<span data-line><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">PrefabInstance</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">:</span></span>
+<span data-line><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">  m_Modification</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">:</span></span>
+<span data-line><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">    serializedVersion</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">3</span></span>
+<span data-line><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">    m_TransformParent</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: {</span><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">fileID</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">1122852772</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">}</span></span>
+<span data-line><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">    m_Modifications</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">:                    </span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;"># 属性 override 列表</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">      - </span><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">target</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: {</span><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">fileID</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">59946521...</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">, </span><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">guid</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: </span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">95cf8085...</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">, </span><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">type</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">3</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">}</span></span>
+<span data-line><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">        propertyPath</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: </span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">m_LocalPosition.x</span></span>
+<span data-line><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">        value</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">39.341</span></span>
+<span data-line><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">        objectReference</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: {</span><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">fileID</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">0</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">}</span></span>
+<span data-line><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">    m_RemovedComponents</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: []</span></span>
+<span data-line><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">    m_RemovedGameObjects</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: []</span></span>
+<span data-line><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">    m_AddedGameObjects</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: []</span></span>
+<span data-line><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">    m_AddedComponents</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: []</span></span>
+<span data-line><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">  m_SourcePrefab</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: {</span><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">fileID</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">100100000</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">, </span><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">guid</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: </span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">95cf8085...</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">, </span><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">type</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">3</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">}</span></span></code></pre></figure>
+<p>核心组件：</p>
+<ul>
+<li><strong><code>m_SourcePrefab</code></strong>：引用源 Prefab asset 的 handle（fileID 总是 <code>100100000</code>）</li>
+<li><strong><code>m_Modification</code></strong>：记录与源 asset 的所有差异
+<ul>
+<li><code>m_Modifications</code>：逐属性 override 列表（<code>target</code> 定位源对象，<code>propertyPath</code> 指定属性路径，<code>value</code> 是新值）</li>
+<li><code>m_RemovedComponents</code>：移除的组件</li>
+<li><code>m_RemovedGameObjects</code>：移除的子对象</li>
+<li><code>m_AddedGameObjects</code>：添加的子对象</li>
+<li><code>m_AddedComponents</code>：添加的组件</li>
+</ul>
+</li>
+<li><strong>Stripped placeholder objects</strong>：让场景中其他对象能引用 Prefab instance 内的特定子对象</li>
+</ul>
+<h3 id="43-prefab-variant-的存储">4.3 Prefab Variant 的存储<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#43-prefab-variant-的存储" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>Prefab Variant 在磁盘上与普通 Prefab instance 结构相同——它的<strong>根</strong>就是一个 <code>PrefabInstance</code>：</p>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="yaml" data-theme="github-light github-dark"><code data-language="yaml" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">---</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> !u!1001</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> &amp;</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">...</span></span>
+<span data-line><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">PrefabInstance</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">:</span></span>
+<span data-line><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">  m_Modification</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">:</span></span>
+<span data-line><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">    m_TransformParent</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: {</span><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">fileID</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">0</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">}     </span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;"># 无父级 → 标识这是一个 Variant</span></span>
+<span data-line><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">    m_Modifications</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: [</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">...</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">]</span></span>
+<span data-line><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">  m_SourcePrefab</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: {</span><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">fileID</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">100100000</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">, </span><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">guid</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: </span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&lt;base_prefab_guid></span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">, </span><span style="--shiki-light:#22863A;--shiki-dark:#85E89D;">type</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">3</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">}</span></span></code></pre></figure>
+<p><code>m_TransformParent: {fileID: 0}</code> 是 Unity 识别”这是一个 Variant”的关键——因为 instance 在文件内没有父级。</p>
+<h3 id="44-instantiate-时什么被复制">4.4 Instantiate 时什么被复制<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#44-instantiate-时什么被复制" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th>数据类型</th><th>Instantiate 时是否复制</th><th>说明</th></tr></thead><tbody><tr><td>GameObject + Component 数据</td><td><strong>全部复制</strong></td><td>每个 instance 是完全独立的 C++ 对象</td></tr><tr><td>内部引用（子对象引用）</td><td><strong>修补到副本</strong></td><td>序列化第 3 步自动修补</td></tr><tr><td>外部引用（Texture、Material 等）</td><td><strong>共享，不复制</strong></td><td>所有 instance 指向同一 Texture/Material</td></tr><tr><td>Prefab 连接（Editor）</td><td>取决于 API</td><td><code>Object.Instantiate</code> 丢失，<code>PrefabUtility.InstantiatePrefab</code> 保留</td></tr><tr><td>Override 列表</td><td>不复制</td><td>Override 是 instance 与 asset 的 diff，克隆产生独立对象</td></tr></tbody></table></div>
+<blockquote class="callout tip" data-callout="tip">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>Material 共享与独立 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p><code>Instantiate</code> 后，所有 instance 默认共享同一个 <code>sharedMaterial</code>。修改 <code>sharedMaterial</code> 会影响所有 instance。若需要独立材质，使用 <code>renderer.material</code>（自动创建实例副本）或手动 <code>Instantiate(material)</code>。前者每次访问都会分配，应缓存结果。</p>
+</div>
+</blockquote>
+<h3 id="45-built-player-中的内存">4.5 Built Player 中的内存<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#45-built-player-中的内存" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>Build 时 Unity 将所有 Prefab instance 烘焙为扁平独立数据：</p>
+<ul>
+<li>不存在 Prefab/Nested Prefab/Variant 概念</li>
+<li>每个 instance 的 GameObject + Component 数据是<strong>完全独立的拷贝</strong></li>
+<li>共享的只有外部引用（Texture、Material、Mesh 等）</li>
+<li><code>PersistentManager.Remapper</code> 在 AssetBundle 加载场景中可能占用可观内存——对含非常大 Prefab（深对象层级）的 AssetBundle 尤其明显，且一旦分配不会缩小</li>
+</ul>
+<hr/>
+<h2 id="5-addressables-与-prefab">5. Addressables 与 Prefab<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#5-addressables-与-prefab" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<h3 id="51-两种实例化路径">5.1 两种实例化路径<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#51-两种实例化路径" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th>路径</th><th>API</th><th>说明</th></tr></thead><tbody><tr><td>直接实例化</td><td><code>Addressables.InstantiateAsync(key)</code></td><td>Addressables 自动解析位置、下载依赖、实例化。实例化本身是同步的，异步部分是加载。</td></tr><tr><td>分步实例化</td><td><code>Addressables.LoadAssetAsync</code> → <code>Object.Instantiate</code></td><td>先加载 asset，再手动 Instantiate。可缓存 load handle，多次实例化无额外加载开销。</td></tr></tbody></table></div>
+<h3 id="52-关键差异与陷阱">5.2 关键差异与陷阱<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#52-关键差异与陷阱" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="csharp" data-theme="github-light github-dark"><code data-language="csharp" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 方式 1：直接实例化（推荐用于单次使用）</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">var</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> handle</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> Addressables.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">InstantiateAsync</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;EnemyPrefab&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">);</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">yield</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> return</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> handle;</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">var</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> enemy</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> handle.Result;</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 方式 2：分步实例化（推荐用于多次实例化同一 Prefab）</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">var</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> loadHandle</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> Addressables.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">LoadAssetAsync</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">GameObject</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">>(</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;EnemyPrefab&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">);</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">yield</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> return</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> loadHandle;</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">var</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> prefab</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> loadHandle.Result;</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 可多次 Instantiate 同一个加载好的 asset</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">var</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> enemy1</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Instantiate</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(prefab, pos1, Quaternion.identity);</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">var</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> enemy2</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Instantiate</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(prefab, pos2, Quaternion.identity);</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 释放时：必须确保所有 instance 已销毁，才能释放 load handle</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">Addressables.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Release</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(loadHandle);</span></span></code></pre></figure>
+<blockquote class="callout warning" data-callout="warning">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>LoadAssetAsync + Object.Instantiate 的引用计数陷阱 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>如果先 <code>LoadAssetAsync</code> 加载 Prefab，再 <code>Object.Instantiate</code> 实例化，然后过早 <code>Release</code> 了 load handle，AssetBundle 会被卸载，所有正在使用该 Prefab 的 instance 的 Material/Texture 数据会被<strong>从底层抽走</strong>，导致粉色（missing material）或崩溃。必须确保所有 instance 销毁后才 Release。</p>
+</div>
+</blockquote>
+<h3 id="53-addressablesinstantiateasync-的开销">5.3 Addressables.InstantiateAsync 的开销<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#53-addressablesinstantiateasync-的开销" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>相比直接 <code>Object.Instantiate</code>，<code>Addressables.InstantiateAsync</code> 有额外开销：</p>
+<ul>
+<li><strong>位置解析</strong>：如果是 key 版本 API，需要遍历 ResourceLocators 查找 <code>IResourceLocation</code></li>
+<li><strong>依赖下载</strong>：自动下载所有依赖的 AssetBundle</li>
+<li><strong>引用计数管理</strong>：每个 InstantiateAsync 调用增加引用计数</li>
+</ul>
+<p>性能数据参考（社区实测）：</p>
+<ul>
+<li>直接 <code>AssetBundle.Load</code> + <code>Instantiate</code> 可比 Addressables 快 3-4 倍（PC 端）</li>
+<li>iOS 端 Async 加载可能比 Scene 加载慢数倍</li>
+<li>如果预加载（<code>LoadAssetAsync</code> 完成），后续 <code>Instantiate</code> 是同步的，开销与普通 <code>Object.Instantiate</code> 一致</li>
+</ul>
+<h3 id="54-addressables--对象池">5.4 Addressables + <a href="../patterns-设计模式/object-pool-对象池" class="internal alias" data-slug="patterns-设计模式/object-pool-对象池">对象池</a><a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#54-addressables--对象池" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="csharp" data-theme="github-light github-dark"><code data-language="csharp" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">public</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> class</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> AddressablePrefabPool</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> : </span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">MonoBehaviour</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    private</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> GameObject</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> prefab</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">;</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    private</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> AsyncOperationHandle</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">GameObject</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">> </span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">loadHandle</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">;</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    private</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Stack</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">GameObject</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">> </span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">pool</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> new</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">();</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    public</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> async</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> void</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Initialize</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">string</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> addressKey</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">)</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    {</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">        loadHandle </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">=</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> Addressables.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">LoadAssetAsync</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">GameObject</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">>(addressKey);</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">        await</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> loadHandle.Task;</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">        prefab </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">=</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> loadHandle.Result;</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">        // 预热池</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">        for</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> (</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">int</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> i</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> 0</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">; i </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">&lt;</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> 5</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">; i</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">++</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">)</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">        {</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">            var</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> obj</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Instantiate</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(prefab);</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">            obj.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">SetActive</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">false</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">);</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">            pool.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Push</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(obj);</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">        }</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    }</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    public</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> GameObject</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Get</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Vector3</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> position</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">, </span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Quaternion</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> rotation</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">)</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    {</span></span>
+<span data-line><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">        GameObject</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> obj</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">;</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">        if</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> (pool.Count </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">></span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> 0</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">)</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">        {</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">            obj </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">=</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> pool.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Pop</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">();</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">            obj.transform.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">SetPositionAndRotation</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(position, rotation);</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">        }</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">        else</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">        {</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">            obj </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">=</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Instantiate</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(prefab, position, rotation);</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">        }</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">        obj.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">SetActive</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">true</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">);</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">        return</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> obj;</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    }</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    public</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> void</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Return</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">GameObject</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> obj</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">)</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    {</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">        obj.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">SetActive</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">false</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">);</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">        pool.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Push</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(obj);</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    }</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    void</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> OnDestroy</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">()</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    {</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">        foreach</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> (</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">var</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> obj</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> in</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> pool) </span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Destroy</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(obj);</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">        pool.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Clear</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">();</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">        if</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> (loadHandle.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">IsValid</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">())</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">            Addressables.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Release</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(loadHandle);</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    }</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">}</span></span></code></pre></figure>
+<hr/>
+<h2 id="6-prefab-编辑模式">6. Prefab 编辑模式<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#6-prefab-编辑模式" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<h3 id="61-isolation-mode隔离模式">6.1 Isolation Mode（隔离模式）<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#61-isolation-mode隔离模式" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<ul>
+<li>Prefab 显示在默认 Skybox 环境中</li>
+<li>场景中其他对象<strong>不可见</strong></li>
+<li><strong>可以编辑 Transform 值</strong></li>
+<li>可以配置编辑环境场景（Editor Settings → Prefab Mode → Editing Environments）</li>
+</ul>
+<p>适用场景：编辑独立的、与场景上下文无关的 Prefab（如角色、道具）</p>
+<h3 id="62-in-context-mode上下文模式">6.2 In Context Mode（上下文模式）<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#62-in-context-mode上下文模式" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<ul>
+<li>Prefab 显示在实例所在的场景位置</li>
+<li>场景中其他对象灰化显示，但可见</li>
+<li><strong>不能直接编辑 Transform 值</strong>——因为 instance 的位置可能与 asset 不同</li>
+<li>可以使用 Snapping 对齐到场景中的其他对象</li>
+</ul>
+<p>Context 模式的三种灰化程度：<strong>Normal</strong>（正常显示）、<strong>Gray</strong>（灰化，默认）、<strong>Hidden</strong>（完全隐藏）</p>
+<p>适用场景：编辑需要与场景环境配合的 Prefab（如嵌入墙面的开关、地面的陷阱）</p>
+<h3 id="63-auto-save">6.3 Auto Save<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#63-auto-save" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>Prefab 编辑模式默认开启 Auto Save——每次修改都会立即写入 Prefab asset。可以在 Inspector 顶部关闭 Auto Save，改为手动保存。</p>
+<blockquote class="callout tip" data-callout="tip">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>关闭 Auto Save 的场景 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>对大型 Prefab 做实验性修改时，关闭 Auto Save 可以避免误操作影响所有 instance。完成后再手动 Apply 或 Revert。</p>
+</div>
+</blockquote>
+<hr/>
+<h2 id="7-prefab-运行时修改">7. Prefab 运行时修改<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#7-prefab-运行时修改" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<h3 id="71-instantiate-后的-override-状态">7.1 Instantiate 后的 Override 状态<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#71-instantiate-后的-override-状态" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>运行时 <code>Object.Instantiate</code> 产生的克隆：</p>
+<ul>
+<li><strong>完全独立</strong>——与源 Prefab asset 无连接</li>
+<li>所有值（包括 asset 中的默认值）都被”烘焙”进克隆对象</li>
+<li>修改克隆对象的属性不会影响源 Prefab 或其他 instance</li>
+<li>无法使用 <code>PrefabUtility</code> API（Editor Only）</li>
+</ul>
+<h3 id="72-运行时修改克隆实例的模式">7.2 运行时修改克隆实例的模式<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#72-运行时修改克隆实例的模式" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="csharp" data-theme="github-light github-dark"><code data-language="csharp" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 模式 1：直接修改（最常见）</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">var</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> instance</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Instantiate</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(prefab, pos, Quaternion.identity);</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">instance.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">GetComponent</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">EnemyAI</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">>().speed </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">=</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> 5f</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">;</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 模式 2：通过配置接口</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">public</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> interface</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> IConfigurableEnemy</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    void</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Configure</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">EnemyConfig</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> config</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">);</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">}</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">var</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> instance</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Instantiate</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(prefab, pos, Quaternion.identity);</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">instance.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">GetComponent</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">IConfigurableEnemy</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">>().</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Configure</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(config);</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 模式 3：重置到&quot;出厂&quot;状态（运行时无 Prefab 连接，需自行实现）</span></span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 方案 A：销毁重建</span></span>
+<span data-line><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Destroy</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(instance);</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">instance </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">=</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Instantiate</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(prefab, newPos, Quaternion.identity);</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 方案 B：用 JsonUtility 序列化/反序列化重置</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">var</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> json</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> JsonUtility.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">ToJson</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(prefab.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">GetComponent</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">EnemyAI</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">>());</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">JsonUtility.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">FromJsonOverwrite</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(json, instance.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">GetComponent</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">EnemyAI</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">>());</span></span></code></pre></figure>
+<h3 id="73-运行时恢复出厂的困难">7.3 运行时”恢复出厂”的困难<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#73-运行时恢复出厂的困难" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>Unity 运行时没有内置的”恢复到 Prefab 默认值”机制（因为 Prefab 连接在 build 中不存在）：</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th>方案</th><th>优点</th><th>缺点</th></tr></thead><tbody><tr><td>销毁 + 重新 Instantiate</td><td>完全干净</td><td>开销大，需要转移状态</td></tr><tr><td>JsonUtility 序列化/反序列化</td><td>轻量</td><td>不处理添加/删除的 Component，需逐 Component 操作</td></tr><tr><td>自定义 Reset 方法</td><td>完全可控</td><td>需手动维护 reset 逻辑与 Prefab 同步</td></tr><tr><td>对象池 + Return 时 Reset</td><td>复用 + 可控</td><td>Reset 逻辑可能遗漏状态</td></tr></tbody></table></div>
+<blockquote class="callout warning" data-callout="warning">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>对象池中 Reset 不完整 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>从池中取出的对象可能携带上次使用的状态（粒子进度、动画状态、变量值等）。这是对象池最常见的 bug 来源。Reset 逻辑必须覆盖所有运行时可能修改的状态。有效的策略是：<code>actionOnGet</code> 中重置，<code>actionOnRelease</code> 中关闭。</p>
+</div>
+</blockquote>
+<hr/>
+<h2 id="8-prefab-与对象池交互模式">8. Prefab 与对象池交互模式<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#8-prefab-与对象池交互模式" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<h3 id="81-unity-内置-objectpool">8.1 Unity 内置 ObjectPool<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#81-unity-内置-objectpool" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="csharp" data-theme="github-light github-dark"><code data-language="csharp" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">using</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> UnityEngine</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Pool</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">;</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">public</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> class</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> ProjectilePool</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> : </span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">MonoBehaviour</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    [</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">SerializeField</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">] </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">private</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> GameObject</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> prefab</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">;</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    [</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">SerializeField</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">] </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">private</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> int</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> defaultCapacity</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> 10</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">;</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    [</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">SerializeField</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">] </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">private</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> int</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> maxSize</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> 50</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">;</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    private</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> ObjectPool</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">GameObject</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">> </span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">pool</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">;</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    void</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Awake</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">()</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    {</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">        pool </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">=</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> new</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> ObjectPool</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">GameObject</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">>(</span></span>
+<span data-line><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">            createFunc</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: () </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">=></span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Instantiate</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(prefab),</span></span>
+<span data-line><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">            actionOnGet</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: </span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">obj</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =></span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> obj.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">SetActive</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">true</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">),</span></span>
+<span data-line><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">            actionOnRelease</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: </span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">obj</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =></span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> obj.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">SetActive</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">false</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">),</span></span>
+<span data-line><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">            actionOnDestroy</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: </span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">obj</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =></span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Destroy</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(obj),</span></span>
+<span data-line><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">            collectionCheck</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">true</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">,</span></span>
+<span data-line><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">            defaultCapacity</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: defaultCapacity,</span></span>
+<span data-line><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">            maxSize</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: maxSize</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">        );</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    }</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    public</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> GameObject</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Get</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">() </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">=></span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> pool.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Get</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">();</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    public</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> void</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Return</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">GameObject</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> obj</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">) </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">=></span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> pool.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Release</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(obj);</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">}</span></span></code></pre></figure>
+<h3 id="82-prefab--对象池的关键考量">8.2 Prefab + 对象池的关键考量<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#82-prefab--对象池的关键考量" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th>考量</th><th>说明</th></tr></thead><tbody><tr><td>首次 Instantiate 开销</td><td>池的 <code>createFunc</code> 在首次 Get 时调用，如果同时请求大量对象会造成帧尖峰。应在加载时预热。</td></tr><tr><td>SetActive 的开销</td><td><code>SetActive(true/false)</code> 触发 <code>OnEnable/OnDisable</code>，对复杂 Prefab 有非零成本。</td></tr><tr><td>状态重置</td><td><code>actionOnRelease</code> 中必须完整重置所有运行时状态。</td></tr><tr><td>Transform 重置</td><td>归还时重置 <code>localPosition</code>、<code>localRotation</code>、<code>localScale</code> 和 <code>parent</code>。</td></tr><tr><td>最大容量</td><td>超过 <code>maxSize</code> 的归还对象会被 <code>Destroy</code>——需要根据实际并发量设定。</td></tr><tr><td>预热策略</td><td>在 Scene 加载后、游戏开始前调用多次 <code>pool.Get()</code> + <code>pool.Release()</code>。</td></tr></tbody></table></div>
+<h3 id="83-addressables--对象池的注意事项">8.3 Addressables + 对象池的注意事项<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#83-addressables--对象池的注意事项" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<ul>
+<li>预热时 <code>LoadAssetAsync</code> 加载 Prefab，然后多次 <code>Instantiate</code> 填充池</li>
+<li><code>actionOnDestroy</code> 使用 <code>Destroy</code>（不是 <code>Addressables.ReleaseInstance</code>，因为实例是通过 <code>Object.Instantiate</code> 创建的）</li>
+<li>池销毁时：先 <code>Destroy</code> 所有池化对象，再 <code>Addressables.Release</code> load handle</li>
+<li><code>Addressables.InstantiateAsync</code> 有自己的引用计数——如果用 <code>InstantiateAsync</code> 创建对象，必须用 <code>Addressables.ReleaseInstance</code> 归还</li>
+</ul>
+<hr/>
+<h2 id="9-常见-prefab-反模式">9. 常见 Prefab 反模式<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#9-常见-prefab-反模式" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<h3 id="91-深层嵌套">9.1 深层嵌套<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#91-深层嵌套" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="text" data-theme="github-light github-dark"><code data-language="text" data-theme="github-light github-dark" style="display:grid;"><span data-line><span>❌ 不推荐：</span></span>
+<span data-line><span>Character</span></span>
+<span data-line><span>  └─ Body</span></span>
+<span data-line><span>       └─ Armor</span></span>
+<span data-line><span>            └─ ShoulderPad</span></span>
+<span data-line><span>                 └─ Gem</span></span>
+<span data-line><span>                      └─ ParticleEffect  ← 5 层嵌套</span></span>
+<span data-line> </span>
+<span data-line><span>✓ 推荐：</span></span>
+<span data-line><span>Character（内含所有必要子对象，不超过 2-3 层嵌套）</span></span>
+<span data-line><span>  └─ Armor_Variant（用 Variant 管理不同装甲配置）</span></span></code></pre></figure>
+<p>问题：</p>
+<ul>
+<li>嵌套层级越深，override 传播路径越长，debug 难度指数增长</li>
+<li>Editor 中每次修改都需要递归解析所有嵌套层</li>
+<li>团队协作时，不同成员修改不同层级的 Prefab 容易产生 merge conflict</li>
+<li>建议嵌套控制在 <strong>3 层以内</strong></li>
+</ul>
+<h3 id="92-override-累积">9.2 Override 累积<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#92-override-累积" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>场景中某个 Prefab instance 有大量 override 时：</p>
+<ul>
+<li>无法判断最终值来源</li>
+<li>修改 Prefab asset 后哪些 instance 受影响完全不可预测</li>
+<li>大量 override 应<strong>提升为 Prefab Variant</strong></li>
+</ul>
+<p>检测方法：</p>
+<ul>
+<li>Inspector 的 Overrides 下拉窗口显示 override 数量</li>
+<li><code>PrefabUtility.GetPropertyOverrides</code>、<code>GetAddedComponents</code>、<code>GetRemovedComponents</code> 可编程检查</li>
+</ul>
+<blockquote class="callout tip" data-callout="tip">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>定期清理 Override </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>项目迭代中很多 override 可能已经不需要了。定期检查并 Apply 或 Revert 无用 override，保持 instance 干净。</p>
+</div>
+</blockquote>
+<h3 id="93-missing-prefab-reference">9.3 Missing Prefab Reference<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#93-missing-prefab-reference" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>常见原因：</p>
+<ol>
+<li><code>.meta</code> 文件丢失或 GUID 变更（如 Git merge 冲突处理不当）</li>
+<li>Prefab 文件被删除但场景中仍有 instance 引用</li>
+<li>Prefab Variant 链中间环节断裂</li>
+</ol>
+<p>预防措施：</p>
+<ul>
+<li>版本控制中<strong>永远不要忽略 <code>.meta</code> 文件</strong></li>
+<li>删除 Prefab asset 前搜索所有引用</li>
+<li>使用 <code>PrefabUtility.GetCorrespondingObjectFromSource</code> 检查引用有效性</li>
+</ul>
+<blockquote class="callout warning" data-callout="warning">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>Variant 的 fileID 不稳定问题 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>在旧版本 Unity（2018-2019）中，编辑 Prefab Variant 可能导致内部 fileID 变更，使外部引用失效。表现为 ScriptableObject 中引用的 Variant 突然变为 null。此问题在较新版本中已修复，但仍需注意跨版本升级时的验证。</p>
+</div>
+</blockquote>
+<h3 id="94-场景中放置而非-prefab-化">9.4 场景中放置而非 Prefab 化<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#94-场景中放置而非-prefab-化" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>在场景中直接构建复杂对象而不创建 Prefab——无法复用到其他场景、无法通过代码实例化、修改需要逐场景手动同步。即使只用一次，也推荐 Prefab 化。</p>
+<h3 id="95-m_modifications-序列化顺序不稳定">9.5 m_Modifications 序列化顺序不稳定<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#95-m_modifications-序列化顺序不稳定" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p><code>PrefabInstance</code> 的 <code>m_Modifications</code> 块在版本控制中经常出现顺序变更（即使实际内容未改变），导致无意义的 diff 噪声。这是 Unity 已知的序列化行为，替换源 Prefab 后可能产生过时 override 条目，加剧问题。</p>
+<h3 id="96-prefab-与场景耦合">9.6 Prefab 与场景耦合<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#96-prefab-与场景耦合" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>Prefab 中引用场景内的特定对象（如 <code>FindWithTag(&quot;Player&quot;)</code>）会使 Prefab 丧失独立性——换到另一个场景就无法工作。Prefab 应通过外部注入引用（Instantiate 后由调用方设置），而非内部硬编码查找。</p>
+<h3 id="97-instantiate-空引用">9.7 Instantiate 空引用<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#97-instantiate-空引用" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p><code>Instantiate(null)</code> 不抛异常，而是返回 <code>null</code>——后续访问导致 <code>NullReferenceException</code>。在 Instantiate 前检查 prefab 是否为 null。</p>
+<hr/>
+<h2 id="10-dots--subscene-与传统-prefab-的关系">10. DOTS / SubScene 与传统 Prefab 的关系<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#10-dots--subscene-与传统-prefab-的关系" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<h3 id="101-核心映射">10.1 核心映射<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#101-核心映射" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th>传统 Prefab 概念</th><th>DOTS / ECS 对应概念</th></tr></thead><tbody><tr><td>Prefab asset</td><td>Entity Prefab（带 <code>Prefab</code> tag + <code>LinkedEntityGroup</code> 的 Entity）</td></tr><tr><td>Prefab instance（场景中）</td><td>SubScene 内的 Authoring GameObject → Baking → Entity</td></tr><tr><td>Object.Instantiate</td><td><code>EntityManager.Instantiate(entityPrefab)</code></td></tr><tr><td>Prefab Variant</td><td>无直接对应——需通过 Baking 自定义逻辑实现</td></tr><tr><td>Nested Prefab</td><td>无直接对应——Entity Prefab 不支持嵌套结构</td></tr><tr><td>Override</td><td>无直接对应——Entity 是扁平的 Component 集合</td></tr></tbody></table></div>
+<h3 id="102-baking-流程">10.2 Baking 流程<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#102-baking-流程" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="text" data-theme="github-light github-dark"><code data-language="text" data-theme="github-light github-dark" style="display:grid;"><span data-line><span>1. SubScene 内的 Authoring GameObject 引用 Prefab asset</span></span>
+<span data-line><span>2. Baker 调用 GetEntity(authoring.Prefab, TransformUsageFlags.Dynamic)</span></span>
+<span data-line><span>3. Baking 系统将 GameObject Prefab 转换为 Entity Prefab</span></span>
+<span data-line><span>4. Entity Prefab 获得 Prefab tag + LinkedEntityGroup</span></span>
+<span data-line><span>5. 运行时通过 EntityManager.Instantiate 实例化</span></span></code></pre></figure>
+<p>关键点：</p>
+<ul>
+<li>Prefab <strong>不在 SubScene 层级中</strong>时，需要在 Baker 中显式注册</li>
+<li>Prefab instance 在 SubScene hierarchy 中时，Baking 把它们当作普通 GameObject（不附加 <code>Prefab</code> / <code>LinkedEntityGroup</code>）</li>
+<li>要确保 Prefab 被 Baking 并在 Entity Scene 中可用，必须在 Baker 中通过 <code>GetEntity</code> 或 <code>DeclareReferencedPrefabs</code> 声明依赖</li>
+</ul>
+<h3 id="103-entityprefabreference">10.3 EntityPrefabReference<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#103-entityprefabreference" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>对于跨 SubScene 共享的 Prefab，使用 <code>EntityPrefabReference</code>：</p>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="csharp" data-theme="github-light github-dark"><code data-language="csharp" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">public</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> struct</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> EnemySpawner</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> : </span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">IComponentData</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    public</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> EntityPrefabReference</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> EnemyPrefab</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">;</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">}</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">public</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> class</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> EnemySpawnerAuthoring</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> : </span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">MonoBehaviour</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    public</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> GameObject</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> EnemyPrefab</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">;</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    class</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Baker</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> : </span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Baker</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">EnemySpawnerAuthoring</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">></span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    {</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">        public</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> override</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> void</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Bake</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">EnemySpawnerAuthoring</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> authoring</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">)</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">        {</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">            var</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> entity</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> GetEntity</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(TransformUsageFlags.None);</span></span>
+<span data-line><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">            AddComponent</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(entity, </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">new</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> EnemySpawner</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">            {</span></span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">                // 将 Prefab 序列化到独立的 entity scene 文件</span></span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">                // 避免每个 SubScene 都复制一份 Prefab 的 ECS 数据</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">                EnemyPrefab </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">=</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> new</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> EntityPrefabReference</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(authoring.EnemyPrefab)</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">            });</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">        }</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    }</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">}</span></span></code></pre></figure>
+<p>运行时使用：</p>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="csharp" data-theme="github-light github-dark"><code data-language="csharp" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 请求加载 Prefab</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">EntityManager.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">AddComponentData</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(spawnerEntity, </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">new</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> RequestEntityPrefabLoaded</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    PrefabReference </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">=</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> spawner.EnemyPrefab</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">});</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 加载完成后，PrefabLoadResult 组件被自动附加</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">var</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> prefabEntity</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> EntityManager.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">GetComponentData</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">PrefabLoadResult</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">>(spawnerEntity).PrefabRoot;</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">var</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> instance</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> EntityManager.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Instantiate</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(prefabEntity);</span></span></code></pre></figure>
+<h3 id="104-subscene-vs-prefab-的定位差异">10.4 SubScene vs Prefab 的定位差异<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#104-subscene-vs-prefab-的定位差异" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th>维度</th><th>SubScene</th><th>Prefab</th></tr></thead><tbody><tr><td>目的</td><td><strong>场景分区</strong>——将大场景拆分为可独立 Baking/Streaming 的子场景</td><td><strong>对象复用</strong>——定义可多次实例化的模板</td></tr><tr><td>内容粒度</td><td>环境级（地形、建筑群、区域逻辑）</td><td>对象级（角色、道具、特效）</td></tr><tr><td>Baking 触发</td><td>SubScene 关闭时自动 Baking</td><td>Prefab 需被 Baker 显式引用</td></tr><tr><td>运行时加载</td><td>Streaming（按需加载 Entity Scene）</td><td><code>EntityManager.Instantiate</code>（内存中已有 Entity Prefab）</td></tr></tbody></table></div>
+<blockquote class="callout tip" data-callout="tip">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>DOTS 项目中的 Prefab 策略 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>在 DOTS 项目中，Prefab 的”模板复用”价值仍然存在——Entity Prefab 可以通过 <code>EntityManager.Instantiate</code> 高效实例化。但 Override、Variant、Nested Prefab 等 Editor 级概念没有 ECS 对应物。如果需要”同一基础 Entity 的多个配置版本”，应在 Baking 阶段通过不同 Authoring 配置 + Baker 逻辑实现，而非依赖 Prefab Variant。</p>
+</div>
+</blockquote>
+<hr/>
+<h2 id="相关">相关<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#相关" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<ul>
+<li><a href="../unity-Unity引擎/gameobject-component-对象与组件" class="internal alias" data-slug="unity-Unity引擎/gameobject-component-对象与组件">GameObject 与 Component</a> — Prefab 的组成单元</li>
+<li><a href="../unity-Unity引擎/transform-变换" class="internal alias" data-slug="unity-Unity引擎/transform-变换">Transform</a> — Prefab 层级结构的骨架</li>
+<li><a href="../unity-Unity引擎/scriptableobject-数据资产" class="internal alias" data-slug="unity-Unity引擎/scriptableobject-数据资产">ScriptableObject</a> — 共享配置数据的替代方案</li>
+<li><a href="../unity-Unity引擎/scenemanager-场景管理" class="internal alias" data-slug="unity-Unity引擎/scenemanager-场景管理">SceneManager</a> — 场景加载与 Prefab 的运行时管理</li>
+<li><a href="../unity-Unity引擎/dots-ecs-数据导向" class="internal alias" data-slug="unity-Unity引擎/dots-ecs-数据导向"> ECS</a> — Entity Prefab 与 Baking 流程</li>
+<li><a href="../patterns-设计模式/object-pool-对象池" class="internal alias" data-slug="patterns-设计模式/object-pool-对象池">对象池（Object Pool）</a> — Prefab 的运行时复用模式</li>
+<li><a href="../unity-Unity引擎/player-loop-主循环" class="internal alias" data-slug="unity-Unity引擎/player-loop-主循环">PlayerLoop 系统</a> — Instantiate 与对象生命周期在主循环中的位置</li>
+</ul></article><hr/><div class="page-footer"></div></div><div class="right sidebar"><div class="graph"><h3>关系图谱</h3><div class="graph-outer"><div class="graph-container" data-cfg="{&quot;drag&quot;:true,&quot;zoom&quot;:true,&quot;depth&quot;:1,&quot;scale&quot;:1.1,&quot;repelForce&quot;:0.5,&quot;centerForce&quot;:0.3,&quot;linkDistance&quot;:30,&quot;fontSize&quot;:0.6,&quot;opacityScale&quot;:1,&quot;showTags&quot;:true,&quot;removeTags&quot;:[],&quot;focusOnHover&quot;:false,&quot;enableRadial&quot;:false}"></div><button class="global-graph-icon" aria-label="Global Graph"><svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 55 55" fill="currentColor" xml:space="preserve"><path d="M49,0c-3.309,0-6,2.691-6,6c0,1.035,0.263,2.009,0.726,2.86l-9.829,9.829C32.542,17.634,30.846,17,29,17
+                s-3.542,0.634-4.898,1.688l-7.669-7.669C16.785,10.424,17,9.74,17,9c0-2.206-1.794-4-4-4S9,6.794,9,9s1.794,4,4,4
+                c0.74,0,1.424-0.215,2.019-0.567l7.669,7.669C21.634,21.458,21,23.154,21,25s0.634,3.542,1.688,4.897L10.024,42.562
+                C8.958,41.595,7.549,41,6,41c-3.309,0-6,2.691-6,6s2.691,6,6,6s6-2.691,6-6c0-1.035-0.263-2.009-0.726-2.86l12.829-12.829
+                c1.106,0.86,2.44,1.436,3.898,1.619v10.16c-2.833,0.478-5,2.942-5,5.91c0,3.309,2.691,6,6,6s6-2.691,6-6c0-2.967-2.167-5.431-5-5.91
+                v-10.16c1.458-0.183,2.792-0.759,3.898-1.619l7.669,7.669C41.215,39.576,41,40.26,41,41c0,2.206,1.794,4,4,4s4-1.794,4-4
+                s-1.794-4-4-4c-0.74,0-1.424,0.215-2.019,0.567l-7.669-7.669C36.366,28.542,37,26.846,37,25s-0.634-3.542-1.688-4.897l9.665-9.665
+                C46.042,11.405,47.451,12,49,12c3.309,0,6-2.691,6-6S52.309,0,49,0z M11,9c0-1.103,0.897-2,2-2s2,0.897,2,2s-0.897,2-2,2
+                S11,10.103,11,9z M6,51c-2.206,0-4-1.794-4-4s1.794-4,4-4s4,1.794,4,4S8.206,51,6,51z M33,49c0,2.206-1.794,4-4,4s-4-1.794-4-4
+                s1.794-4,4-4S33,46.794,33,49z M29,31c-3.309,0-6-2.691-6-6s2.691-6,6-6s6,2.691,6,6S32.309,31,29,31z M47,41c0,1.103-0.897,2-2,2
+                s-2-0.897-2-2s0.897-2,2-2S47,39.897,47,41z M49,10c-2.206,0-4-1.794-4-4s1.794-4,4-4s4,1.794,4,4S51.206,10,49,10z"></path></svg></button></div><div class="global-graph-outer"><div class="global-graph-container" data-cfg="{&quot;drag&quot;:true,&quot;zoom&quot;:true,&quot;depth&quot;:-1,&quot;scale&quot;:0.9,&quot;repelForce&quot;:0.5,&quot;centerForce&quot;:0.2,&quot;linkDistance&quot;:30,&quot;fontSize&quot;:0.6,&quot;opacityScale&quot;:1,&quot;showTags&quot;:true,&quot;removeTags&quot;:[],&quot;focusOnHover&quot;:true,&quot;enableRadial&quot;:true}"></div></div></div><div class="toc desktop-only"><button type="button" class="toc-header" aria-controls="toc-125" aria-expanded="true"><h3>目录</h3><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="fold"><polyline points="6 9 12 15 18 9"></polyline></svg></button><ul id="list-1" class="toc-content overflow"><li class="depth-0"><a href="#prefab-系统深入prefab-system-deep-dive" data-for="prefab-系统深入prefab-system-deep-dive">Prefab 系统深入（Prefab System Deep Dive）</a></li><li class="depth-1"><a href="#核心思想" data-for="核心思想">核心思想</a></li><li class="depth-1"><a href="#为什么重要" data-for="为什么重要">为什么重要</a></li><li class="depth-1"><a href="#1-prefab-instance-override-系统" data-for="1-prefab-instance-override-系统">1. Prefab Instance Override 系统</a></li><li class="depth-2"><a href="#11-override-的三种类型" data-for="11-override-的三种类型">1.1 Override 的三种类型</a></li><li class="depth-2"><a href="#12-override-优先级规则" data-for="12-override-优先级规则">1.2 Override 优先级规则</a></li><li class="depth-2"><a href="#13-apply-与-revert" data-for="13-apply-与-revert">1.3 Apply 与 Revert</a></li><li class="depth-2"><a href="#14-editor-vs-runtime-的根本区别" data-for="14-editor-vs-runtime-的根本区别">1.4 Editor vs Runtime 的根本区别</a></li><li class="depth-2"><a href="#15-unused-override-数据" data-for="15-unused-override-数据">1.5 Unused Override 数据</a></li><li class="depth-1"><a href="#2-prefab-variant-vs-nested-prefab" data-for="2-prefab-variant-vs-nested-prefab">2. Prefab Variant vs Nested Prefab</a></li><li class="depth-2"><a href="#21-定义差异" data-for="21-定义差异">2.1 定义差异</a></li><li class="depth-2"><a href="#22-何时使用" data-for="22-何时使用">2.2 何时使用</a></li><li class="depth-2"><a href="#23-override-传播规则" data-for="23-override-传播规则">2.3 Override 传播规则</a></li><li class="depth-2"><a href="#24-source-与-original-source" data-for="24-source-与-original-source">2.4 Source 与 Original Source</a></li><li class="depth-1"><a href="#3-objectinstantiate-vs-prefabutilityinstantiateprefab" data-for="3-objectinstantiate-vs-prefabutilityinstantiateprefab">3. Object.Instantiate vs PrefabUtility.InstantiatePrefab</a></li><li class="depth-2"><a href="#31-核心差异" data-for="31-核心差异">3.1 核心差异</a></li><li class="depth-2"><a href="#32-editor-中的影响" data-for="32-editor-中的影响">3.2 Editor 中的影响</a></li><li class="depth-2"><a href="#33-实例化过程内部流程" data-for="33-实例化过程内部流程">3.3 实例化过程内部流程</a></li><li class="depth-1"><a href="#4-prefab-内存布局与序列化" data-for="4-prefab-内存布局与序列化">4. Prefab 内存布局与序列化</a></li><li class="depth-2"><a href="#41-prefab-asset-在磁盘上的结构" data-for="41-prefab-asset-在磁盘上的结构">4.1 Prefab Asset 在磁盘上的结构</a></li><li class="depth-2"><a href="#42-prefab-instance-在场景文件中的结构" data-for="42-prefab-instance-在场景文件中的结构">4.2 Prefab Instance 在场景文件中的结构</a></li><li class="depth-2"><a href="#43-prefab-variant-的存储" data-for="43-prefab-variant-的存储">4.3 Prefab Variant 的存储</a></li><li class="depth-2"><a href="#44-instantiate-时什么被复制" data-for="44-instantiate-时什么被复制">4.4 Instantiate 时什么被复制</a></li><li class="depth-2"><a href="#45-built-player-中的内存" data-for="45-built-player-中的内存">4.5 Built Player 中的内存</a></li><li class="depth-1"><a href="#5-addressables-与-prefab" data-for="5-addressables-与-prefab">5. Addressables 与 Prefab</a></li><li class="depth-2"><a href="#51-两种实例化路径" data-for="51-两种实例化路径">5.1 两种实例化路径</a></li><li class="depth-2"><a href="#52-关键差异与陷阱" data-for="52-关键差异与陷阱">5.2 关键差异与陷阱</a></li><li class="depth-2"><a href="#53-addressablesinstantiateasync-的开销" data-for="53-addressablesinstantiateasync-的开销">5.3 Addressables.InstantiateAsync 的开销</a></li><li class="depth-2"><a href="#54-addressables--对象池" data-for="54-addressables--对象池">5.4 Addressables + 对象池</a></li><li class="depth-1"><a href="#6-prefab-编辑模式" data-for="6-prefab-编辑模式">6. Prefab 编辑模式</a></li><li class="depth-2"><a href="#61-isolation-mode隔离模式" data-for="61-isolation-mode隔离模式">6.1 Isolation Mode（隔离模式）</a></li><li class="depth-2"><a href="#62-in-context-mode上下文模式" data-for="62-in-context-mode上下文模式">6.2 In Context Mode（上下文模式）</a></li><li class="depth-2"><a href="#63-auto-save" data-for="63-auto-save">6.3 Auto Save</a></li><li class="depth-1"><a href="#7-prefab-运行时修改" data-for="7-prefab-运行时修改">7. Prefab 运行时修改</a></li><li class="depth-2"><a href="#71-instantiate-后的-override-状态" data-for="71-instantiate-后的-override-状态">7.1 Instantiate 后的 Override 状态</a></li><li class="depth-2"><a href="#72-运行时修改克隆实例的模式" data-for="72-运行时修改克隆实例的模式">7.2 运行时修改克隆实例的模式</a></li><li class="depth-2"><a href="#73-运行时恢复出厂的困难" data-for="73-运行时恢复出厂的困难">7.3 运行时”恢复出厂”的困难</a></li><li class="depth-1"><a href="#8-prefab-与对象池交互模式" data-for="8-prefab-与对象池交互模式">8. Prefab 与对象池交互模式</a></li><li class="depth-2"><a href="#81-unity-内置-objectpool" data-for="81-unity-内置-objectpool">8.1 Unity 内置 ObjectPool</a></li><li class="depth-2"><a href="#82-prefab--对象池的关键考量" data-for="82-prefab--对象池的关键考量">8.2 Prefab + 对象池的关键考量</a></li><li class="depth-2"><a href="#83-addressables--对象池的注意事项" data-for="83-addressables--对象池的注意事项">8.3 Addressables + 对象池的注意事项</a></li><li class="depth-1"><a href="#9-常见-prefab-反模式" data-for="9-常见-prefab-反模式">9. 常见 Prefab 反模式</a></li><li class="depth-2"><a href="#91-深层嵌套" data-for="91-深层嵌套">9.1 深层嵌套</a></li><li class="depth-2"><a href="#92-override-累积" data-for="92-override-累积">9.2 Override 累积</a></li><li class="depth-2"><a href="#93-missing-prefab-reference" data-for="93-missing-prefab-reference">9.3 Missing Prefab Reference</a></li><li class="depth-2"><a href="#94-场景中放置而非-prefab-化" data-for="94-场景中放置而非-prefab-化">9.4 场景中放置而非 Prefab 化</a></li><li class="depth-2"><a href="#95-m_modifications-序列化顺序不稳定" data-for="95-m_modifications-序列化顺序不稳定">9.5 m_Modifications 序列化顺序不稳定</a></li><li class="depth-2"><a href="#96-prefab-与场景耦合" data-for="96-prefab-与场景耦合">9.6 Prefab 与场景耦合</a></li><li class="depth-2"><a href="#97-instantiate-空引用" data-for="97-instantiate-空引用">9.7 Instantiate 空引用</a></li><li class="depth-1"><a href="#10-dots--subscene-与传统-prefab-的关系" data-for="10-dots--subscene-与传统-prefab-的关系">10. DOTS / SubScene 与传统 Prefab 的关系</a></li><li class="depth-2"><a href="#101-核心映射" data-for="101-核心映射">10.1 核心映射</a></li><li class="depth-2"><a href="#102-baking-流程" data-for="102-baking-流程">10.2 Baking 流程</a></li><li class="depth-2"><a href="#103-entityprefabreference" data-for="103-entityprefabreference">10.3 EntityPrefabReference</a></li><li class="depth-2"><a href="#104-subscene-vs-prefab-的定位差异" data-for="104-subscene-vs-prefab-的定位差异">10.4 SubScene vs Prefab 的定位差异</a></li><li class="depth-1"><a href="#相关" data-for="相关">相关</a></li><li class="overflow-end"></li></ul></div><div class="backlinks"><h3>反向链接</h3><ul id="list-2" class="overflow"><li><a href="../" class="internal">index</a></li><li><a href="../sources-来源摘要/2026-05-16-unity-foundations-overview" class="internal">2026-05-16-unity-foundations-overview</a></li><li><a href="../unity-Unity引擎/dots-ecs-数据导向" class="internal">dots-ecs-数据导向</a></li><li><a href="../unity-Unity引擎/gameobject-component-对象与组件" class="internal">gameobject-component-对象与组件</a></li><li><a href="../unity-Unity引擎/scenemanager-场景管理" class="internal">scenemanager-场景管理</a></li><li><a href="../unity-Unity引擎/scriptableobject-数据资产" class="internal">scriptableobject-数据资产</a></li><li><a href="../unity-Unity引擎/serialization-序列化" class="internal">serialization-序列化</a></li><li><a href="../unity-Unity引擎/transform-变换" class="internal">transform-变换</a></li><li class="overflow-end"></li></ul></div></div><footer class><p>Created with <a href="https://quartz.jzhao.xyz/">Quartz v4.5.2</a> © 2026</p><ul><li><a href="https://github.com/jackyzha0/quartz">GitHub</a></li><li><a href="https://discord.gg/cRFFHYye7t">Discord Community</a></li></ul></footer></div></div></body><script type="application/javascript" data-persist="true">function n(){let t=this.parentElement;t.classList.toggle("is-collapsed");let e=t.getElementsByClassName("callout-content")[0];if(!e)return;let l=t.classList.contains("is-collapsed");e.style.gridTemplateRows=l?"0fr":"1fr"}function c(){let t=document.getElementsByClassName("callout is-collapsible");for(let e of t){let l=e.getElementsByClassName("callout-title")[0],s=e.getElementsByClassName("callout-content")[0];if(!l||!s)continue;l.addEventListener("click",n),window.addCleanup(()=>l.removeEventListener("click",n));let o=e.classList.contains("is-collapsed");s.style.gridTemplateRows=o?"0fr":"1fr"}}document.addEventListener("nav",c);
+</script><script type="module" data-persist="true">function E(c,e){if(!c)return;function t(s){s.target===this&&(s.preventDefault(),s.stopPropagation(),e())}function r(s){s.key.startsWith("Esc")&&(s.preventDefault(),e())}c?.addEventListener("click",t),window.addCleanup(()=>c?.removeEventListener("click",t)),document.addEventListener("keydown",r),window.addCleanup(()=>document.removeEventListener("keydown",r))}function y(c){for(;c.firstChild;)c.removeChild(c.firstChild)}var v=class{constructor(e,t){this.container=e;this.content=t;this.setupEventListeners(),this.setupNavigationControls(),this.resetTransform()}isDragging=!1;startPan={x:0,y:0};currentPan={x:0,y:0};scale=1;MIN_SCALE=.5;MAX_SCALE=3;cleanups=[];setupEventListeners(){let e=this.onMouseDown.bind(this),t=this.onMouseMove.bind(this),r=this.onMouseUp.bind(this),s=this.onTouchStart.bind(this),o=this.onTouchMove.bind(this),i=this.onTouchEnd.bind(this),n=this.resetTransform.bind(this);this.container.addEventListener("mousedown",e),document.addEventListener("mousemove",t),document.addEventListener("mouseup",r),this.container.addEventListener("touchstart",s,{passive:!1}),document.addEventListener("touchmove",o,{passive:!1}),document.addEventListener("touchend",i),window.addEventListener("resize",n),this.cleanups.push(()=>this.container.removeEventListener("mousedown",e),()=>document.removeEventListener("mousemove",t),()=>document.removeEventListener("mouseup",r),()=>this.container.removeEventListener("touchstart",s),()=>document.removeEventListener("touchmove",o),()=>document.removeEventListener("touchend",i),()=>window.removeEventListener("resize",n))}cleanup(){for(let e of this.cleanups)e()}setupNavigationControls(){let e=document.createElement("div");e.className="mermaid-controls";let t=this.createButton("+",()=>this.zoom(.1)),r=this.createButton("-",()=>this.zoom(-.1)),s=this.createButton("Reset",()=>this.resetTransform());e.appendChild(r),e.appendChild(s),e.appendChild(t),this.container.appendChild(e)}createButton(e,t){let r=document.createElement("button");return r.textContent=e,r.className="mermaid-control-button",r.addEventListener("click",t),window.addCleanup(()=>r.removeEventListener("click",t)),r}onMouseDown(e){e.button===0&&(this.isDragging=!0,this.startPan={x:e.clientX-this.currentPan.x,y:e.clientY-this.currentPan.y},this.container.style.cursor="grabbing")}onMouseMove(e){this.isDragging&&(e.preventDefault(),this.currentPan={x:e.clientX-this.startPan.x,y:e.clientY-this.startPan.y},this.updateTransform())}onMouseUp(){this.isDragging=!1,this.container.style.cursor="grab"}onTouchStart(e){if(e.touches.length!==1)return;this.isDragging=!0;let t=e.touches[0];this.startPan={x:t.clientX-this.currentPan.x,y:t.clientY-this.currentPan.y}}onTouchMove(e){if(!this.isDragging||e.touches.length!==1)return;e.preventDefault();let t=e.touches[0];this.currentPan={x:t.clientX-this.startPan.x,y:t.clientY-this.startPan.y},this.updateTransform()}onTouchEnd(){this.isDragging=!1}zoom(e){let t=Math.min(Math.max(this.scale+e,this.MIN_SCALE),this.MAX_SCALE),r=this.content.getBoundingClientRect(),s=r.width/2,o=r.height/2,i=t-this.scale;this.currentPan.x-=s*i,this.currentPan.y-=o*i,this.scale=t,this.updateTransform()}updateTransform(){this.content.style.transform=`translate(${this.currentPan.x}px, ${this.currentPan.y}px) scale(${this.scale})`}resetTransform(){let t=this.content.querySelector("svg").getBoundingClientRect(),r=t.width/this.scale,s=t.height/this.scale;this.scale=1,this.currentPan={x:(this.container.clientWidth-r)/2,y:(this.container.clientHeight-s)/2},this.updateTransform()}},T=["--secondary","--tertiary","--gray","--light","--lightgray","--highlight","--dark","--darkgray","--codeFont"],L;document.addEventListener("nav",async()=>{let e=document.querySelector(".center").querySelectorAll("code.mermaid");if(e.length===0)return;L||=await import("https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.4.0/mermaid.esm.min.mjs");let t=L.default,r=new WeakMap;for(let o of e){let i=o.getAttribute("data-clipboard"),n=o.innerText;if(i)try{n=JSON.parse(i)}catch{}r.set(o,n)}async function s(){for(let n of e){n.removeAttribute("data-processed");let a=r.get(n);a&&(n.textContent=a)}let o=T.reduce((n,a)=>(n[a]=window.getComputedStyle(document.documentElement).getPropertyValue(a),n),{}),i=document.documentElement.getAttribute("saved-theme")==="dark";t.initialize({startOnLoad:!1,securityLevel:"loose",theme:i?"dark":"base",themeVariables:{fontFamily:o["--codeFont"],primaryColor:o["--light"],primaryTextColor:o["--darkgray"],primaryBorderColor:o["--tertiary"],lineColor:o["--darkgray"],secondaryColor:o["--secondary"],tertiaryColor:o["--tertiary"],clusterBkg:o["--light"],edgeLabelBackground:o["--highlight"]}});for(let n=0;n<e.length;n++){let a=e[n],l=r.get(a);if(l)try{let u=`mermaid-svg-${Date.now()}-${n}`,{svg:p,bindFunctions:d}=await t.render(u,l);a.innerHTML=p,d&&d(a),a.setAttribute("data-processed","true")}catch(u){console.error(`mermaid render failed for node ${n}:`,u)}}}await s(),document.addEventListener("themechange",s),window.addCleanup(()=>document.removeEventListener("themechange",s));for(let o=0;o<e.length;o++){let g=function(){let f=d.querySelector("#mermaid-space"),m=d.querySelector(".mermaid-content");if(!m)return;y(m);let w=i.querySelector("svg").cloneNode(!0);m.appendChild(w),d.classList.add("active"),f.style.cursor="grab",h=new v(f,m)},M=function(){d.classList.remove("active"),h?.cleanup(),h=null},i=e[o],n=i.parentElement,a=n.querySelector(".clipboard-button"),l=n.querySelector(".expand-button"),u=window.getComputedStyle(a),p=a.offsetWidth+parseFloat(u.marginLeft||"0")+parseFloat(u.marginRight||"0");l.style.right=`calc(${p}px + 0.3rem)`,n.prepend(l);let d=n.querySelector("#mermaid-container");if(!d)return;let h=null;l.addEventListener("click",g),E(d,M),window.addCleanup(()=>{h?.cleanup(),l.removeEventListener("click",g)})}});
+</script><script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/copy-tex.min.js" type="application/javascript" data-persist="true"></script><script src="../postscript.js" type="module" data-persist="true"></script></html>

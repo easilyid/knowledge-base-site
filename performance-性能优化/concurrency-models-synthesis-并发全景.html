@@ -1,0 +1,1079 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr"><head><title>concurrency-models-synthesis-并发全景</title><meta charset="utf-8"/><link rel="preconnect" href="https://fonts.googleapis.com"/><link rel="preconnect" href="https://fonts.gstatic.com"/><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted Grotesk:wght@400;700&amp;family=Source Sans Pro:ital,wght@0,400;0,600;1,400;1,600&amp;family=IBM Plex Mono:wght@400;600&amp;display=swap"/><link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin="anonymous"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><meta name="og:site_name" content="Unity / C# / .NET 游戏开发知识库"/><meta property="og:title" content="concurrency-models-synthesis-并发全景"/><meta property="og:type" content="website"/><meta name="twitter:card" content="summary_large_image"/><meta name="twitter:title" content="concurrency-models-synthesis-并发全景"/><meta name="twitter:description" content="Unity 并发模型全景：从协程到 Job System 的七种机制 主线脉络 Unity 的”并发”不是一个机制，而是七种机制在不同维度上瓜分的领域——从单线程协作式让权到真多核并行，从零分配迭代器到 SIMD 原生编译，每种机制解决一个不同层面的问题。理解这七种机制的关键不是记住”谁更好”，而是识别每种机制在并发光谱上的坐标：你是在等什么（I/O、时间点、条件）还是在算什么（数据并行、向量运算）？你需要主线程亲和还是可以脱离？你的数据是托管对象还是 blittable struct？这些坐标决定了你应该选哪条路径，而典型的生产代码会在同一帧内同时使用三到四种机制。 关键节点 节点 1：Co..."/><meta property="og:description" content="Unity 并发模型全景：从协程到 Job System 的七种机制 主线脉络 Unity 的”并发”不是一个机制，而是七种机制在不同维度上瓜分的领域——从单线程协作式让权到真多核并行，从零分配迭代器到 SIMD 原生编译，每种机制解决一个不同层面的问题。理解这七种机制的关键不是记住”谁更好”，而是识别每种机制在并发光谱上的坐标：你是在等什么（I/O、时间点、条件）还是在算什么（数据并行、向量运算）？你需要主线程亲和还是可以脱离？你的数据是托管对象还是 blittable struct？这些坐标决定了你应该选哪条路径，而典型的生产代码会在同一帧内同时使用三到四种机制。 关键节点 节点 1：Co..."/><meta property="og:image:alt" content="Unity 并发模型全景：从协程到 Job System 的七种机制 主线脉络 Unity 的”并发”不是一个机制，而是七种机制在不同维度上瓜分的领域——从单线程协作式让权到真多核并行，从零分配迭代器到 SIMD 原生编译，每种机制解决一个不同层面的问题。理解这七种机制的关键不是记住”谁更好”，而是识别每种机制在并发光谱上的坐标：你是在等什么（I/O、时间点、条件）还是在算什么（数据并行、向量运算）？你需要主线程亲和还是可以脱离？你的数据是托管对象还是 blittable struct？这些坐标决定了你应该选哪条路径，而典型的生产代码会在同一帧内同时使用三到四种机制。 关键节点 节点 1：Co..."/><meta property="twitter:domain" content="easilyid.github.io/knowledge-base-site"/><meta property="og:url" content="https://easilyid.github.io/knowledge-base-site/performance-性能优化/concurrency-models-synthesis-并发全景"/><meta property="twitter:url" content="https://easilyid.github.io/knowledge-base-site/performance-性能优化/concurrency-models-synthesis-并发全景"/><link rel="icon" href="../static/icon.png"/><meta name="description" content="Unity 并发模型全景：从协程到 Job System 的七种机制 主线脉络 Unity 的”并发”不是一个机制，而是七种机制在不同维度上瓜分的领域——从单线程协作式让权到真多核并行，从零分配迭代器到 SIMD 原生编译，每种机制解决一个不同层面的问题。理解这七种机制的关键不是记住”谁更好”，而是识别每种机制在并发光谱上的坐标：你是在等什么（I/O、时间点、条件）还是在算什么（数据并行、向量运算）？你需要主线程亲和还是可以脱离？你的数据是托管对象还是 blittable struct？这些坐标决定了你应该选哪条路径，而典型的生产代码会在同一帧内同时使用三到四种机制。 关键节点 节点 1：Co..."/><meta name="generator" content="Quartz"/><link href="../index.css" rel="stylesheet" type="text/css" data-persist="true"/><style>.expand-button {
+  position: absolute;
+  display: flex;
+  float: right;
+  padding: 0.4rem;
+  margin: 0.3rem;
+  right: 0;
+  color: var(--gray);
+  border-color: var(--dark);
+  background-color: var(--light);
+  border: 1px solid;
+  border-radius: 5px;
+  opacity: 0;
+  transition: 0.2s;
+}
+.expand-button > svg {
+  fill: var(--light);
+  filter: contrast(0.3);
+}
+.expand-button:hover {
+  cursor: pointer;
+  border-color: var(--secondary);
+}
+.expand-button:focus {
+  outline: 0;
+}
+
+pre:hover > .expand-button {
+  opacity: 1;
+  transition: 0.2s;
+}
+
+#mermaid-container {
+  position: fixed;
+  contain: layout;
+  z-index: 999;
+  left: 0;
+  top: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  display: none;
+  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.5);
+}
+#mermaid-container.active {
+  display: inline-block;
+}
+#mermaid-container > #mermaid-space {
+  border: 1px solid var(--lightgray);
+  background-color: var(--light);
+  border-radius: 5px;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  height: 80vh;
+  width: 80vw;
+  overflow: hidden;
+}
+#mermaid-container > #mermaid-space > .mermaid-content {
+  position: relative;
+  transform-origin: 0 0;
+  transition: transform 0.1s ease;
+  overflow: visible;
+  min-height: 200px;
+  min-width: 200px;
+}
+#mermaid-container > #mermaid-space > .mermaid-content pre {
+  margin: 0;
+  border: none;
+}
+#mermaid-container > #mermaid-space > .mermaid-content svg {
+  max-width: none;
+  height: auto;
+}
+#mermaid-container > #mermaid-space > .mermaid-controls {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+  background: var(--light);
+  border: 1px solid var(--lightgray);
+  border-radius: 6px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  z-index: 2;
+}
+#mermaid-container > #mermaid-space > .mermaid-controls .mermaid-control-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--lightgray);
+  background: var(--light);
+  color: var(--dark);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  font-family: var(--bodyFont);
+  transition: all 0.2s ease;
+}
+#mermaid-container > #mermaid-space > .mermaid-controls .mermaid-control-button:hover {
+  background: var(--lightgray);
+}
+#mermaid-container > #mermaid-space > .mermaid-controls .mermaid-control-button:active {
+  transform: translateY(1px);
+}
+#mermaid-container > #mermaid-space > .mermaid-controls .mermaid-control-button:nth-child(2) {
+  width: auto;
+  padding: 0 12px;
+  font-size: 14px;
+}
+/*# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VSb290IjoiL2hvbWUvcnVubmVyL3dvcmsvS25vd2xlZGdlLUJhc2UvS25vd2xlZGdlLUJhc2UvcXVhcnR6L3F1YXJ0ei9jb21wb25lbnRzL3N0eWxlcyIsInNvdXJjZXMiOlsibWVybWFpZC5pbmxpbmUuc2NzcyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiQUFBQTtFQUNFO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBOztBQUVBO0VBQ0U7RUFDQTs7QUFHRjtFQUNFO0VBQ0E7O0FBR0Y7RUFDRTs7O0FBS0Y7RUFDRTtFQUNBOzs7QUFJSjtFQUNFO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7O0FBRUE7RUFDRTs7QUFHRjtFQUNFO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBOztBQUVBO0VBQ0U7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBOztBQUVBO0VBQ0U7RUFDQTs7QUFHRjtFQUNFO0VBQ0E7O0FBSUo7RUFDRTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBOztBQUVBO0VBQ0U7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTs7QUFFQTtFQUNFOztBQUdGO0VBQ0U7O0FBSUY7RUFDRTtFQUNBO0VBQ0EiLCJzb3VyY2VzQ29udGVudCI6WyIuZXhwYW5kLWJ1dHRvbiB7XG4gIHBvc2l0aW9uOiBhYnNvbHV0ZTtcbiAgZGlzcGxheTogZmxleDtcbiAgZmxvYXQ6IHJpZ2h0O1xuICBwYWRkaW5nOiAwLjRyZW07XG4gIG1hcmdpbjogMC4zcmVtO1xuICByaWdodDogMDsgLy8gTk9URTogcmlnaHQgd2lsbCBiZSBzZXQgaW4gbWVybWFpZC5pbmxpbmUudHNcbiAgY29sb3I6IHZhcigtLWdyYXkpO1xuICBib3JkZXItY29sb3I6IHZhcigtLWRhcmspO1xuICBiYWNrZ3JvdW5kLWNvbG9yOiB2YXIoLS1saWdodCk7XG4gIGJvcmRlcjogMXB4IHNvbGlkO1xuICBib3JkZXItcmFkaXVzOiA1cHg7XG4gIG9wYWNpdHk6IDA7XG4gIHRyYW5zaXRpb246IDAuMnM7XG5cbiAgJiA+IHN2ZyB7XG4gICAgZmlsbDogdmFyKC0tbGlnaHQpO1xuICAgIGZpbHRlcjogY29udHJhc3QoMC4zKTtcbiAgfVxuXG4gICY6aG92ZXIge1xuICAgIGN1cnNvcjogcG9pbnRlcjtcbiAgICBib3JkZXItY29sb3I6IHZhcigtLXNlY29uZGFyeSk7XG4gIH1cblxuICAmOmZvY3VzIHtcbiAgICBvdXRsaW5lOiAwO1xuICB9XG59XG5cbnByZSB7XG4gICY6aG92ZXIgPiAuZXhwYW5kLWJ1dHRvbiB7XG4gICAgb3BhY2l0eTogMTtcbiAgICB0cmFuc2l0aW9uOiAwLjJzO1xuICB9XG59XG5cbiNtZXJtYWlkLWNvbnRhaW5lciB7XG4gIHBvc2l0aW9uOiBmaXhlZDtcbiAgY29udGFpbjogbGF5b3V0O1xuICB6LWluZGV4OiA5OTk7XG4gIGxlZnQ6IDA7XG4gIHRvcDogMDtcbiAgd2lkdGg6IDEwMHZ3O1xuICBoZWlnaHQ6IDEwMHZoO1xuICBvdmVyZmxvdzogaGlkZGVuO1xuICBkaXNwbGF5OiBub25lO1xuICBiYWNrZHJvcC1maWx0ZXI6IGJsdXIoNHB4KTtcbiAgYmFja2dyb3VuZDogcmdiYSgwLCAwLCAwLCAwLjUpO1xuXG4gICYuYWN0aXZlIHtcbiAgICBkaXNwbGF5OiBpbmxpbmUtYmxvY2s7XG4gIH1cblxuICAmID4gI21lcm1haWQtc3BhY2Uge1xuICAgIGJvcmRlcjogMXB4IHNvbGlkIHZhcigtLWxpZ2h0Z3JheSk7XG4gICAgYmFja2dyb3VuZC1jb2xvcjogdmFyKC0tbGlnaHQpO1xuICAgIGJvcmRlci1yYWRpdXM6IDVweDtcbiAgICBwb3NpdGlvbjogZml4ZWQ7XG4gICAgdG9wOiA1MCU7XG4gICAgbGVmdDogNTAlO1xuICAgIHRyYW5zZm9ybTogdHJhbnNsYXRlKC01MCUsIC01MCUpO1xuICAgIGhlaWdodDogODB2aDtcbiAgICB3aWR0aDogODB2dztcbiAgICBvdmVyZmxvdzogaGlkZGVuO1xuXG4gICAgJiA+IC5tZXJtYWlkLWNvbnRlbnQge1xuICAgICAgcG9zaXRpb246IHJlbGF0aXZlO1xuICAgICAgdHJhbnNmb3JtLW9yaWdpbjogMCAwO1xuICAgICAgdHJhbnNpdGlvbjogdHJhbnNmb3JtIDAuMXMgZWFzZTtcbiAgICAgIG92ZXJmbG93OiB2aXNpYmxlO1xuICAgICAgbWluLWhlaWdodDogMjAwcHg7XG4gICAgICBtaW4td2lkdGg6IDIwMHB4O1xuXG4gICAgICBwcmUge1xuICAgICAgICBtYXJnaW46IDA7XG4gICAgICAgIGJvcmRlcjogbm9uZTtcbiAgICAgIH1cblxuICAgICAgc3ZnIHtcbiAgICAgICAgbWF4LXdpZHRoOiBub25lO1xuICAgICAgICBoZWlnaHQ6IGF1dG87XG4gICAgICB9XG4gICAgfVxuXG4gICAgJiA+IC5tZXJtYWlkLWNvbnRyb2xzIHtcbiAgICAgIHBvc2l0aW9uOiBhYnNvbHV0ZTtcbiAgICAgIGJvdHRvbTogMjBweDtcbiAgICAgIHJpZ2h0OiAyMHB4O1xuICAgICAgZGlzcGxheTogZmxleDtcbiAgICAgIGdhcDogOHB4O1xuICAgICAgcGFkZGluZzogOHB4O1xuICAgICAgYmFja2dyb3VuZDogdmFyKC0tbGlnaHQpO1xuICAgICAgYm9yZGVyOiAxcHggc29saWQgdmFyKC0tbGlnaHRncmF5KTtcbiAgICAgIGJvcmRlci1yYWRpdXM6IDZweDtcbiAgICAgIGJveC1zaGFkb3c6IDAgMnB4IDRweCByZ2JhKDAsIDAsIDAsIDAuMSk7XG4gICAgICB6LWluZGV4OiAyO1xuXG4gICAgICAubWVybWFpZC1jb250cm9sLWJ1dHRvbiB7XG4gICAgICAgIGRpc3BsYXk6IGZsZXg7XG4gICAgICAgIGFsaWduLWl0ZW1zOiBjZW50ZXI7XG4gICAgICAgIGp1c3RpZnktY29udGVudDogY2VudGVyO1xuICAgICAgICB3aWR0aDogMzJweDtcbiAgICAgICAgaGVpZ2h0OiAzMnB4O1xuICAgICAgICBwYWRkaW5nOiAwO1xuICAgICAgICBib3JkZXI6IDFweCBzb2xpZCB2YXIoLS1saWdodGdyYXkpO1xuICAgICAgICBiYWNrZ3JvdW5kOiB2YXIoLS1saWdodCk7XG4gICAgICAgIGNvbG9yOiB2YXIoLS1kYXJrKTtcbiAgICAgICAgYm9yZGVyLXJhZGl1czogNHB4O1xuICAgICAgICBjdXJzb3I6IHBvaW50ZXI7XG4gICAgICAgIGZvbnQtc2l6ZTogMTZweDtcbiAgICAgICAgZm9udC1mYW1pbHk6IHZhcigtLWJvZHlGb250KTtcbiAgICAgICAgdHJhbnNpdGlvbjogYWxsIDAuMnMgZWFzZTtcblxuICAgICAgICAmOmhvdmVyIHtcbiAgICAgICAgICBiYWNrZ3JvdW5kOiB2YXIoLS1saWdodGdyYXkpO1xuICAgICAgICB9XG5cbiAgICAgICAgJjphY3RpdmUge1xuICAgICAgICAgIHRyYW5zZm9ybTogdHJhbnNsYXRlWSgxcHgpO1xuICAgICAgICB9XG5cbiAgICAgICAgLy8gU3R5bGUgdGhlIHJlc2V0IGJ1dHRvbiBkaWZmZXJlbnRseVxuICAgICAgICAmOm50aC1jaGlsZCgyKSB7XG4gICAgICAgICAgd2lkdGg6IGF1dG87XG4gICAgICAgICAgcGFkZGluZzogMCAxMnB4O1xuICAgICAgICAgIGZvbnQtc2l6ZTogMTRweDtcbiAgICAgICAgfVxuICAgICAgfVxuICAgIH1cbiAgfVxufVxuIl19 */</style><link href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" rel="stylesheet" type="text/css" data-persist="true"/><script src="../prescript.js" type="application/javascript" data-persist="true"></script><script type="application/javascript" data-persist="true">const fetchData = fetch("../static/contentIndex.json").then(data => data.json())</script><link rel="alternate" type="application/rss+xml" title="RSS Feed" href="https://easilyid.github.io/knowledge-base-site/index.xml"/><meta property="og:image:width" content="1200"/><meta property="og:image:height" content="630"/><meta property="og:image" content="https://easilyid.github.io/knowledge-base-site/performance-性能优化/concurrency-models-synthesis-并发全景-og-image.webp"/><meta property="og:image:url" content="https://easilyid.github.io/knowledge-base-site/performance-性能优化/concurrency-models-synthesis-并发全景-og-image.webp"/><meta name="twitter:image" content="https://easilyid.github.io/knowledge-base-site/performance-性能优化/concurrency-models-synthesis-并发全景-og-image.webp"/><meta property="og:image:type" content="image/.webp"/></head><body data-slug="performance-性能优化/concurrency-models-synthesis-并发全景"><div id="quartz-root" class="page"><div id="quartz-body"><div class="left sidebar"><h2 class="page-title"><a href="..">Unity / C# / .NET 游戏开发知识库</a></h2><div class="spacer mobile-only"></div><div class="flex-component" style="flex-direction: row; flex-wrap: nowrap; gap: 1rem;"><div style="flex-grow: 1; flex-shrink: 1; flex-basis: auto; order: 0; align-self: center; justify-self: center;"><div class="search"><button class="search-button"><svg role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 19.9 19.7"><title>Search</title><g class="search-path" fill="none"><path stroke-linecap="square" d="M18.5 18.3l-5.4-5.4"></path><circle cx="8" cy="8" r="7"></circle></g></svg><p>搜索</p></button><div class="search-container"><div class="search-space"><input autocomplete="off" class="search-bar" name="search" type="text" aria-label="搜索些什么" placeholder="搜索些什么"/><div class="search-layout" data-preview="true"></div></div></div></div></div><div style="flex-grow: 0; flex-shrink: 1; flex-basis: auto; order: 0; align-self: center; justify-self: center;"><button class="darkmode"><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" class="dayIcon" x="0px" y="0px" viewBox="0 0 35 35" style="enable-background:new 0 0 35 35" xml:space="preserve" aria-label="暗色模式"><title>暗色模式</title><path d="M6,17.5C6,16.672,5.328,16,4.5,16h-3C0.672,16,0,16.672,0,17.5    S0.672,19,1.5,19h3C5.328,19,6,18.328,6,17.5z M7.5,26c-0.414,0-0.789,0.168-1.061,0.439l-2,2C4.168,28.711,4,29.086,4,29.5    C4,30.328,4.671,31,5.5,31c0.414,0,0.789-0.168,1.06-0.44l2-2C8.832,28.289,9,27.914,9,27.5C9,26.672,8.329,26,7.5,26z M17.5,6    C18.329,6,19,5.328,19,4.5v-3C19,0.672,18.329,0,17.5,0S16,0.672,16,1.5v3C16,5.328,16.671,6,17.5,6z M27.5,9    c0.414,0,0.789-0.168,1.06-0.439l2-2C30.832,6.289,31,5.914,31,5.5C31,4.672,30.329,4,29.5,4c-0.414,0-0.789,0.168-1.061,0.44    l-2,2C26.168,6.711,26,7.086,26,7.5C26,8.328,26.671,9,27.5,9z M6.439,8.561C6.711,8.832,7.086,9,7.5,9C8.328,9,9,8.328,9,7.5    c0-0.414-0.168-0.789-0.439-1.061l-2-2C6.289,4.168,5.914,4,5.5,4C4.672,4,4,4.672,4,5.5c0,0.414,0.168,0.789,0.439,1.06    L6.439,8.561z M33.5,16h-3c-0.828,0-1.5,0.672-1.5,1.5s0.672,1.5,1.5,1.5h3c0.828,0,1.5-0.672,1.5-1.5S34.328,16,33.5,16z     M28.561,26.439C28.289,26.168,27.914,26,27.5,26c-0.828,0-1.5,0.672-1.5,1.5c0,0.414,0.168,0.789,0.439,1.06l2,2    C28.711,30.832,29.086,31,29.5,31c0.828,0,1.5-0.672,1.5-1.5c0-0.414-0.168-0.789-0.439-1.061L28.561,26.439z M17.5,29    c-0.829,0-1.5,0.672-1.5,1.5v3c0,0.828,0.671,1.5,1.5,1.5s1.5-0.672,1.5-1.5v-3C19,29.672,18.329,29,17.5,29z M17.5,7    C11.71,7,7,11.71,7,17.5S11.71,28,17.5,28S28,23.29,28,17.5S23.29,7,17.5,7z M17.5,25c-4.136,0-7.5-3.364-7.5-7.5    c0-4.136,3.364-7.5,7.5-7.5c4.136,0,7.5,3.364,7.5,7.5C25,21.636,21.636,25,17.5,25z"></path></svg><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" class="nightIcon" x="0px" y="0px" viewBox="0 0 100 100" style="enable-background:new 0 0 100 100" xml:space="preserve" aria-label="亮色模式"><title>亮色模式</title><path d="M96.76,66.458c-0.853-0.852-2.15-1.064-3.23-0.534c-6.063,2.991-12.858,4.571-19.655,4.571  C62.022,70.495,50.88,65.88,42.5,57.5C29.043,44.043,25.658,23.536,34.076,6.47c0.532-1.08,0.318-2.379-0.534-3.23  c-0.851-0.852-2.15-1.064-3.23-0.534c-4.918,2.427-9.375,5.619-13.246,9.491c-9.447,9.447-14.65,22.008-14.65,35.369  c0,13.36,5.203,25.921,14.65,35.368s22.008,14.65,35.368,14.65c13.361,0,25.921-5.203,35.369-14.65  c3.872-3.871,7.064-8.328,9.491-13.246C97.826,68.608,97.611,67.309,96.76,66.458z"></path></svg></button></div><div style="flex-grow: 0; flex-shrink: 1; flex-basis: auto; order: 0; align-self: center; justify-self: center;"><button class="readermode"><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" class="readerIcon" fill="currentColor" stroke="currentColor" stroke-width="0.2" stroke-linecap="round" stroke-linejoin="round" width="64px" height="64px" viewBox="0 0 24 24" aria-label="阅读模式"><title>阅读模式</title><g transform="translate(-1.8, -1.8) scale(1.15, 1.2)"><path d="M8.9891247,2.5 C10.1384702,2.5 11.2209868,2.96705384 12.0049645,3.76669482 C12.7883914,2.96705384 13.8709081,2.5 15.0202536,2.5 L18.7549359,2.5 C19.1691495,2.5 19.5049359,2.83578644 19.5049359,3.25 L19.5046891,4.004 L21.2546891,4.00457396 C21.6343849,4.00457396 21.9481801,4.28672784 21.9978425,4.6528034 L22.0046891,4.75457396 L22.0046891,20.25 C22.0046891,20.6296958 21.7225353,20.943491 21.3564597,20.9931534 L21.2546891,21 L2.75468914,21 C2.37499337,21 2.06119817,20.7178461 2.01153575,20.3517706 L2.00468914,20.25 L2.00468914,4.75457396 C2.00468914,4.37487819 2.28684302,4.061083 2.65291858,4.01142057 L2.75468914,4.00457396 L4.50368914,4.004 L4.50444233,3.25 C4.50444233,2.87030423 4.78659621,2.55650904 5.15267177,2.50684662 L5.25444233,2.5 L8.9891247,2.5 Z M4.50368914,5.504 L3.50468914,5.504 L3.50468914,19.5 L10.9478955,19.4998273 C10.4513189,18.9207296 9.73864328,18.5588115 8.96709342,18.5065584 L8.77307039,18.5 L5.25444233,18.5 C4.87474657,18.5 4.56095137,18.2178461 4.51128895,17.8517706 L4.50444233,17.75 L4.50368914,5.504 Z M19.5049359,17.75 C19.5049359,18.1642136 19.1691495,18.5 18.7549359,18.5 L15.2363079,18.5 C14.3910149,18.5 13.5994408,18.8724714 13.0614828,19.4998273 L20.5046891,19.5 L20.5046891,5.504 L19.5046891,5.504 L19.5049359,17.75 Z M18.0059359,3.999 L15.0202536,4 L14.8259077,4.00692283 C13.9889509,4.06666544 13.2254227,4.50975805 12.7549359,5.212 L12.7549359,17.777 L12.7782651,17.7601316 C13.4923805,17.2719483 14.3447024,17 15.2363079,17 L18.0059359,16.999 L18.0056891,4.798 L18.0033792,4.75457396 L18.0056891,4.71 L18.0059359,3.999 Z M8.9891247,4 L6.00368914,3.999 L6.00599909,4.75457396 L6.00599909,4.75457396 L6.00368914,4.783 L6.00368914,16.999 L8.77307039,17 C9.57551536,17 10.3461406,17.2202781 11.0128313,17.6202194 L11.2536891,17.776 L11.2536891,5.211 C10.8200889,4.56369974 10.1361548,4.13636104 9.37521067,4.02745763 L9.18347055,4.00692283 L8.9891247,4 Z"></path></g></svg></button></div></div><div class="explorer" data-behavior="link" data-collapsed="collapsed" data-savestate="true" data-data-fns="{&quot;order&quot;:[&quot;filter&quot;,&quot;map&quot;,&quot;sort&quot;],&quot;sortFn&quot;:&quot;(a,b)=>!a.isFolder&amp;&amp;!b.isFolder||a.isFolder&amp;&amp;b.isFolder?a.displayName.localeCompare(b.displayName,void 0,{numeric:!0,sensitivity:\&quot;base\&quot;}):!a.isFolder&amp;&amp;b.isFolder?1:-1&quot;,&quot;filterFn&quot;:&quot;node=>node.slugSegment!==\&quot;tags\&quot;&quot;,&quot;mapFn&quot;:&quot;node=>{let override={\&quot;unity-Unity\\u5F15\\u64CE\&quot;:\&quot;Unity\&quot;,\&quot;csharp-dotnet-CSharp\\u4E0ENET\&quot;:\&quot;C#/.NET\&quot;,\&quot;patterns-\\u8BBE\\u8BA1\\u6A21\\u5F0F\&quot;:\&quot;\\u8BBE\\u8BA1\\u6A21\\u5F0F\&quot;,\&quot;performance-\\u6027\\u80FD\\u4F18\\u5316\&quot;:\&quot;\\u6027\\u80FD\&quot;,\&quot;tools-\\u5DE5\\u5177\\u4E0E\\u5DE5\\u4F5C\\u6D41\&quot;:\&quot;\\u5DE5\\u5177\&quot;,\&quot;gamedesign-\\u6E38\\u620F\\u8BBE\\u8BA1\&quot;:\&quot;\\u6E38\\u620F\\u8BBE\\u8BA1\&quot;,\&quot;sources-\\u6765\\u6E90\\u6458\\u8981\&quot;:\&quot;\\u6765\\u6E90\\u6458\\u8981\&quot;}[node.displayName];if(override){node.displayName=override;return}let segments=node.displayName.split(\&quot;-\&quot;),cjkStart=segments.findIndex(segment=>/[一-鿿]/.test(segment));cjkStart>-1&amp;&amp;(node.displayName=segments.slice(cjkStart).join(\&quot;-\&quot;))}&quot;}"><button type="button" class="explorer-toggle mobile-explorer hide-until-loaded" data-mobile="true" aria-controls="explorer-69"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide-menu"><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button><button type="button" class="title-button explorer-toggle desktop-explorer" data-mobile="false" aria-expanded="true"><h2>探索</h2><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="5 8 14 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="fold"><polyline points="6 9 12 15 18 9"></polyline></svg></button><div id="explorer-69" class="explorer-content" aria-expanded="false" role="group"><ul class="explorer-ul overflow" id="list-0"><li class="overflow-end"></li></ul></div><template id="template-file"><li><a href="#"></a></li></template><template id="template-folder"><li><div class="folder-container"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="5 8 14 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="folder-icon"><polyline points="6 9 12 15 18 9"></polyline></svg><div><button class="folder-button"><span class="folder-title"></span></button></div></div><div class="folder-outer"><ul class="content"></ul></div></li></template></div></div><div class="center"><div class="page-header"><div class="popover-hint"><nav class="breadcrumb-container" aria-label="breadcrumbs"><div class="breadcrumb-element"><a href="../">Home</a><p> ❯ </p></div><div class="breadcrumb-element"><a href="../performance-性能优化/">性能</a><p> ❯ </p></div><div class="breadcrumb-element"><a href>并发全景</a></div></nav><h1 class="article-title">concurrency-models-synthesis-并发全景</h1><p show-comma="true" class="content-meta"><time datetime="2026-05-17T00:00:00.000Z">2026年5月17日</time><span>32分钟阅读</span></p></div></div><article class="popover-hint"><h1 id="unity-并发模型全景从协程到-job-system-的七种机制">Unity 并发模型全景：从协程到 Job System 的七种机制<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#unity-并发模型全景从协程到-job-system-的七种机制" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h1>
+<h2 id="主线脉络">主线脉络<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#主线脉络" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<p>Unity 的”并发”不是一个机制，而是<strong>七种机制在不同维度上瓜分的领域</strong>——从单线程协作式让权到真多核并行，从零分配迭代器到 SIMD 原生编译，每种机制解决一个不同层面的问题。理解这七种机制的关键不是记住”谁更好”，而是识别<strong>每种机制在并发光谱上的坐标</strong>：你是在等什么（I/O、时间点、条件）还是在算什么（数据并行、向量运算）？你需要主线程亲和还是可以脱离？你的数据是托管对象还是 blittable struct？这些坐标决定了你应该选哪条路径，而典型的生产代码会在同一帧内同时使用三到四种机制。</p>
+<h2 id="关键节点">关键节点<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#关键节点" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<h3 id="节点-1coroutine协程">节点 1：Coroutine（协程）<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#节点-1coroutine协程" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<ul>
+<li>引用：<a href="https://docs.unity3d.com/Manual/Coroutines.html" class="external">Unity Manual - Coroutines<svg aria-hidden="true" class="external-icon" style="max-width:0.8em;max-height:0.8em;" viewBox="0 0 512 512"><path d="M320 0H288V64h32 82.7L201.4 265.4 178.7 288 224 333.3l22.6-22.6L448 109.3V192v32h64V192 32 0H480 320zM32 32H0V64 480v32H32 456h32V480 352 320H424v32 96H64V96h96 32V32H160 32z"></path></svg></a></li>
+<li>在主线中的角色：<strong>单线程跨帧分片，Unity 最古老的”并发”原语</strong></li>
+<li>底层逻辑：基于 C# 迭代器（<code>IEnumerator</code> + <code>yield return</code>），由 <code>MonoBehaviour.StartCoroutine</code> 注册到 Unity PlayerLoop。每次 <code>yield</code> 让出控制权，下一帧（或满足条件后）从断点恢复。</li>
+<li>关键约束：
+<ul>
+<li>永远在主线程上跑，<strong>不能并行计算</strong></li>
+<li>生命周期绑定 <code>MonoBehaviour</code>：宿主销毁则协程自动停止——既是便利（自动清理），也是 footgun（无法跨场景持续）</li>
+<li>不能 <code>return</code> 值（要返回结果得用回调或共享字段）</li>
+<li>异常吞噬：未捕获异常默认不会传播给调用者</li>
+</ul>
+</li>
+<li>适用：UI 动画、定时触发、状态机分步、按帧节流的逻辑</li>
+<li>不适用：需要返回值、异常传播、复杂取消传播、线程切换的任何场景</li>
+</ul>
+<h3 id="节点-2thread-与-threadpool线程与线程池">节点 2：Thread 与 ThreadPool（线程与线程池）<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#节点-2thread-与-threadpool线程与线程池" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<ul>
+<li>在主线中的角色：<strong>最底层的并发原语，Unity 不推荐直接使用但必须理解</strong></li>
+<li>底层逻辑：<code>System.Threading.Thread</code> 创建操作系统级线程，<code>ThreadPool.QueueUserWorkItem</code> 将工作排入 .NET 线程池。两者都是抢占式调度，不受 PlayerLoop 控制。</li>
+<li>关键约束：
+<ul>
+<li>绝大多数 UnityEngine API 不允许在非主线程调用（Development Build 会检测，Release Build 可能静默崩溃）</li>
+<li>没有数据竞争检测——共享托管对象时必须自己加锁</li>
+<li><code>Thread</code> 是重量级资源（默认 1MB 栈空间），不适合短任务</li>
+<li><code>ThreadPool</code> 线程数由 .NET 运行时自动管理，但 Unity 的 Job System 有自己的 Worker 线程池——两套线程池可能互相争抢 CPU 时间</li>
+</ul>
+</li>
+<li>适用：极少数无法被 Awaitable/UniTask/Job System 覆盖的底层场景（原生插件交互、长时阻塞 I/O、自定义调度器）</li>
+<li>不适用：游戏逻辑中的任何常规并发需求</li>
+</ul>
+<h3 id="节点-3asyncawait-与-task">节点 3：async/await 与 Task<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#节点-3asyncawait-与-task" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<ul>
+<li>在主线中的角色：<strong>通用 .NET 异步原语，Unity 中的”基础设施层”</strong></li>
+<li>底层逻辑：编译器把 <code>async</code> 方法重写成状态机（详见 <a href="../csharp-dotnet-CSharp与NET/async-await-internals-异步机制" class="internal alias" data-slug="csharp-dotnet-CSharp与NET/async-await-internals-异步机制">async-await-internals-异步机制</a>），在每个 <code>await</code> 处保存继续点。Continuation 调度由 <code>SynchronizationContext</code> 决定——Unity 装了 <code>UnitySynchronizationContext</code>，所以从主线程发起的 <code>await</code> <strong>默认会回主线程继续</strong>。</li>
+<li>关键约束（在 Unity 里）：
+<ul>
+<li>每次 <code>await</code> 一个 <code>Task</code> 都分配一个对象——hot path 上是 GC 压力源</li>
+<li>不绑定 <code>MonoBehaviour</code>，<strong>生命周期失控</strong>：场景切换或对象销毁时残留的 <code>Task</code> 会继续跑（除非用 <code>CancellationToken</code>）</li>
+<li>异常会传播（比 Coroutine 强），但未 await 的 Task 异常默认静默</li>
+<li><code>Task.Delay</code> 不受 <code>Time.timeScale</code> 影响，且通过 <code>UnitySynchronizationContext.Post</code> 恢复，至少一帧延迟</li>
+</ul>
+</li>
+<li>适用：纯 C# 后端逻辑、第三方异步 API（HttpClient、文件 I/O）、不依赖 Unity 主循环的工作流</li>
+<li>不适用：高频每帧 await、需要零分配的 hot path、需要精确 PlayerLoop 时序</li>
+</ul>
+<h3 id="节点-4unitask社区方案事实标准">节点 4：UniTask（社区方案，事实标准）<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#节点-4unitask社区方案事实标准" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<ul>
+<li>引用：<a href="../performance-性能优化/unitask-deep-dive-深入" class="internal alias" data-slug="performance-性能优化/unitask-deep-dive-深入">unitask-deep-dive-深入</a></li>
+<li>在主线中的角色：<strong>Awaitable 的超集 + Task 替代品，Unity 应用层异步的首选</strong></li>
+<li>底层逻辑：完全运行在 Unity PlayerLoop 上、struct-based 零分配、提供 <code>WhenAll</code> / <code>DelayFrame</code> / 灵活的 <code>PlayerLoopTiming</code> 控制。通过 <code>[AsyncMethodBuilder]</code> 关联自定义 builder，不走 <code>SynchronizationContext</code>。</li>
+<li>与 Awaitable 的关系：UniTask 作者原话——“Awaitable can be considered a subset of UniTask, and in fact, Awaitable’s design was influenced by UniTask”（<a href="https://github.com/Cysharp/UniTask/discussions/627" class="external">Cysharp/UniTask Discussion #627<svg aria-hidden="true" class="external-icon" style="max-width:0.8em;max-height:0.8em;" viewBox="0 0 512 512"><path d="M320 0H288V64h32 82.7L201.4 265.4 178.7 288 224 333.3l22.6-22.6L448 109.3V192v32h64V192 32 0H480 320zM32 32H0V64 480v32H32 456h32V480 352 320H424v32 96H64V96h96 32V32H160 32z"></path></svg></a>）。但作者也强调 <strong>Awaitable 在功能上等价于 Coroutine 的 async/await 化</strong>，不是 UniTask 的直接替代品；UniTask 提供 Task 级组合（WhenAll/DelayFrame/异步流）这些 Awaitable 缺失。完整对比见 <a href="../unity-Unity引擎/awaitable-vs-unitask-comparison-Awaitable与UniTask对比" class="internal alias" data-slug="unity-Unity引擎/awaitable-vs-unitask-comparison-Awaitable与UniTask对比">awaitable-vs-unitask-comparison-Awaitable与UniTask对比</a>。<strong>应用层开发推荐 UniTask</strong>，库开发为避免依赖用 Awaitable。</li>
+<li>适用：大量并发异步任务、复杂取消传播、需要 <code>WhenAll</code> 等组合子的业务流程、需要细粒度 <code>PlayerLoopTiming</code> 控制</li>
+<li>不适用：公共库（避免强依赖）、数据并行计算（应用 Job System）</li>
+</ul>
+<h3 id="节点-5awaitableunity-6-起">节点 5：Awaitable（Unity 6 起）<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#节点-5awaitableunity-6-起" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<ul>
+<li>引用：<a href="../unity-Unity引擎/awaitable-Unity异步类型" class="internal alias" data-slug="unity-Unity引擎/awaitable-Unity异步类型">awaitable-Unity异步类型</a>、<a href="https://docs.unity3d.com/6000.2/Documentation/Manual/async-awaitable-introduction.html" class="external">Unity Manual - Async-Awaitable Introduction<svg aria-hidden="true" class="external-icon" style="max-width:0.8em;max-height:0.8em;" viewBox="0 0 512 512"><path d="M320 0H288V64h32 82.7L201.4 265.4 178.7 288 224 333.3l22.6-22.6L448 109.3V192v32h64V192 32 0H480 320zM32 32H0V64 480v32H32 456h32V480 352 320H424v32 96H64V96h96 32V32H160 32z"></path></svg></a></li>
+<li>在主线中的角色：<strong>Unity 原生 async/await 类型，协程的现代替代</strong></li>
+<li>底层逻辑：Unity 实现的 awaitable 类型（不是 <code>Task</code>），**<a href="../patterns-设计模式/object-pool-对象池" class="internal alias" data-slug="patterns-设计模式/object-pool-对象池">对象池化</a>**降 GC、<strong>集成 PlayerLoop</strong> 提供 <code>NextFrameAsync()</code> <code>EndOfFrameAsync()</code> <code>FixedUpdateAsync()</code> <code>WaitForSecondsAsync()</code>、<strong>显式线程切换</strong> <code>Awaitable.MainThreadAsync()</code> / <code>Awaitable.BackgroundThreadAsync()</code>。</li>
+<li>关键能力：
+<ul>
+<li><code>await Awaitable.BackgroundThreadAsync()</code> —— 显式切到后台线程跑长任务</li>
+<li><code>await Awaitable.MainThreadAsync()</code> —— 显式回主线程访问 Unity API</li>
+<li>Continuation 同步触发：完成时如果在同帧、同线程，直接同步恢复，<strong>比 Task 延迟更低</strong></li>
+</ul>
+</li>
+<li>关键约束：
+<ul>
+<li>池化对象<strong>不能 <code>await</code> 多次</strong>——重复 await 已完成的 Awaitable 会拿到错误结果</li>
+<li>缺少 <code>WhenAll</code> / <code>WhenAny</code>（要包成 Task 才有）</li>
+<li>错误信息不如 Coroutine 直观</li>
+</ul>
+</li>
+<li>适用：现代化协程改写、异步资源加载、库代码避免第三方依赖</li>
+<li>不适用：大量并发 async 流程（性能优势在大量并发时减弱）、需要组合子的场景</li>
+</ul>
+<h3 id="节点-6job-system">节点 6：Job System<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#节点-6job-system" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<ul>
+<li>引用：<a href="../performance-性能优化/job-system-作业系统" class="internal alias" data-slug="performance-性能优化/job-system-作业系统">job-system-作业系统</a>、<a href="../performance-性能优化/ijob-types-IJob接口族" class="internal alias" data-slug="performance-性能优化/ijob-types-IJob接口族">ijob-types-IJob接口族</a>、<a href="../performance-性能优化/parallel-for-job-并行调度" class="internal alias" data-slug="performance-性能优化/parallel-for-job-并行调度">parallel-for-job-并行调度</a>、<a href="../performance-性能优化/job-dependencies-作业依赖" class="internal alias" data-slug="performance-性能优化/job-dependencies-作业依赖">job-dependencies-作业依赖</a>、<a href="../performance-性能优化/native-container-Native容器" class="internal alias" data-slug="performance-性能优化/native-container-Native容器">native-container-Native容器</a>、<a href="../performance-性能优化/burst-compiler-Burst编译" class="internal alias" data-slug="performance-性能优化/burst-compiler-Burst编译">burst-compiler-Burst编译</a></li>
+<li>在主线中的角色：<strong>真正的多线程数据并行计算，Unity 性能栈的核心</strong></li>
+<li>与上面五种的本质区别：
+<ul>
+<li>上面五种是<strong>协作式调度</strong>——单线程上让出执行权给其他逻辑</li>
+<li>Job System 是<strong>真并行</strong>——不同 Worker 线程<strong>同时</strong>执行</li>
+</ul>
+</li>
+<li>数据传输：通过 <a href="../performance-性能优化/native-container-Native容器" class="internal alias" data-slug="performance-性能优化/native-container-Native容器">NativeContainer</a> 跨线程，禁止托管引用</li>
+<li>配合 <a href="../performance-性能优化/burst-compiler-Burst编译" class="internal alias" data-slug="performance-性能优化/burst-compiler-Burst编译">Burst Compiler</a> 接近原生 SIMD 性能</li>
+<li>安全系统在调度时检测数据竞争——这是其他五种机制都没有的硬保障</li>
+<li>适用：数据密集计算（向量运算、网格变形、粒子模拟、寻路、AI 群体决策）</li>
+<li>不适用：需要调用 Unity 主线程 API 的逻辑、I/O 等待、工作量很小的计算</li>
+</ul>
+<h3 id="节点-7ecs-并行systems--jobs">节点 7：ECS 并行（Systems + Jobs）<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#节点-7ecs-并行systems--jobs" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<ul>
+<li>在主线中的角色：<strong>Job System 的声明式封装，数据导向架构的执行层</strong></li>
+<li>底层逻辑：ECS 的 <code>SystemBase</code> / <code>ISystem</code> 中的 <code>ScheduleParallel</code> / <code>Schedule</code> 自动将查询到的 <code>ArchetypeChunk</code> 分发给 <code>IJobChunk</code> 执行。开发者声明”对哪些数据做什么”，框架负责调度和依赖。</li>
+<li>与裸 Job System 的区别：
+<ul>
+<li>裸 Job：手动管理 <code>NativeArray</code> 生命周期、手动 <code>Schedule</code> / <code>Complete</code>、手动处理依赖</li>
+<li>ECS：自动从 <code>EntityQuery</code> 获取数据、自动管理依赖链、<code>SystemGroup</code> 保证执行顺序</li>
+</ul>
+</li>
+<li>关键约束：
+<ul>
+<li>必须使用 ECS 数据模型（<code>ComponentData</code> 而非 <code>MonoBehaviour</code>）</li>
+<li>学习曲线陡峭，架构迁移成本高</li>
+<li><code>Entities.ForEach</code> 在 Entities 1.3+ 中已标记 <code>[Obsolete]</code>，应使用 <code>IJobChunk</code> / <code>IJobEntity</code></li>
+</ul>
+</li>
+<li>适用：大规模实体管理（成千上万个同质对象）、需要自动依赖追踪的项目</li>
+<li>不适用：传统 GameObject 工作流、中小规模项目、团队不熟悉 DOTS</li>
+</ul>
+<h2 id="横向连接">横向连接<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#横向连接" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<blockquote class="callout tip" data-callout="tip">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>这是 synthesis 的核心价值——单看任何一个 spoke 都看不出来的关联 </p></div>
+                  
+                </div>
+</blockquote>
+<h3 id="连接-1awaitable-是-coroutine-与-job-system-之间的胶水">连接 1：Awaitable 是 Coroutine 与 Job System 之间的”胶水”<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#连接-1awaitable-是-coroutine-与-job-system-之间的胶水" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>Unity 官方文档给出的标准用法示例直接演示了二者协作：</p>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="csharp" data-theme="github-light github-dark"><code data-language="csharp" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">async</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Awaitable</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> SampleSchedulingJobsForNextFrame</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">()</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    await</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> Awaitable.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">EndOfFrameAsync</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">();   </span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 等到帧末避免资源竞争</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    var</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> jobHandle</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> ScheduleSomethingWithJobSystem</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">();</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    await</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> Awaitable.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">NextFrameAsync</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">();    </span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 让 Job 在下一帧并行执行</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    jobHandle.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Complete</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">();                </span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 拿结果</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">}</span></span></code></pre></figure>
+<p><strong>Awaitable 解决的是”调度时机”，Job System 解决的是”并行计算”</strong>——前者是 when，后者是 how。这正好对应 <a href="../performance-性能优化/job-system-作业系统" class="internal alias" data-slug="performance-性能优化/job-system-作业系统">job-system-作业系统</a> “尽早 Schedule、尽晚 Complete” 的最佳实践，被 Awaitable 的帧级语义自然落地。</p>
+<h3 id="连接-2切线程在-unity-里有三种完全不同的含义">连接 2：“切线程”在 Unity 里有三种完全不同的含义<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#连接-2切线程在-unity-里有三种完全不同的含义" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th>切线程的含义</th><th>机制</th><th>并行度</th><th>适用场景</th></tr></thead><tbody><tr><td><strong>暂时让出主线程时间片</strong></td><td><code>await Awaitable.BackgroundThreadAsync()</code> 或 <code>Task.Run()</code></td><td>1</td><td>I/O 等待、单个长任务、第三方阻塞 API</td></tr><tr><td><strong>把一份计算并行分发到多核</strong></td><td><code>IJobParallelFor.Schedule(length, batchSize)</code></td><td>N</td><td>数组计算、粒子、网格变形</td></tr><tr><td><strong>声明式数据并行</strong></td><td>ECS <code>SystemBase.ScheduleParallel()</code></td><td>N + 自动依赖</td><td>大规模同质实体</td></tr></tbody></table></div>
+<p>新人常见误区：<strong>用 <code>Task.Run</code> 跑大数组计算</strong>——以为分担了主线程压力，实际上只用了 1 个后台线程，没吃满多核，且跨线程访问托管对象导致数据竞争或 GC 抖动。正解：纯计算用 Job + Burst，I/O 等待用 Awaitable/UniTask。</p>
+<h3 id="连接-3生命周期管理是asyncawait-比-coroutine-优秀的反面">连接 3：生命周期管理是”async/await 比 Coroutine 优秀”的反面<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#连接-3生命周期管理是asyncawait-比-coroutine-优秀的反面" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>社区反复提到的痛点：<strong>Coroutine 绑定 MonoBehaviour 自动清理</strong>是个软优势——<code>async Awaitable</code> 方法<strong>不会</strong>因为宿主 GameObject 销毁而停止，必须手动用 <code>CancellationToken</code>。</p>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="csharp" data-theme="github-light github-dark"><code data-language="csharp" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 错误：宿主销毁后循环还在跑，访问 transform 抛 MissingReferenceException</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">async</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Awaitable</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Loop</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">() {</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    while</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> (</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">true</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">) {</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">        transform.position </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">+=</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> Vector3.up </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">*</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> Time.deltaTime;</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">        await</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> Awaitable.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">NextFrameAsync</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">();</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    }</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">}</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 正确：用 destroyCancellationToken（MonoBehaviour 自带，Unity 2022.2+）</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">async</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Awaitable</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Loop</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">() {</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    var</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> ct</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> destroyCancellationToken;</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    while</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> (</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">!</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">ct.IsCancellationRequested) {</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">        transform.position </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">+=</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> Vector3.up </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">*</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> Time.deltaTime;</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">        await</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> Awaitable.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">NextFrameAsync</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(ct);</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    }</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">}</span></span></code></pre></figure>
+<p>不同模型有不同的”必须手动闭环”项：Coroutine 的 yield 对象分配、Awaitable 的池化复用限制、Job 的 <code>TempJob</code> 4 帧规则和 <code>Dispose</code> 义务、ECS 的 Component 生命周期——<strong>没有哪种模型是”自动全管”的</strong>。</p>
+<h3 id="连接-4何时升级-coroutine--awaitableunitask">连接 4：何时升级 Coroutine → Awaitable/UniTask<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#连接-4何时升级-coroutine--awaitableunitask" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>不是所有 Coroutine 都该改写。改写收益的边界：</p>
+<ul>
+<li>应该改：<code>yield return new WaitForSeconds(x)</code> / <code>WaitForFixedUpdate</code> 这类返回非 null 值的 yield——iterator-based 协程比 Awaitable 明显更慢（Unity 官方文档确认）</li>
+<li>应该改：需要返回值或异常传播的协程</li>
+<li>不该改：每个 GameObject 都挂的高频协程——大量并发 Awaitable 反而比 Coroutine 慢（官方原话：“performance advantage of Awaitable coroutines reduces when you run many of them concurrently”）</li>
+<li>不该改：只是 <code>yield return null</code> 的简单帧分片——收益小、改写成本不值</li>
+</ul>
+<h3 id="连接-5七种机制的线程亲和性决定数据传输方式">连接 5：七种机制的”线程亲和性”决定数据传输方式<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#连接-5七种机制的线程亲和性决定数据传输方式" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th>机制</th><th>执行线程</th><th>数据传输方式</th></tr></thead><tbody><tr><td>Coroutine</td><td>主线程</td><td>直接共享托管对象（无问题）</td></tr><tr><td>Thread/ThreadPool</td><td>后台线程</td><td>共享托管对象需加锁/原子操作</td></tr><tr><td>async/await + Task</td><td>默认主线程（SyncContext 拉回），手动 <code>Task.Run</code> 切后台</td><td>共享托管对象需自己加锁</td></tr><tr><td>Awaitable</td><td>默认主线程，可显式切 background</td><td>同上，多线程访问要小心</td></tr><tr><td>UniTask</td><td>默认主线程，可 <code>SwitchToThreadPool</code></td><td>同上</td></tr><tr><td>Job System</td><td>Worker 线程池</td><td><strong>必须用 <a href="../performance-性能优化/native-container-Native容器" class="internal alias" data-slug="performance-性能优化/native-container-Native容器">native-container-Native容器</a></strong>，托管引用编译报错</td></tr><tr><td>ECS</td><td>Worker 线程池</td><td><strong>必须用 ComponentData</strong>（内部即 NativeContainer）</td></tr></tbody></table></div>
+<p>这张表对应 <a href="../performance-性能优化/native-container-Native容器" class="internal alias" data-slug="performance-性能优化/native-container-Native容器">native-container-Native容器</a> 存在的根本原因——<strong>只有 Job System / ECS 的”硬隔离”才能让安全系统在调度期检测竞争</strong>。</p>
+<h3 id="连接-6threadpool-与-job-system-worker-是两套独立线程池">连接 6：ThreadPool 与 Job System Worker 是两套独立线程池<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#连接-6threadpool-与-job-system-worker-是两套独立线程池" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>Unity 启动时创建两套线程池：.NET <code>ThreadPool</code>（被 <code>Task.Run</code>、<code>Awaitable.BackgroundThreadAsync()</code> 使用）和 Job System Worker 池（被 <code>IJob.Schedule</code> 使用）。两套线程池共享同一组 CPU 核心，<strong>在 CPU 饱和时会互相争抢时间片</strong>。</p>
+<p>这意味着：如果大量 <code>Task.Run</code> 在跑，Job System 的 Worker 也会被拖慢。反之亦然。在高负载项目中需要统筹规划——用 <code>JobsUtility.JobWorkerCount</code> 检查 Worker 数量，避免 ThreadPool 和 Worker 池同时打满。</p>
+<h2 id="全景对比表">全景对比表<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#全景对比表" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th>维度</th><th>Coroutine</th><th>Thread/ThreadPool</th><th>async/await + Task</th><th>UniTask</th><th>Awaitable</th><th>Job System</th><th>ECS</th></tr></thead><tbody><tr><td><strong>并行模型</strong></td><td>单线程协作式</td><td>抢占式多线程</td><td>单线程协作式（默认）</td><td>单线程协作式</td><td>单线程协作式（可切线程）</td><td>真多核并行</td><td>真多核并行</td></tr><tr><td><strong>主线程亲和</strong></td><td>必须</td><td>无</td><td>默认回主线程</td><td>默认回主线程</td><td>默认主线程，可显式切</td><td>不在主线程</td><td>不在主线程</td></tr><tr><td><strong>堆分配</strong></td><td>WaitForSeconds 等每次分配</td><td>Thread 1MB 栈</td><td>每次 await 可能分配</td><td>零分配（struct）</td><td>池化，低分配</td><td>零分配（struct）</td><td>零分配</td></tr><tr><td><strong>Burst 兼容</strong></td><td>否</td><td>否</td><td>否</td><td>否</td><td>否</td><td><strong>是</strong></td><td><strong>是</strong></td></tr><tr><td><strong>确定性</strong></td><td>帧序确定</td><td>不确定</td><td>不确定</td><td>不确定</td><td>不确定</td><td>数据竞争检测保证</td><td>依赖链保证</td></tr><tr><td><strong>取消</strong></td><td>StopCoroutine（无清理）</td><td>Thread.Abort（已过时）</td><td>CancellationToken</td><td>CancellationToken</td><td>CancellationToken / destroyCancellationToken</td><td>无法中途取消</td><td>无法中途取消</td></tr><tr><td><strong>异常传播</strong></td><td>吞噬</td><td>未处理异常崩溃进程</td><td>await 自动解包</td><td>await 自动解包</td><td>await 自动解包</td><td>安全系统抛异常</td><td>安全系统抛异常</td></tr><tr><td><strong>返回值</strong></td><td>无</td><td>无（需共享状态）</td><td>Task&lt;T></td><td>UniTask&lt;T></td><td>Awaitable&lt;T></td><td>NativeContainer</td><td>ComponentData</td></tr><tr><td><strong>PlayerLoop 感知</strong></td><td>有限（几种 yield 指令）</td><td>无</td><td>通过 SyncContext（1 帧延迟）</td><td>PlayerLoopTiming 细粒度</td><td>NextFrame/EOF/Fixed/Seconds</td><td>无（手动 Schedule/Complete）</td><td>SystemGroup 控制顺序</td></tr><tr><td><strong>生命周期绑定</strong></td><td>MonoBehaviour</td><td>无</td><td>无</td><td>无（需手动 token）</td><td>无（需 destroyCancellationToken）</td><td>手动 Dispose</td><td>Entity 生命周期</td></tr><tr><td><strong>数据载体</strong></td><td>托管对象</td><td>托管对象</td><td>托管对象</td><td>托管对象</td><td>托管对象</td><td>NativeContainer</td><td>ComponentData</td></tr><tr><td><strong>适用数据规模</strong></td><td>少量</td><td>任意</td><td>少量</td><td>少量~中等</td><td>少量~中等</td><td>大量（千~百万）</td><td>大量（千~百万）</td></tr><tr><td><strong>学习曲线</strong></td><td>低</td><td>中</td><td>中</td><td>中</td><td>低</td><td>高</td><td>极高</td></tr></tbody></table></div>
+<h2 id="选择决策框架">选择决策框架<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#选择决策框架" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<p>按问题类型选择并发模型：</p>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="text" data-theme="github-light github-dark"><code data-language="text" data-theme="github-light github-dark" style="display:grid;"><span data-line><span>你想做什么？</span></span>
+<span data-line><span>|</span></span>
+<span data-line><span>+-- 等待某个时间点 / 帧 / 条件</span></span>
+<span data-line><span>|   +-- 简单的跨帧分片，无返回值 --> Coroutine</span></span>
+<span data-line><span>|   +-- 需要返回值 / 异常传播 / 现代化 --> Awaitable（Unity 6）或 UniTask</span></span>
+<span data-line><span>|   +-- 复杂业务流（WhenAll、取消传播、异步流） --> UniTask</span></span>
+<span data-line><span>|   +-- 需要细粒度 PlayerLoopTiming --> UniTask</span></span>
+<span data-line><span>|</span></span>
+<span data-line><span>+-- 等待 I/O（文件、网络、Resources.LoadAsync）</span></span>
+<span data-line><span>|   +-- 避免第三方依赖 --> Awaitable</span></span>
+<span data-line><span>|   +-- 需要组合 / 进度 / WhenAll --> UniTask</span></span>
+<span data-line><span>|   +-- 纯 .NET 库代码 --> Task + ConfigureAwait(false)</span></span>
+<span data-line><span>|</span></span>
+<span data-line><span>+-- 单个重计算（不在主线程跑）</span></span>
+<span data-line><span>|   +-- 不需多核，只是卸载 --> Awaitable.BackgroundThreadAsync 或 UniTask.SwitchToThreadPool</span></span>
+<span data-line><span>|   +-- 主线程能扛得住 --> 直接同步代码</span></span>
+<span data-line><span>|</span></span>
+<span data-line><span>+-- 数据密集 / 大数组 / 几何计算</span></span>
+<span data-line><span>|   +-- 传统 GameObject 工作流 --> Job System + Burst</span></span>
+<span data-line><span>|   +-- 已使用 DOTS 架构 --> ECS ScheduleParallel</span></span>
+<span data-line><span>|   +-- 需要批量 Transform 操作 --> IJobParallelForTransform</span></span>
+<span data-line><span>|</span></span>
+<span data-line><span>+-- 多种需求叠加（典型实战场景）</span></span>
+<span data-line><span>    +-- Awaitable/UniTask 编排 + Job System 计算（见&quot;混合模式&quot;）</span></span></code></pre></figure>
+<p><strong>一句话决策</strong>：在等什么用 async 族，在算什么用 Job 族。async 族解决 <strong>when</strong>，Job 族解决 <strong>how</strong>。</p>
+<h2 id="混合模式">混合模式<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#混合模式" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<h3 id="模式-1awaitable-调度--job-system-计算">模式 1：Awaitable 调度 + Job System 计算<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#模式-1awaitable-调度--job-system-计算" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>最常见的混合模式——异步流程编排用 Awaitable/UniTask，重计算卸载给 Job：</p>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="csharp" data-theme="github-light github-dark"><code data-language="csharp" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">async</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Awaitable</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> ProcessAIAsync</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">CancellationToken</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> ct</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">)</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    var</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> positions</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> new</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> NativeArray</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Vector3</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">>(enemyCount, Allocator.TempJob);</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    var</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> results</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> new</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> NativeArray</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">float</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">>(enemyCount, Allocator.TempJob);</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    try</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    {</span></span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">        // 帧末调度，下一帧取结果</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">        await</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> Awaitable.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">EndOfFrameAsync</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(ct);</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">        var</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> handle</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> new</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> AIDecisionJob</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> { positions </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">=</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> positions, results </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">=</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> results }</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">            .</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Schedule</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(enemyCount, </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">64</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">);</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">        await</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> Awaitable.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">NextFrameAsync</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(ct);</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">        handle.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Complete</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">();</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">        // 回到主线程应用结果</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">        for</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> (</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">int</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> i</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> 0</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">; i </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">&lt;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> enemyCount; i</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">++</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">)</span></span>
+<span data-line><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">            ApplyDecision</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(i, results[i]);</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    }</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    finally</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    {</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">        if</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> (positions.IsCreated) positions.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Dispose</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">();</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">        if</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> (results.IsCreated) results.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Dispose</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">();</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    }</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">}</span></span></code></pre></figure>
+<h3 id="模式-2unitask-组合--job-system-批处理">模式 2：UniTask 组合 + Job System 批处理<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#模式-2unitask-组合--job-system-批处理" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>多个异步资源加载完毕后，统一用 Job 批量处理：</p>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="csharp" data-theme="github-light github-dark"><code data-language="csharp" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">async</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> UniTaskVoid</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> LoadAndProcessAsync</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">CancellationToken</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> ct</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">)</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{</span></span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">    // 并行加载</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    var</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> (</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">mesh</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">, </span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">texture</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">, </span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">config</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">) </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">=</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> await</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> UniTask.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">WhenAll</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span></span>
+<span data-line><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">        LoadMeshAsync</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(ct),</span></span>
+<span data-line><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">        LoadTextureAsync</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(ct),</span></span>
+<span data-line><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">        LoadConfigAsync</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(ct)</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    );</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">    // 批量处理顶点</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    var</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> vertices</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> mesh.vertices.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">ToNativeArray</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(Allocator.TempJob);</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    var</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> processed</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> new</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> NativeArray</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Vector3</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">>(vertices.Length, Allocator.TempJob);</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    try</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    {</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">        new</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> VertexTransformJob</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> { input </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">=</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> vertices, output </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">=</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> processed }</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">            .</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Schedule</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(vertices.Length, </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">64</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">).</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Complete</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">();</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">        mesh.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">SetVertices</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(processed.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">ToArray</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">());</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    }</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    finally</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    {</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">        vertices.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Dispose</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">();</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">        processed.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Dispose</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">();</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    }</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">}</span></span></code></pre></figure>
+<h3 id="模式-3后台线程预处理--job-system-并行--主线程应用">模式 3：后台线程预处理 + Job System 并行 + 主线程应用<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#模式-3后台线程预处理--job-system-并行--主线程应用" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>长管道中的三段式分工：</p>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="csharp" data-theme="github-light github-dark"><code data-language="csharp" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">async</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Awaitable</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> LongPipelineAsync</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">CancellationToken</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> ct</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">)</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{</span></span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">    // 阶段 1：后台线程做 I/O 和序列化</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    await</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> Awaitable.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">BackgroundThreadAsync</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">();</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    var</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> rawData</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> await</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> File.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">ReadAllBytesAsync</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;world.dat&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">, ct);</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    var</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> parsed</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> ParseWorldData</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(rawData); </span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 纯 C# 计算</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">    // 阶段 2：Job System 做数据并行</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    var</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> terrainData</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> new</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> NativeArray</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">float</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">>(parsed.Heights, Allocator.TempJob);</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    var</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> smoothed</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> new</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> NativeArray</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">float</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">>(terrainData.Length, Allocator.TempJob);</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    try</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    {</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">        new</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> SmoothTerrainJob</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> { input </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">=</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> terrainData, output </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">=</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> smoothed }</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">            .</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Schedule</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(terrainData.Length, </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">64</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">).</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Complete</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">();</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">        // 阶段 3：回主线程创建 Unity 对象</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">        await</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> Awaitable.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">MainThreadAsync</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">();</span></span>
+<span data-line><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">        ApplyTerrainMesh</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(smoothed.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">ToArray</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">());</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    }</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    finally</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    {</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">        terrainData.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Dispose</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">();</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">        smoothed.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Dispose</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">();</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    }</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">}</span></span></code></pre></figure>
+<h3 id="模式-4ecs-system--外部-async-触发">模式 4：ECS System + 外部 async 触发<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#模式-4ecs-system--外部-async-触发" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>ECS System 每帧自动跑 Job，外部通过 <code>AwaitableCompletionSource</code> 触发一次性操作：</p>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="csharp" data-theme="github-light github-dark"><code data-language="csharp" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// ECS 端：每帧自动执行</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">public</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> partial</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> struct</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> MovementSystem</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> : </span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">ISystem</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    public</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> void</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> OnUpdate</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">ref</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> SystemState</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> state</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">)</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    {</span></span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">        // 自动并行处理所有有 Movement 组件的 Entity</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">        new</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> MovementJob</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> { deltaTime </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">=</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> SystemAPI.Time.deltaTime }</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">            .</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">ScheduleParallel</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">ref</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> state);</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    }</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">}</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 外部触发端：插入一个一次性效果</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">public</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> class</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> EffectTrigger</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> : </span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">MonoBehaviour</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    private</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> AwaitableCompletionSource</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> _trigger</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">;</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    async</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Awaitable</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> WaitForEffectAsync</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">CancellationToken</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> ct</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">)</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    {</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">        _trigger </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">=</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> new</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> AwaitableCompletionSource</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">();</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">        await</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> _trigger.Awaitable;</span></span>
+<span data-line><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">        SpawnEffect</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">();</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    }</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">    // 由 UI 或其他系统调用</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    public</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> void</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> OnEffectRequested</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">() </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">=></span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> _trigger</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">?</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">TrySetResult</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">();</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">}</span></span></code></pre></figure>
+<h2 id="线程安全原语">线程安全原语<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#线程安全原语" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<p>当多个机制共存且需要共享数据时（如主线程写、Job 读），需要使用线程安全原语。</p>
+<h3 id="net-托管层原语">.NET 托管层原语<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#net-托管层原语" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th>原语</th><th>适用场景</th><th>性能特征</th></tr></thead><tbody><tr><td><code>lock</code> / <code>Monitor</code></td><td>通用互斥，保护托管对象</td><td>有竞争时线程阻塞，无竞争时仍需取锁（约 20-50ns）</td></tr><tr><td><code>Interlocked</code></td><td>原子增减、比较交换（<code>Interlocked.Increment</code>、<code>CompareExchange</code>）</td><td>硬件级原子指令，最轻量的线程安全操作</td></tr><tr><td><code>Volatile</code> / <code>volatile</code></td><td>保证读写可见性（不保证原子性）</td><td>仅阻止编译器/CPU 重排序，几乎零开销</td></tr><tr><td><code>ReaderWriterLockSlim</code></td><td>读多写少场景（如配置表）</td><td>读并发好于 <code>lock</code>，但比 <code>Interlocked</code> 重得多</td></tr><tr><td><code>SemaphoreSlim</code></td><td>限制并发数（如最多 N 个 Task 同时跑）</td><td>异步等待版本 <code>WaitAsync</code> 不阻塞线程</td></tr><tr><td><code>CancellationToken</code></td><td>协作式取消信号</td><td>轻量 <code>bool</code> 检查，无锁</td></tr></tbody></table></div>
+<h3 id="unity-native-层原语">Unity Native 层原语<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#unity-native-层原语" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th>原语</th><th>命名空间</th><th>适用场景</th></tr></thead><tbody><tr><td><code>NativeCounter</code></td><td><code>Unity.Collections</code></td><td>Job 内部原子计数器（<code>Increment</code>），替代 <code>Interlocked</code></td></tr><tr><td><code>NativeReference&lt;T></code></td><td><code>Unity.Collections</code></td><td>单个 blittable 值的 NativeContainer 包装，跨线程安全</td></tr><tr><td><code>NativeStream</code></td><td><code>Unity.Collections</code></td><td>多个 Job 并行写入不同数据量，主线程按序读取</td></tr><tr><td><code>AtomicSafetyHandle</code></td><td><code>Unity.Collections.LowLevel.Unsafe</code></td><td>Job System 安全系统内部原语，极端优化时手动控制读写权限</td></tr></tbody></table></div>
+<h3 id="何时用哪个">何时用哪个<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#何时用哪个" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="csharp" data-theme="github-light github-dark"><code data-language="csharp" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 场景 1：主线程设置标志，Job 读取 -- 用 volatile 或 NativeReference</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">private</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> volatile</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> bool</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> _shouldStop</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">;</span></span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// Job 内检查：if (shouldStop) return;</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 场景 2：多个 Job 各自统计处理数量 -- 用 NativeCounter</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">var</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> counter</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> new</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> NativeCounter</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(Allocator.TempJob);</span></span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// Job 内：counter.Increment();</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 场景 3：多个 Job 写入不等长数据 -- 用 NativeStream</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">var</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> stream</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> new</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> NativeStream</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">64</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">, Allocator.TempJob);</span></span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// Job 内：var writer = stream.AsWriter(); writer.Write(data);</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 场景 4：托管对象在主线程和 Task.Run 间共享 -- 用 lock</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">private</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> readonly</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> object</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> _lock</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> new</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">();</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">private</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> List</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">int</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">> </span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">_sharedList</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> new</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">();</span></span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 写入：lock (_lock) { _sharedList.Add(value); }</span></span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 读取：lock (_lock) { return _sharedList.ToArray(); }</span></span></code></pre></figure>
+<h3 id="manualresetevent--manualreseteventslim线程间信号通信">ManualResetEvent / ManualResetEventSlim：线程间信号通信<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#manualresetevent--manualreseteventslim线程间信号通信" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>ManualResetEvent 是 .NET 中经典的线程间通信原语，通过”信号”状态控制线程阻塞：</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th>方法</th><th>行为</th></tr></thead><tbody><tr><td><code>WaitOne()</code></td><td>有信号时不阻塞，无信号时阻塞当前线程</td></tr><tr><td><code>Set()</code></td><td>切换为有信号状态，唤醒所有等待线程</td></tr><tr><td><code>Reset()</code></td><td>切换为无信号状态，使后续 <code>WaitOne</code> 再次阻塞</td></tr></tbody></table></div>
+<blockquote class="callout tip" data-callout="tip">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>ManualResetEvent vs ManualResetEventSlim </p></div>
+                  
+                </div>
+<div class="callout-content">
+<ul>
+<li><strong>ManualResetEvent</strong>：阻塞时释放线程（内核等待），线程不消耗 CPU 资源，<strong>适合长时间等待</strong>（>300ms）</li>
+<li><strong>ManualResetEventSlim</strong>：阻塞时先自旋（<code>SpinWait</code> + <code>Thread.Yield</code>），自旋结束后才转入内核等待，<strong>适合短时间等待</strong>（&lt;300ms），但自旋期间占用 CPU</li>
+<li><code>ManualResetEventSlim</code> 的 <code>SpinCount</code> 默认 10（最大 2047），控制自旋迭代次数。SpinCount 达到 2047 时自旋耗时约 341ms——超过此阈值应用 ManualResetEvent</li>
+</ul>
+</div>
+</blockquote>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="csharp" data-theme="github-light github-dark"><code data-language="csharp" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 生产者-消费者模型示例</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">var</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> mre</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> new</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> ManualResetEvent</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">false</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">); </span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 初始无信号</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 生产者线程</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">void</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Produce</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">()</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{</span></span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">    // 产出数据...</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    mre.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Set</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">();    </span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 有信号了，通知消费者</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">}</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 消费者线程</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">void</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Consume</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">()</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    if</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> (data.Count </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">></span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> 0</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">)</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    {</span></span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">        // 消费数据...</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">        mre.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Reset</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">();   </span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 重置为无信号</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    }</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    else</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    {</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">        mre.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">WaitOne</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(); </span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 无数据时阻塞，等待生产者 Set</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    }</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">}</span></span></code></pre></figure>
+<h3 id="任务队列模式loopthread--manualresetevent">任务队列模式（LoopThread + ManualResetEvent）<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#任务队列模式loopthread--manualresetevent" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>Unity 中常见的手动线程协调模式：创建一个后台线程跑死循环（Looper），用 <code>ManualResetEvent</code> 控制阻塞/唤醒，用 <code>Handler</code> 从主线程投递任务。适用于文件 I/O、网络请求等需要脱离主线程的耗时操作：</p>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="csharp" data-theme="github-light github-dark"><code data-language="csharp" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// LoopThread：后台线程 + 任务队列</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">public</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> class</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> LoopThread</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    private</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Loop</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> _loop</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">;</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    public</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Handler</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Handler</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">;</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    public</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> void</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Start</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">()</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    {</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">        _loop </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">=</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> new</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Loop</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">();</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">        Handler </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">=</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> new</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Handler</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(_loop);</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">        new</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Thread</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(Run).</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Start</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">();</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    }</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    void</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Run</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">()</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    {</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">        while</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> (</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">!</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">_isExiting)</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">        {</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">            _loop.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Prepare</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">();  </span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// WaitOne 阻塞，等任务到来</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">            while</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> (_loop.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Execute</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">()) { }  </span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 逐个执行队列中的任务</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">        }</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    }</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">}</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// Loop：任务队列 + ManualResetEvent</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">public</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> class</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Loop</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    private</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> readonly</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> List</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Action</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">> </span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">_actionQueue</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> new</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">();</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    private</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> readonly</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> ManualResetEvent</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> _mre</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> new</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">false</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">);</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    public</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> void</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> AddAction</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Action</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> action</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">)</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    {</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">        lock</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> (_actionQueue) { _actionQueue.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Add</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(action); }</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">        _mre.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Set</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">();  </span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 有任务了，唤醒 Looper 线程</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    }</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    public</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> void</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Prepare</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">()</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    {</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">        _mre.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">WaitOne</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">();  </span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 队列空时阻塞</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">        _mre.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Reset</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">();    </span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 重置为无信号</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    }</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    public</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> bool</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Execute</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">()</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    {</span></span>
+<span data-line><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">        Action</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> callback</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">;</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">        lock</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> (_actionQueue)</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">        {</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">            if</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> (_actionQueue.Count </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">==</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> 0</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">) </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">return</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> false</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">;</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">            callback </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">=</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> _actionQueue[</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">0</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">];</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">            _actionQueue.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">RemoveAt</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">0</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">);</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">        }</span></span>
+<span data-line><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">        callback</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">();</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">        return</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> true</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">;</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    }</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">}</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// Handler：向 Loop 投递任务的入口</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">public</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> class</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Handler</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    private</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> readonly</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Loop</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> _loop</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">;</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    public</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Handler</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Loop</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> loop</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">) </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">=></span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> _loop </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">=</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> loop;</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    public</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> void</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Post</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Action</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> act</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">) </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">=></span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> _loop.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">AddAction</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(act);</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">}</span></span></code></pre></figure>
+<blockquote class="callout tip" data-callout="tip">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>任务队列 vs Awaitable.BackgroundThreadAsync </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>任务队列是<strong>手动管理的长驻后台线程</strong>，适合需要固定线程亲和性（如特定 I/O 设备绑定）或需要严格串行化的后台操作。<code>Awaitable.BackgroundThreadAsync()</code> 使用 .NET ThreadPool，更轻量但线程不固定。如果后台任务之间有顺序依赖且需要避免 ThreadPool 争抢，任务队列是更可控的选择。</p>
+</div>
+</blockquote>
+<blockquote class="callout warning" data-callout="warning">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>不要在 Job 内使用托管层原语 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p><code>lock</code>、<code>Monitor</code>、<code>ReaderWriterLockSlim</code> 等依赖托管对象的同步原语<strong>不能在 Job 内使用</strong>——Burst 编译会报错，非 Burst Job 虽然能编译但绕过了安全系统。Job 内只能使用 <code>NativeCounter</code>、<code>NativeReference</code>、<code>NativeStream</code> 等 native 原语。</p>
+</div>
+</blockquote>
+<h3 id="unity-并发模型演进时间线">Unity 并发模型演进时间线<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#unity-并发模型演进时间线" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th>时间</th><th>版本</th><th>事件</th></tr></thead><tbody><tr><td>2005</td><td>Unity 1.0</td><td>Coroutine 作为唯一的”异步”原语</td></tr><tr><td>~2012</td><td>Unity 4.x</td><td><code>ThreadPool</code> 在 .NET 层可用，但无安全保障</td></tr><tr><td>2017</td><td>Unity 2017.1</td><td><code>AsyncOperation</code> + <code>Task</code> 可配合使用，但体验差</td></tr><tr><td>2018</td><td>Unity 2018.1</td><td>Job System + Burst Compiler 正式发布（Preview）</td></tr><tr><td>2018</td><td>Unity 2018.3</td><td>ECS（Entities）Preview 发布</td></tr><tr><td>2019</td><td>~2019</td><td>UniTask 开源，迅速成为社区事实标准</td></tr><tr><td>2021</td><td>Unity 2021.2</td><td><code>UnitySynchronizationContext</code> 正式内置</td></tr><tr><td>2022</td><td>Unity 2022.2</td><td><code>destroyCancellationToken</code> 加入 MonoBehaviour</td></tr><tr><td>2023</td><td>Unity 2023.1</td><td><code>Awaitable</code> 类型首次引入</td></tr><tr><td>2024</td><td>Unity 6</td><td>Awaitable 稳定版，API 完善；ECS 1.0 正式发布</td></tr><tr><td>2025+</td><td>Unity 6.x</td><td><code>Entities.ForEach</code> 标记过时，<code>IJobChunk</code> 成为主流</td></tr></tbody></table></div>
+<p>时间线揭示了一个规律：<strong>Unity 的并发原语在向两个方向分化</strong>——async 族（Coroutine → Awaitable/UniTask）越来越贴合 PlayerLoop，计算族（Thread → Job → ECS）越来越贴合数据导向。中间地带（<code>Task.Run</code>、<code>ThreadPool</code>）被两边挤压，逐渐不推荐使用。</p>
+<h2 id="反模式">反模式<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#反模式" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<blockquote class="callout warning" data-callout="warning">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>用 Task.Run 跑大数组计算 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p><code>Task.Run</code> 只把工作放到 1 个 ThreadPool 线程，没吃满多核。跨线程访问 <code>List&lt;T></code> / <code>Dictionary&lt;K,V></code> 还有数据竞争风险。应该用 <code>IJobParallelFor</code> + Burst。</p>
+</div>
+</blockquote>
+<blockquote class="callout warning" data-callout="warning">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>Coroutine 里 Thread.Sleep 或同步 I/O </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>协程跑在主线程上，<code>Thread.Sleep</code> 会冻住整个游戏。<code>yield return null</code> 才是”等一帧”的正确做法；真正的延迟等待用 <code>WaitForSeconds</code> 或 <code>Awaitable.WaitForSecondsAsync</code>。</p>
+</div>
+</blockquote>
+<blockquote class="callout warning" data-callout="warning">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>async void 方法（非事件入口） </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p><code>async void</code> 的异常无法被调用者捕获，会逃逸到 <code>SynchronizationContext</code> 导致崩溃；也无法 <code>await</code>、无法取消。仅 Unity 事件方法（<code>Start</code>、<code>Awake</code>）可用，内部必须 try-catch。</p>
+</div>
+</blockquote>
+<blockquote class="callout warning" data-callout="warning">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>忘记 CancellationToken 导致的&quot;僵尸异步&quot; </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p><code>async Awaitable</code> / <code>async UniTask</code> 不会随 GameObject 销毁自动停止。必须传递 <code>destroyCancellationToken</code> 或 <code>GetCancellationTokenOnDestroy()</code>。忘记取消 = 访问已销毁对象抛 <code>MissingReferenceException</code>。</p>
+</div>
+</blockquote>
+<blockquote class="callout warning" data-callout="warning">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>在主线程同步阻塞等待 async 方法 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p><code>Task.Result</code>、<code>Task.Wait()</code>、<code>GetAwaiter().GetResult()</code> 在 Unity 主线程上会死锁：主线程等 Task 完成，Task 的 continuation 需要 Post 回主线程——互相等待。全链路 async 是唯一安全写法。</p>
+</div>
+</blockquote>
+<blockquote class="callout warning" data-callout="warning">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>多次 await 同一个 Awaitable </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p><code>Awaitable</code> 完成后实例被归还<a href="../patterns-设计模式/object-pool-对象池" class="internal alias" data-slug="patterns-设计模式/object-pool-对象池">对象池</a>，第二次 await 同一引用会导致 <code>NullReferenceException</code> 或死锁。需要多次消费时缓存结果值或用 <code>.AsTask()</code> 转换。</p>
+</div>
+</blockquote>
+<blockquote class="callout warning" data-callout="warning">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>把 Allocator.Temp NativeContainer 传进 Job（运行时异常） </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>把 <code>Allocator.Temp</code> 分配的容器存入 Job struct 字段，<strong>调度时会抛运行时异常</strong>（Native 安全系统检测）。<code>Allocator.Temp</code> 不能跨帧、不能放进 Job 字段；Job 临时数据必须用 <code>Allocator.TempJob</code>（4 帧内 Dispose）或 <code>Allocator.Persistent</code>。详见 <a href="../performance-性能优化/native-container-Native容器" class="internal alias" data-slug="performance-性能优化/native-container-Native容器">native-container-Native容器</a>。</p>
+</div>
+</blockquote>
+<blockquote class="callout warning" data-callout="warning">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>在 Job 内读写 static 字段 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p><code>static</code> 字段在 Job 内既不会被复制也不会被安全系统检测，<strong>绕过了所有竞争检测</strong>。可能导致难以复现的崩溃。Job 内只用 NativeContainer 传递数据。</p>
+</div>
+</blockquote>
+<h2 id="结论与权衡">结论与权衡<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#结论与权衡" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<p>Unity 并发模型的核心矛盾不是”谁替代谁”，而是<strong>等待与计算的分野</strong>：</p>
+<ol>
+<li><strong>等待</strong>（I/O、时间、条件、帧）→ async 族（Coroutine / Awaitable / UniTask）</li>
+<li><strong>计算</strong>（数据并行、向量运算、批量变换）→ Job 族（Job System / ECS）</li>
+<li><strong>编排</strong>（把等待和计算串成管线）→ Awaitable / UniTask 作为胶水</li>
+</ol>
+<p>不存在”统一并发模型”——每种机制的线程模型、分配策略、数据载体、安全保障完全不同。强行用一个模型解决所有问题，要么丢性能（用 async 跑计算），要么丢安全（用 Thread 跑业务逻辑），要么丢表达力（用 Job 编排流程）。</p>
+<p>实战中的正确姿势是<strong>在同一个游戏循环中混合使用</strong>：Awaitable/UniTask 编排流程、Job System 处理重计算、NativeContainer 在两者间传递数据。理解每种机制的坐标和边界，比记住任何一种的 API 更重要。</p>
+<h2 id="后续缺口">后续缺口<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#后续缺口" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<ul>
+<li>UniTask 与 Awaitable 的源码级实现差异深度对比</li>
+<li>Awaitable 池化对象在极端场景下的生命周期边界</li>
+<li>ECS 1.0 <code>IJobChunk</code> 最佳实践与 <code>Entities.ForEach</code> 迁移路径</li>
+<li>具体项目中的取消传播规范与 <code>CancellationToken</code> 传递策略</li>
+<li><code>NativeStream</code> / <code>NativeCounter</code> 在混合模式中的使用范式</li>
+</ul>
+<h2 id="相关">相关<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#相关" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<ul>
+<li><a href="../performance-性能优化/job-system-作业系统" class="internal alias" data-slug="performance-性能优化/job-system-作业系统">job-system-作业系统</a> —— Job System 主概念页</li>
+<li><a href="../performance-性能优化/ijob-types-IJob接口族" class="internal alias" data-slug="performance-性能优化/ijob-types-IJob接口族">ijob-types-IJob接口族</a> —— IJob 接口族</li>
+<li><a href="../performance-性能优化/parallel-for-job-并行调度" class="internal alias" data-slug="performance-性能优化/parallel-for-job-并行调度">parallel-for-job-并行调度</a> —— ParallelFor 调度细节</li>
+<li><a href="../performance-性能优化/job-dependencies-作业依赖" class="internal alias" data-slug="performance-性能优化/job-dependencies-作业依赖">job-dependencies-作业依赖</a> —— Job 依赖与 JobHandle</li>
+<li><a href="../performance-性能优化/native-container-Native容器" class="internal alias" data-slug="performance-性能优化/native-container-Native容器">native-container-Native容器</a> —— 跨线程数据容器</li>
+<li><a href="../performance-性能优化/burst-compiler-Burst编译" class="internal alias" data-slug="performance-性能优化/burst-compiler-Burst编译">burst-compiler-Burst编译</a> —— Burst 编译器</li>
+<li><a href="../unity-Unity引擎/player-loop-主循环" class="internal alias" data-slug="unity-Unity引擎/player-loop-主循环">player-loop-主循环</a> —— Unity 主循环和脚本/异步调度底座</li>
+<li><a href="../unity-Unity引擎/coroutine-协程" class="internal alias" data-slug="unity-Unity引擎/coroutine-协程">coroutine-协程</a> —— Unity 单线程跨帧协程</li>
+<li><a href="../unity-Unity引擎/awaitable-Unity异步类型" class="internal alias" data-slug="unity-Unity引擎/awaitable-Unity异步类型">awaitable-Unity异步类型</a> —— Unity 官方 Awaitable 异步类型</li>
+<li><a href="../csharp-dotnet-CSharp与NET/async-await-task-异步与Task" class="internal alias" data-slug="csharp-dotnet-CSharp与NET/async-await-task-异步与Task">async-await-task-异步与Task</a> —— C# async/await 与 Task 基础</li>
+<li><a href="../csharp-dotnet-CSharp与NET/async-await-internals-异步机制" class="internal alias" data-slug="csharp-dotnet-CSharp与NET/async-await-internals-异步机制">async-await-internals-异步机制</a> —— async/await 状态机内部机制</li>
+<li><a href="../performance-性能优化/unitask-deep-dive-深入" class="internal alias" data-slug="performance-性能优化/unitask-deep-dive-深入">unitask-deep-dive-深入</a> —— UniTask 深入页面</li>
+<li><a href="../unity-Unity引擎/dots-ecs-数据导向" class="internal alias" data-slug="unity-Unity引擎/dots-ecs-数据导向">dots-ecs-数据导向</a> —— ECS 架构与 Job System 的声明式封装</li>
+<li><a href="../sources-来源摘要/2026-05-14-job-system-overview" class="internal" data-slug="sources-来源摘要/2026-05-14-job-system-overview">2026-05-14-job-system-overview</a> —— 官方 Job System 文档摘要</li>
+<li><a href="../sources-来源摘要/2026-05-16-burst-compiler-overview" class="internal" data-slug="sources-来源摘要/2026-05-16-burst-compiler-overview">2026-05-16-burst-compiler-overview</a> —— 官方 Burst 文档摘要</li>
+</ul></article><hr/><div class="page-footer"></div></div><div class="right sidebar"><div class="graph"><h3>关系图谱</h3><div class="graph-outer"><div class="graph-container" data-cfg="{&quot;drag&quot;:true,&quot;zoom&quot;:true,&quot;depth&quot;:1,&quot;scale&quot;:1.1,&quot;repelForce&quot;:0.5,&quot;centerForce&quot;:0.3,&quot;linkDistance&quot;:30,&quot;fontSize&quot;:0.6,&quot;opacityScale&quot;:1,&quot;showTags&quot;:true,&quot;removeTags&quot;:[],&quot;focusOnHover&quot;:false,&quot;enableRadial&quot;:false}"></div><button class="global-graph-icon" aria-label="Global Graph"><svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 55 55" fill="currentColor" xml:space="preserve"><path d="M49,0c-3.309,0-6,2.691-6,6c0,1.035,0.263,2.009,0.726,2.86l-9.829,9.829C32.542,17.634,30.846,17,29,17
+                s-3.542,0.634-4.898,1.688l-7.669-7.669C16.785,10.424,17,9.74,17,9c0-2.206-1.794-4-4-4S9,6.794,9,9s1.794,4,4,4
+                c0.74,0,1.424-0.215,2.019-0.567l7.669,7.669C21.634,21.458,21,23.154,21,25s0.634,3.542,1.688,4.897L10.024,42.562
+                C8.958,41.595,7.549,41,6,41c-3.309,0-6,2.691-6,6s2.691,6,6,6s6-2.691,6-6c0-1.035-0.263-2.009-0.726-2.86l12.829-12.829
+                c1.106,0.86,2.44,1.436,3.898,1.619v10.16c-2.833,0.478-5,2.942-5,5.91c0,3.309,2.691,6,6,6s6-2.691,6-6c0-2.967-2.167-5.431-5-5.91
+                v-10.16c1.458-0.183,2.792-0.759,3.898-1.619l7.669,7.669C41.215,39.576,41,40.26,41,41c0,2.206,1.794,4,4,4s4-1.794,4-4
+                s-1.794-4-4-4c-0.74,0-1.424,0.215-2.019,0.567l-7.669-7.669C36.366,28.542,37,26.846,37,25s-0.634-3.542-1.688-4.897l9.665-9.665
+                C46.042,11.405,47.451,12,49,12c3.309,0,6-2.691,6-6S52.309,0,49,0z M11,9c0-1.103,0.897-2,2-2s2,0.897,2,2s-0.897,2-2,2
+                S11,10.103,11,9z M6,51c-2.206,0-4-1.794-4-4s1.794-4,4-4s4,1.794,4,4S8.206,51,6,51z M33,49c0,2.206-1.794,4-4,4s-4-1.794-4-4
+                s1.794-4,4-4S33,46.794,33,49z M29,31c-3.309,0-6-2.691-6-6s2.691-6,6-6s6,2.691,6,6S32.309,31,29,31z M47,41c0,1.103-0.897,2-2,2
+                s-2-0.897-2-2s0.897-2,2-2S47,39.897,47,41z M49,10c-2.206,0-4-1.794-4-4s1.794-4,4-4s4,1.794,4,4S51.206,10,49,10z"></path></svg></button></div><div class="global-graph-outer"><div class="global-graph-container" data-cfg="{&quot;drag&quot;:true,&quot;zoom&quot;:true,&quot;depth&quot;:-1,&quot;scale&quot;:0.9,&quot;repelForce&quot;:0.5,&quot;centerForce&quot;:0.2,&quot;linkDistance&quot;:30,&quot;fontSize&quot;:0.6,&quot;opacityScale&quot;:1,&quot;showTags&quot;:true,&quot;removeTags&quot;:[],&quot;focusOnHover&quot;:true,&quot;enableRadial&quot;:true}"></div></div></div><div class="toc desktop-only"><button type="button" class="toc-header" aria-controls="toc-62" aria-expanded="true"><h3>目录</h3><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="fold"><polyline points="6 9 12 15 18 9"></polyline></svg></button><ul id="list-1" class="toc-content overflow"><li class="depth-0"><a href="#unity-并发模型全景从协程到-job-system-的七种机制" data-for="unity-并发模型全景从协程到-job-system-的七种机制">Unity 并发模型全景：从协程到 Job System 的七种机制</a></li><li class="depth-1"><a href="#主线脉络" data-for="主线脉络">主线脉络</a></li><li class="depth-1"><a href="#关键节点" data-for="关键节点">关键节点</a></li><li class="depth-2"><a href="#节点-1coroutine协程" data-for="节点-1coroutine协程">节点 1：Coroutine（协程）</a></li><li class="depth-2"><a href="#节点-2thread-与-threadpool线程与线程池" data-for="节点-2thread-与-threadpool线程与线程池">节点 2：Thread 与 ThreadPool（线程与线程池）</a></li><li class="depth-2"><a href="#节点-3asyncawait-与-task" data-for="节点-3asyncawait-与-task">节点 3：async/await 与 Task</a></li><li class="depth-2"><a href="#节点-4unitask社区方案事实标准" data-for="节点-4unitask社区方案事实标准">节点 4：UniTask（社区方案，事实标准）</a></li><li class="depth-2"><a href="#节点-5awaitableunity-6-起" data-for="节点-5awaitableunity-6-起">节点 5：Awaitable（Unity 6 起）</a></li><li class="depth-2"><a href="#节点-6job-system" data-for="节点-6job-system">节点 6：Job System</a></li><li class="depth-2"><a href="#节点-7ecs-并行systems--jobs" data-for="节点-7ecs-并行systems--jobs">节点 7：ECS 并行（Systems + Jobs）</a></li><li class="depth-1"><a href="#横向连接" data-for="横向连接">横向连接</a></li><li class="depth-2"><a href="#连接-1awaitable-是-coroutine-与-job-system-之间的胶水" data-for="连接-1awaitable-是-coroutine-与-job-system-之间的胶水">连接 1：Awaitable 是 Coroutine 与 Job System 之间的”胶水”</a></li><li class="depth-2"><a href="#连接-2切线程在-unity-里有三种完全不同的含义" data-for="连接-2切线程在-unity-里有三种完全不同的含义">连接 2：“切线程”在 Unity 里有三种完全不同的含义</a></li><li class="depth-2"><a href="#连接-3生命周期管理是asyncawait-比-coroutine-优秀的反面" data-for="连接-3生命周期管理是asyncawait-比-coroutine-优秀的反面">连接 3：生命周期管理是”async/await 比 Coroutine 优秀”的反面</a></li><li class="depth-2"><a href="#连接-4何时升级-coroutine--awaitableunitask" data-for="连接-4何时升级-coroutine--awaitableunitask">连接 4：何时升级 Coroutine → Awaitable/UniTask</a></li><li class="depth-2"><a href="#连接-5七种机制的线程亲和性决定数据传输方式" data-for="连接-5七种机制的线程亲和性决定数据传输方式">连接 5：七种机制的”线程亲和性”决定数据传输方式</a></li><li class="depth-2"><a href="#连接-6threadpool-与-job-system-worker-是两套独立线程池" data-for="连接-6threadpool-与-job-system-worker-是两套独立线程池">连接 6：ThreadPool 与 Job System Worker 是两套独立线程池</a></li><li class="depth-1"><a href="#全景对比表" data-for="全景对比表">全景对比表</a></li><li class="depth-1"><a href="#选择决策框架" data-for="选择决策框架">选择决策框架</a></li><li class="depth-1"><a href="#混合模式" data-for="混合模式">混合模式</a></li><li class="depth-2"><a href="#模式-1awaitable-调度--job-system-计算" data-for="模式-1awaitable-调度--job-system-计算">模式 1：Awaitable 调度 + Job System 计算</a></li><li class="depth-2"><a href="#模式-2unitask-组合--job-system-批处理" data-for="模式-2unitask-组合--job-system-批处理">模式 2：UniTask 组合 + Job System 批处理</a></li><li class="depth-2"><a href="#模式-3后台线程预处理--job-system-并行--主线程应用" data-for="模式-3后台线程预处理--job-system-并行--主线程应用">模式 3：后台线程预处理 + Job System 并行 + 主线程应用</a></li><li class="depth-2"><a href="#模式-4ecs-system--外部-async-触发" data-for="模式-4ecs-system--外部-async-触发">模式 4：ECS System + 外部 async 触发</a></li><li class="depth-1"><a href="#线程安全原语" data-for="线程安全原语">线程安全原语</a></li><li class="depth-2"><a href="#net-托管层原语" data-for="net-托管层原语">.NET 托管层原语</a></li><li class="depth-2"><a href="#unity-native-层原语" data-for="unity-native-层原语">Unity Native 层原语</a></li><li class="depth-2"><a href="#何时用哪个" data-for="何时用哪个">何时用哪个</a></li><li class="depth-2"><a href="#manualresetevent--manualreseteventslim线程间信号通信" data-for="manualresetevent--manualreseteventslim线程间信号通信">ManualResetEvent / ManualResetEventSlim：线程间信号通信</a></li><li class="depth-2"><a href="#任务队列模式loopthread--manualresetevent" data-for="任务队列模式loopthread--manualresetevent">任务队列模式（LoopThread + ManualResetEvent）</a></li><li class="depth-2"><a href="#unity-并发模型演进时间线" data-for="unity-并发模型演进时间线">Unity 并发模型演进时间线</a></li><li class="depth-1"><a href="#反模式" data-for="反模式">反模式</a></li><li class="depth-1"><a href="#结论与权衡" data-for="结论与权衡">结论与权衡</a></li><li class="depth-1"><a href="#后续缺口" data-for="后续缺口">后续缺口</a></li><li class="depth-1"><a href="#相关" data-for="相关">相关</a></li><li class="overflow-end"></li></ul></div><div class="backlinks"><h3>反向链接</h3><ul id="list-2" class="overflow"><li><a href="../csharp-dotnet-CSharp与NET/async-await-internals-异步机制" class="internal">async-await-internals-异步机制</a></li><li><a href="../csharp-dotnet-CSharp与NET/async-await-task-异步与Task" class="internal">async-await-task-异步与Task</a></li><li><a href="../csharp-dotnet-CSharp与NET/dispose-pattern-释放模式" class="internal">dispose-pattern-释放模式</a></li><li><a href="../csharp-dotnet-CSharp与NET/linq-查询与延迟" class="internal">linq-查询与延迟</a></li><li><a href="../" class="internal">index</a></li><li><a href="../patterns-设计模式/behavioral-patterns-行为型" class="internal">behavioral-patterns-行为型</a></li><li><a href="../patterns-设计模式/design-patterns-设计模式" class="internal">design-patterns-设计模式</a></li><li><a href="../patterns-设计模式/flyweight-pattern-享元" class="internal">flyweight-pattern-享元</a></li><li><a href="../performance-性能优化/job-dependencies-作业依赖" class="internal">job-dependencies-作业依赖</a></li><li><a href="../performance-性能优化/job-system-作业系统" class="internal">job-system-作业系统</a></li><li><a href="../performance-性能优化/native-container-Native容器" class="internal">native-container-Native容器</a></li><li><a href="../performance-性能优化/unitask-deep-dive-深入" class="internal">unitask-deep-dive-深入</a></li><li><a href="../sources-来源摘要/2026-05-16-burst-compiler-overview" class="internal">2026-05-16-burst-compiler-overview</a></li><li><a href="../unity-Unity引擎/awaitable-Unity异步类型" class="internal">awaitable-Unity异步类型</a></li><li><a href="../unity-Unity引擎/coroutine-协程" class="internal">coroutine-协程</a></li><li><a href="../unity-Unity引擎/player-loop-主循环" class="internal">player-loop-主循环</a></li><li><a href="../unity-Unity引擎/spine-async-loading-Spine异步加载" class="internal">spine-async-loading-Spine异步加载</a></li><li><a href="../unity-Unity引擎/ugui-network-image-comparison-UGUI网络图片对比" class="internal">ugui-network-image-comparison-UGUI网络图片对比</a></li><li class="overflow-end"></li></ul></div></div><footer class><p>Created with <a href="https://quartz.jzhao.xyz/">Quartz v4.5.2</a> © 2026</p><ul><li><a href="https://github.com/jackyzha0/quartz">GitHub</a></li><li><a href="https://discord.gg/cRFFHYye7t">Discord Community</a></li></ul></footer></div></div></body><script type="application/javascript" data-persist="true">function n(){let t=this.parentElement;t.classList.toggle("is-collapsed");let e=t.getElementsByClassName("callout-content")[0];if(!e)return;let l=t.classList.contains("is-collapsed");e.style.gridTemplateRows=l?"0fr":"1fr"}function c(){let t=document.getElementsByClassName("callout is-collapsible");for(let e of t){let l=e.getElementsByClassName("callout-title")[0],s=e.getElementsByClassName("callout-content")[0];if(!l||!s)continue;l.addEventListener("click",n),window.addCleanup(()=>l.removeEventListener("click",n));let o=e.classList.contains("is-collapsed");s.style.gridTemplateRows=o?"0fr":"1fr"}}document.addEventListener("nav",c);
+</script><script type="module" data-persist="true">function E(c,e){if(!c)return;function t(s){s.target===this&&(s.preventDefault(),s.stopPropagation(),e())}function r(s){s.key.startsWith("Esc")&&(s.preventDefault(),e())}c?.addEventListener("click",t),window.addCleanup(()=>c?.removeEventListener("click",t)),document.addEventListener("keydown",r),window.addCleanup(()=>document.removeEventListener("keydown",r))}function y(c){for(;c.firstChild;)c.removeChild(c.firstChild)}var v=class{constructor(e,t){this.container=e;this.content=t;this.setupEventListeners(),this.setupNavigationControls(),this.resetTransform()}isDragging=!1;startPan={x:0,y:0};currentPan={x:0,y:0};scale=1;MIN_SCALE=.5;MAX_SCALE=3;cleanups=[];setupEventListeners(){let e=this.onMouseDown.bind(this),t=this.onMouseMove.bind(this),r=this.onMouseUp.bind(this),s=this.onTouchStart.bind(this),o=this.onTouchMove.bind(this),i=this.onTouchEnd.bind(this),n=this.resetTransform.bind(this);this.container.addEventListener("mousedown",e),document.addEventListener("mousemove",t),document.addEventListener("mouseup",r),this.container.addEventListener("touchstart",s,{passive:!1}),document.addEventListener("touchmove",o,{passive:!1}),document.addEventListener("touchend",i),window.addEventListener("resize",n),this.cleanups.push(()=>this.container.removeEventListener("mousedown",e),()=>document.removeEventListener("mousemove",t),()=>document.removeEventListener("mouseup",r),()=>this.container.removeEventListener("touchstart",s),()=>document.removeEventListener("touchmove",o),()=>document.removeEventListener("touchend",i),()=>window.removeEventListener("resize",n))}cleanup(){for(let e of this.cleanups)e()}setupNavigationControls(){let e=document.createElement("div");e.className="mermaid-controls";let t=this.createButton("+",()=>this.zoom(.1)),r=this.createButton("-",()=>this.zoom(-.1)),s=this.createButton("Reset",()=>this.resetTransform());e.appendChild(r),e.appendChild(s),e.appendChild(t),this.container.appendChild(e)}createButton(e,t){let r=document.createElement("button");return r.textContent=e,r.className="mermaid-control-button",r.addEventListener("click",t),window.addCleanup(()=>r.removeEventListener("click",t)),r}onMouseDown(e){e.button===0&&(this.isDragging=!0,this.startPan={x:e.clientX-this.currentPan.x,y:e.clientY-this.currentPan.y},this.container.style.cursor="grabbing")}onMouseMove(e){this.isDragging&&(e.preventDefault(),this.currentPan={x:e.clientX-this.startPan.x,y:e.clientY-this.startPan.y},this.updateTransform())}onMouseUp(){this.isDragging=!1,this.container.style.cursor="grab"}onTouchStart(e){if(e.touches.length!==1)return;this.isDragging=!0;let t=e.touches[0];this.startPan={x:t.clientX-this.currentPan.x,y:t.clientY-this.currentPan.y}}onTouchMove(e){if(!this.isDragging||e.touches.length!==1)return;e.preventDefault();let t=e.touches[0];this.currentPan={x:t.clientX-this.startPan.x,y:t.clientY-this.startPan.y},this.updateTransform()}onTouchEnd(){this.isDragging=!1}zoom(e){let t=Math.min(Math.max(this.scale+e,this.MIN_SCALE),this.MAX_SCALE),r=this.content.getBoundingClientRect(),s=r.width/2,o=r.height/2,i=t-this.scale;this.currentPan.x-=s*i,this.currentPan.y-=o*i,this.scale=t,this.updateTransform()}updateTransform(){this.content.style.transform=`translate(${this.currentPan.x}px, ${this.currentPan.y}px) scale(${this.scale})`}resetTransform(){let t=this.content.querySelector("svg").getBoundingClientRect(),r=t.width/this.scale,s=t.height/this.scale;this.scale=1,this.currentPan={x:(this.container.clientWidth-r)/2,y:(this.container.clientHeight-s)/2},this.updateTransform()}},T=["--secondary","--tertiary","--gray","--light","--lightgray","--highlight","--dark","--darkgray","--codeFont"],L;document.addEventListener("nav",async()=>{let e=document.querySelector(".center").querySelectorAll("code.mermaid");if(e.length===0)return;L||=await import("https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.4.0/mermaid.esm.min.mjs");let t=L.default,r=new WeakMap;for(let o of e){let i=o.getAttribute("data-clipboard"),n=o.innerText;if(i)try{n=JSON.parse(i)}catch{}r.set(o,n)}async function s(){for(let n of e){n.removeAttribute("data-processed");let a=r.get(n);a&&(n.textContent=a)}let o=T.reduce((n,a)=>(n[a]=window.getComputedStyle(document.documentElement).getPropertyValue(a),n),{}),i=document.documentElement.getAttribute("saved-theme")==="dark";t.initialize({startOnLoad:!1,securityLevel:"loose",theme:i?"dark":"base",themeVariables:{fontFamily:o["--codeFont"],primaryColor:o["--light"],primaryTextColor:o["--darkgray"],primaryBorderColor:o["--tertiary"],lineColor:o["--darkgray"],secondaryColor:o["--secondary"],tertiaryColor:o["--tertiary"],clusterBkg:o["--light"],edgeLabelBackground:o["--highlight"]}});for(let n=0;n<e.length;n++){let a=e[n],l=r.get(a);if(l)try{let u=`mermaid-svg-${Date.now()}-${n}`,{svg:p,bindFunctions:d}=await t.render(u,l);a.innerHTML=p,d&&d(a),a.setAttribute("data-processed","true")}catch(u){console.error(`mermaid render failed for node ${n}:`,u)}}}await s(),document.addEventListener("themechange",s),window.addCleanup(()=>document.removeEventListener("themechange",s));for(let o=0;o<e.length;o++){let g=function(){let f=d.querySelector("#mermaid-space"),m=d.querySelector(".mermaid-content");if(!m)return;y(m);let w=i.querySelector("svg").cloneNode(!0);m.appendChild(w),d.classList.add("active"),f.style.cursor="grab",h=new v(f,m)},M=function(){d.classList.remove("active"),h?.cleanup(),h=null},i=e[o],n=i.parentElement,a=n.querySelector(".clipboard-button"),l=n.querySelector(".expand-button"),u=window.getComputedStyle(a),p=a.offsetWidth+parseFloat(u.marginLeft||"0")+parseFloat(u.marginRight||"0");l.style.right=`calc(${p}px + 0.3rem)`,n.prepend(l);let d=n.querySelector("#mermaid-container");if(!d)return;let h=null;l.addEventListener("click",g),E(d,M),window.addCleanup(()=>{h?.cleanup(),l.removeEventListener("click",g)})}});
+</script><script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/copy-tex.min.js" type="application/javascript" data-persist="true"></script><script src="../postscript.js" type="module" data-persist="true"></script></html>

@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr"><head><title>framework-self-design-guide-v2-中层决策</title><meta charset="utf-8"/><link rel="preconnect" href="https://fonts.googleapis.com"/><link rel="preconnect" href="https://fonts.gstatic.com"/><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted Grotesk:wght@400;700&amp;family=Source Sans Pro:ital,wght@0,400;0,600;1,400;1,600&amp;family=IBM Plex Mono:wght@400;600&amp;display=swap"/><link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin="anonymous"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><meta name="og:site_name" content="Unity / C# / .NET 游戏开发知识库"/><meta property="og:title" content="framework-self-design-guide-v2-中层决策"/><meta property="og:type" content="website"/><meta name="twitter:card" content="summary_large_image"/><meta name="twitter:title" content="framework-self-design-guide-v2-中层决策"/><meta name="twitter:description" content="自研框架架构决策指南 v2（中层决策） 本页定位 接续 v1 底层决策——v1 决定了范式/热更/平台/异步/模块组织/程序集分层，v2 在这些底层之上决定 4 个中层子系统的设计选项。 v1 是骨架，v2 是骨架上挂的器官：事件系统、启动流程、对象池、帧驱动。每个都依赖 v1 的某个底层决策——v1 选什么，v2 的选项就被收窄了。 阅读前提 必须先完成 v1 的 5 个底层决策。如果 v1 没填，v2 的判断标准用不上。 决策依赖图 v1 决策 0（范式） ─→ 决策 6（事件系统）+ 决策 9（帧驱动） v1 决策 1（热更） ─→ 决策 7（启动流程）+ 决策 9（帧驱动） v1 决策..."/><meta property="og:description" content="自研框架架构决策指南 v2（中层决策） 本页定位 接续 v1 底层决策——v1 决定了范式/热更/平台/异步/模块组织/程序集分层，v2 在这些底层之上决定 4 个中层子系统的设计选项。 v1 是骨架，v2 是骨架上挂的器官：事件系统、启动流程、对象池、帧驱动。每个都依赖 v1 的某个底层决策——v1 选什么，v2 的选项就被收窄了。 阅读前提 必须先完成 v1 的 5 个底层决策。如果 v1 没填，v2 的判断标准用不上。 决策依赖图 v1 决策 0（范式） ─→ 决策 6（事件系统）+ 决策 9（帧驱动） v1 决策 1（热更） ─→ 决策 7（启动流程）+ 决策 9（帧驱动） v1 决策..."/><meta property="og:image:alt" content="自研框架架构决策指南 v2（中层决策） 本页定位 接续 v1 底层决策——v1 决定了范式/热更/平台/异步/模块组织/程序集分层，v2 在这些底层之上决定 4 个中层子系统的设计选项。 v1 是骨架，v2 是骨架上挂的器官：事件系统、启动流程、对象池、帧驱动。每个都依赖 v1 的某个底层决策——v1 选什么，v2 的选项就被收窄了。 阅读前提 必须先完成 v1 的 5 个底层决策。如果 v1 没填，v2 的判断标准用不上。 决策依赖图 v1 决策 0（范式） ─→ 决策 6（事件系统）+ 决策 9（帧驱动） v1 决策 1（热更） ─→ 决策 7（启动流程）+ 决策 9（帧驱动） v1 决策..."/><meta property="twitter:domain" content="easilyid.github.io/knowledge-base-site"/><meta property="og:url" content="https://easilyid.github.io/knowledge-base-site/tools-工具与工作流/framework-self-design-guide-v2-中层决策"/><meta property="twitter:url" content="https://easilyid.github.io/knowledge-base-site/tools-工具与工作流/framework-self-design-guide-v2-中层决策"/><link rel="icon" href="../static/icon.png"/><meta name="description" content="自研框架架构决策指南 v2（中层决策） 本页定位 接续 v1 底层决策——v1 决定了范式/热更/平台/异步/模块组织/程序集分层，v2 在这些底层之上决定 4 个中层子系统的设计选项。 v1 是骨架，v2 是骨架上挂的器官：事件系统、启动流程、对象池、帧驱动。每个都依赖 v1 的某个底层决策——v1 选什么，v2 的选项就被收窄了。 阅读前提 必须先完成 v1 的 5 个底层决策。如果 v1 没填，v2 的判断标准用不上。 决策依赖图 v1 决策 0（范式） ─→ 决策 6（事件系统）+ 决策 9（帧驱动） v1 决策 1（热更） ─→ 决策 7（启动流程）+ 决策 9（帧驱动） v1 决策..."/><meta name="generator" content="Quartz"/><link href="../index.css" rel="stylesheet" type="text/css" data-persist="true"/><style>.expand-button {
+  position: absolute;
+  display: flex;
+  float: right;
+  padding: 0.4rem;
+  margin: 0.3rem;
+  right: 0;
+  color: var(--gray);
+  border-color: var(--dark);
+  background-color: var(--light);
+  border: 1px solid;
+  border-radius: 5px;
+  opacity: 0;
+  transition: 0.2s;
+}
+.expand-button > svg {
+  fill: var(--light);
+  filter: contrast(0.3);
+}
+.expand-button:hover {
+  cursor: pointer;
+  border-color: var(--secondary);
+}
+.expand-button:focus {
+  outline: 0;
+}
+
+pre:hover > .expand-button {
+  opacity: 1;
+  transition: 0.2s;
+}
+
+#mermaid-container {
+  position: fixed;
+  contain: layout;
+  z-index: 999;
+  left: 0;
+  top: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  display: none;
+  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.5);
+}
+#mermaid-container.active {
+  display: inline-block;
+}
+#mermaid-container > #mermaid-space {
+  border: 1px solid var(--lightgray);
+  background-color: var(--light);
+  border-radius: 5px;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  height: 80vh;
+  width: 80vw;
+  overflow: hidden;
+}
+#mermaid-container > #mermaid-space > .mermaid-content {
+  position: relative;
+  transform-origin: 0 0;
+  transition: transform 0.1s ease;
+  overflow: visible;
+  min-height: 200px;
+  min-width: 200px;
+}
+#mermaid-container > #mermaid-space > .mermaid-content pre {
+  margin: 0;
+  border: none;
+}
+#mermaid-container > #mermaid-space > .mermaid-content svg {
+  max-width: none;
+  height: auto;
+}
+#mermaid-container > #mermaid-space > .mermaid-controls {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+  background: var(--light);
+  border: 1px solid var(--lightgray);
+  border-radius: 6px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  z-index: 2;
+}
+#mermaid-container > #mermaid-space > .mermaid-controls .mermaid-control-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--lightgray);
+  background: var(--light);
+  color: var(--dark);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  font-family: var(--bodyFont);
+  transition: all 0.2s ease;
+}
+#mermaid-container > #mermaid-space > .mermaid-controls .mermaid-control-button:hover {
+  background: var(--lightgray);
+}
+#mermaid-container > #mermaid-space > .mermaid-controls .mermaid-control-button:active {
+  transform: translateY(1px);
+}
+#mermaid-container > #mermaid-space > .mermaid-controls .mermaid-control-button:nth-child(2) {
+  width: auto;
+  padding: 0 12px;
+  font-size: 14px;
+}
+/*# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VSb290IjoiL2hvbWUvcnVubmVyL3dvcmsvS25vd2xlZGdlLUJhc2UvS25vd2xlZGdlLUJhc2UvcXVhcnR6L3F1YXJ0ei9jb21wb25lbnRzL3N0eWxlcyIsInNvdXJjZXMiOlsibWVybWFpZC5pbmxpbmUuc2NzcyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiQUFBQTtFQUNFO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBOztBQUVBO0VBQ0U7RUFDQTs7QUFHRjtFQUNFO0VBQ0E7O0FBR0Y7RUFDRTs7O0FBS0Y7RUFDRTtFQUNBOzs7QUFJSjtFQUNFO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7O0FBRUE7RUFDRTs7QUFHRjtFQUNFO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBOztBQUVBO0VBQ0U7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBOztBQUVBO0VBQ0U7RUFDQTs7QUFHRjtFQUNFO0VBQ0E7O0FBSUo7RUFDRTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBOztBQUVBO0VBQ0U7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTs7QUFFQTtFQUNFOztBQUdGO0VBQ0U7O0FBSUY7RUFDRTtFQUNBO0VBQ0EiLCJzb3VyY2VzQ29udGVudCI6WyIuZXhwYW5kLWJ1dHRvbiB7XG4gIHBvc2l0aW9uOiBhYnNvbHV0ZTtcbiAgZGlzcGxheTogZmxleDtcbiAgZmxvYXQ6IHJpZ2h0O1xuICBwYWRkaW5nOiAwLjRyZW07XG4gIG1hcmdpbjogMC4zcmVtO1xuICByaWdodDogMDsgLy8gTk9URTogcmlnaHQgd2lsbCBiZSBzZXQgaW4gbWVybWFpZC5pbmxpbmUudHNcbiAgY29sb3I6IHZhcigtLWdyYXkpO1xuICBib3JkZXItY29sb3I6IHZhcigtLWRhcmspO1xuICBiYWNrZ3JvdW5kLWNvbG9yOiB2YXIoLS1saWdodCk7XG4gIGJvcmRlcjogMXB4IHNvbGlkO1xuICBib3JkZXItcmFkaXVzOiA1cHg7XG4gIG9wYWNpdHk6IDA7XG4gIHRyYW5zaXRpb246IDAuMnM7XG5cbiAgJiA+IHN2ZyB7XG4gICAgZmlsbDogdmFyKC0tbGlnaHQpO1xuICAgIGZpbHRlcjogY29udHJhc3QoMC4zKTtcbiAgfVxuXG4gICY6aG92ZXIge1xuICAgIGN1cnNvcjogcG9pbnRlcjtcbiAgICBib3JkZXItY29sb3I6IHZhcigtLXNlY29uZGFyeSk7XG4gIH1cblxuICAmOmZvY3VzIHtcbiAgICBvdXRsaW5lOiAwO1xuICB9XG59XG5cbnByZSB7XG4gICY6aG92ZXIgPiAuZXhwYW5kLWJ1dHRvbiB7XG4gICAgb3BhY2l0eTogMTtcbiAgICB0cmFuc2l0aW9uOiAwLjJzO1xuICB9XG59XG5cbiNtZXJtYWlkLWNvbnRhaW5lciB7XG4gIHBvc2l0aW9uOiBmaXhlZDtcbiAgY29udGFpbjogbGF5b3V0O1xuICB6LWluZGV4OiA5OTk7XG4gIGxlZnQ6IDA7XG4gIHRvcDogMDtcbiAgd2lkdGg6IDEwMHZ3O1xuICBoZWlnaHQ6IDEwMHZoO1xuICBvdmVyZmxvdzogaGlkZGVuO1xuICBkaXNwbGF5OiBub25lO1xuICBiYWNrZHJvcC1maWx0ZXI6IGJsdXIoNHB4KTtcbiAgYmFja2dyb3VuZDogcmdiYSgwLCAwLCAwLCAwLjUpO1xuXG4gICYuYWN0aXZlIHtcbiAgICBkaXNwbGF5OiBpbmxpbmUtYmxvY2s7XG4gIH1cblxuICAmID4gI21lcm1haWQtc3BhY2Uge1xuICAgIGJvcmRlcjogMXB4IHNvbGlkIHZhcigtLWxpZ2h0Z3JheSk7XG4gICAgYmFja2dyb3VuZC1jb2xvcjogdmFyKC0tbGlnaHQpO1xuICAgIGJvcmRlci1yYWRpdXM6IDVweDtcbiAgICBwb3NpdGlvbjogZml4ZWQ7XG4gICAgdG9wOiA1MCU7XG4gICAgbGVmdDogNTAlO1xuICAgIHRyYW5zZm9ybTogdHJhbnNsYXRlKC01MCUsIC01MCUpO1xuICAgIGhlaWdodDogODB2aDtcbiAgICB3aWR0aDogODB2dztcbiAgICBvdmVyZmxvdzogaGlkZGVuO1xuXG4gICAgJiA+IC5tZXJtYWlkLWNvbnRlbnQge1xuICAgICAgcG9zaXRpb246IHJlbGF0aXZlO1xuICAgICAgdHJhbnNmb3JtLW9yaWdpbjogMCAwO1xuICAgICAgdHJhbnNpdGlvbjogdHJhbnNmb3JtIDAuMXMgZWFzZTtcbiAgICAgIG92ZXJmbG93OiB2aXNpYmxlO1xuICAgICAgbWluLWhlaWdodDogMjAwcHg7XG4gICAgICBtaW4td2lkdGg6IDIwMHB4O1xuXG4gICAgICBwcmUge1xuICAgICAgICBtYXJnaW46IDA7XG4gICAgICAgIGJvcmRlcjogbm9uZTtcbiAgICAgIH1cblxuICAgICAgc3ZnIHtcbiAgICAgICAgbWF4LXdpZHRoOiBub25lO1xuICAgICAgICBoZWlnaHQ6IGF1dG87XG4gICAgICB9XG4gICAgfVxuXG4gICAgJiA+IC5tZXJtYWlkLWNvbnRyb2xzIHtcbiAgICAgIHBvc2l0aW9uOiBhYnNvbHV0ZTtcbiAgICAgIGJvdHRvbTogMjBweDtcbiAgICAgIHJpZ2h0OiAyMHB4O1xuICAgICAgZGlzcGxheTogZmxleDtcbiAgICAgIGdhcDogOHB4O1xuICAgICAgcGFkZGluZzogOHB4O1xuICAgICAgYmFja2dyb3VuZDogdmFyKC0tbGlnaHQpO1xuICAgICAgYm9yZGVyOiAxcHggc29saWQgdmFyKC0tbGlnaHRncmF5KTtcbiAgICAgIGJvcmRlci1yYWRpdXM6IDZweDtcbiAgICAgIGJveC1zaGFkb3c6IDAgMnB4IDRweCByZ2JhKDAsIDAsIDAsIDAuMSk7XG4gICAgICB6LWluZGV4OiAyO1xuXG4gICAgICAubWVybWFpZC1jb250cm9sLWJ1dHRvbiB7XG4gICAgICAgIGRpc3BsYXk6IGZsZXg7XG4gICAgICAgIGFsaWduLWl0ZW1zOiBjZW50ZXI7XG4gICAgICAgIGp1c3RpZnktY29udGVudDogY2VudGVyO1xuICAgICAgICB3aWR0aDogMzJweDtcbiAgICAgICAgaGVpZ2h0OiAzMnB4O1xuICAgICAgICBwYWRkaW5nOiAwO1xuICAgICAgICBib3JkZXI6IDFweCBzb2xpZCB2YXIoLS1saWdodGdyYXkpO1xuICAgICAgICBiYWNrZ3JvdW5kOiB2YXIoLS1saWdodCk7XG4gICAgICAgIGNvbG9yOiB2YXIoLS1kYXJrKTtcbiAgICAgICAgYm9yZGVyLXJhZGl1czogNHB4O1xuICAgICAgICBjdXJzb3I6IHBvaW50ZXI7XG4gICAgICAgIGZvbnQtc2l6ZTogMTZweDtcbiAgICAgICAgZm9udC1mYW1pbHk6IHZhcigtLWJvZHlGb250KTtcbiAgICAgICAgdHJhbnNpdGlvbjogYWxsIDAuMnMgZWFzZTtcblxuICAgICAgICAmOmhvdmVyIHtcbiAgICAgICAgICBiYWNrZ3JvdW5kOiB2YXIoLS1saWdodGdyYXkpO1xuICAgICAgICB9XG5cbiAgICAgICAgJjphY3RpdmUge1xuICAgICAgICAgIHRyYW5zZm9ybTogdHJhbnNsYXRlWSgxcHgpO1xuICAgICAgICB9XG5cbiAgICAgICAgLy8gU3R5bGUgdGhlIHJlc2V0IGJ1dHRvbiBkaWZmZXJlbnRseVxuICAgICAgICAmOm50aC1jaGlsZCgyKSB7XG4gICAgICAgICAgd2lkdGg6IGF1dG87XG4gICAgICAgICAgcGFkZGluZzogMCAxMnB4O1xuICAgICAgICAgIGZvbnQtc2l6ZTogMTRweDtcbiAgICAgICAgfVxuICAgICAgfVxuICAgIH1cbiAgfVxufVxuIl19 */</style><link href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" rel="stylesheet" type="text/css" data-persist="true"/><script src="../prescript.js" type="application/javascript" data-persist="true"></script><script type="application/javascript" data-persist="true">const fetchData = fetch("../static/contentIndex.json").then(data => data.json())</script><link rel="alternate" type="application/rss+xml" title="RSS Feed" href="https://easilyid.github.io/knowledge-base-site/index.xml"/><meta property="og:image:width" content="1200"/><meta property="og:image:height" content="630"/><meta property="og:image" content="https://easilyid.github.io/knowledge-base-site/tools-工具与工作流/framework-self-design-guide-v2-中层决策-og-image.webp"/><meta property="og:image:url" content="https://easilyid.github.io/knowledge-base-site/tools-工具与工作流/framework-self-design-guide-v2-中层决策-og-image.webp"/><meta name="twitter:image" content="https://easilyid.github.io/knowledge-base-site/tools-工具与工作流/framework-self-design-guide-v2-中层决策-og-image.webp"/><meta property="og:image:type" content="image/.webp"/></head><body data-slug="tools-工具与工作流/framework-self-design-guide-v2-中层决策"><div id="quartz-root" class="page"><div id="quartz-body"><div class="left sidebar"><h2 class="page-title"><a href="..">Unity / C# / .NET 游戏开发知识库</a></h2><div class="spacer mobile-only"></div><div class="flex-component" style="flex-direction: row; flex-wrap: nowrap; gap: 1rem;"><div style="flex-grow: 1; flex-shrink: 1; flex-basis: auto; order: 0; align-self: center; justify-self: center;"><div class="search"><button class="search-button"><svg role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 19.9 19.7"><title>Search</title><g class="search-path" fill="none"><path stroke-linecap="square" d="M18.5 18.3l-5.4-5.4"></path><circle cx="8" cy="8" r="7"></circle></g></svg><p>搜索</p></button><div class="search-container"><div class="search-space"><input autocomplete="off" class="search-bar" name="search" type="text" aria-label="搜索些什么" placeholder="搜索些什么"/><div class="search-layout" data-preview="true"></div></div></div></div></div><div style="flex-grow: 0; flex-shrink: 1; flex-basis: auto; order: 0; align-self: center; justify-self: center;"><button class="darkmode"><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" class="dayIcon" x="0px" y="0px" viewBox="0 0 35 35" style="enable-background:new 0 0 35 35" xml:space="preserve" aria-label="暗色模式"><title>暗色模式</title><path d="M6,17.5C6,16.672,5.328,16,4.5,16h-3C0.672,16,0,16.672,0,17.5    S0.672,19,1.5,19h3C5.328,19,6,18.328,6,17.5z M7.5,26c-0.414,0-0.789,0.168-1.061,0.439l-2,2C4.168,28.711,4,29.086,4,29.5    C4,30.328,4.671,31,5.5,31c0.414,0,0.789-0.168,1.06-0.44l2-2C8.832,28.289,9,27.914,9,27.5C9,26.672,8.329,26,7.5,26z M17.5,6    C18.329,6,19,5.328,19,4.5v-3C19,0.672,18.329,0,17.5,0S16,0.672,16,1.5v3C16,5.328,16.671,6,17.5,6z M27.5,9    c0.414,0,0.789-0.168,1.06-0.439l2-2C30.832,6.289,31,5.914,31,5.5C31,4.672,30.329,4,29.5,4c-0.414,0-0.789,0.168-1.061,0.44    l-2,2C26.168,6.711,26,7.086,26,7.5C26,8.328,26.671,9,27.5,9z M6.439,8.561C6.711,8.832,7.086,9,7.5,9C8.328,9,9,8.328,9,7.5    c0-0.414-0.168-0.789-0.439-1.061l-2-2C6.289,4.168,5.914,4,5.5,4C4.672,4,4,4.672,4,5.5c0,0.414,0.168,0.789,0.439,1.06    L6.439,8.561z M33.5,16h-3c-0.828,0-1.5,0.672-1.5,1.5s0.672,1.5,1.5,1.5h3c0.828,0,1.5-0.672,1.5-1.5S34.328,16,33.5,16z     M28.561,26.439C28.289,26.168,27.914,26,27.5,26c-0.828,0-1.5,0.672-1.5,1.5c0,0.414,0.168,0.789,0.439,1.06l2,2    C28.711,30.832,29.086,31,29.5,31c0.828,0,1.5-0.672,1.5-1.5c0-0.414-0.168-0.789-0.439-1.061L28.561,26.439z M17.5,29    c-0.829,0-1.5,0.672-1.5,1.5v3c0,0.828,0.671,1.5,1.5,1.5s1.5-0.672,1.5-1.5v-3C19,29.672,18.329,29,17.5,29z M17.5,7    C11.71,7,7,11.71,7,17.5S11.71,28,17.5,28S28,23.29,28,17.5S23.29,7,17.5,7z M17.5,25c-4.136,0-7.5-3.364-7.5-7.5    c0-4.136,3.364-7.5,7.5-7.5c4.136,0,7.5,3.364,7.5,7.5C25,21.636,21.636,25,17.5,25z"></path></svg><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" class="nightIcon" x="0px" y="0px" viewBox="0 0 100 100" style="enable-background:new 0 0 100 100" xml:space="preserve" aria-label="亮色模式"><title>亮色模式</title><path d="M96.76,66.458c-0.853-0.852-2.15-1.064-3.23-0.534c-6.063,2.991-12.858,4.571-19.655,4.571  C62.022,70.495,50.88,65.88,42.5,57.5C29.043,44.043,25.658,23.536,34.076,6.47c0.532-1.08,0.318-2.379-0.534-3.23  c-0.851-0.852-2.15-1.064-3.23-0.534c-4.918,2.427-9.375,5.619-13.246,9.491c-9.447,9.447-14.65,22.008-14.65,35.369  c0,13.36,5.203,25.921,14.65,35.368s22.008,14.65,35.368,14.65c13.361,0,25.921-5.203,35.369-14.65  c3.872-3.871,7.064-8.328,9.491-13.246C97.826,68.608,97.611,67.309,96.76,66.458z"></path></svg></button></div><div style="flex-grow: 0; flex-shrink: 1; flex-basis: auto; order: 0; align-self: center; justify-self: center;"><button class="readermode"><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" class="readerIcon" fill="currentColor" stroke="currentColor" stroke-width="0.2" stroke-linecap="round" stroke-linejoin="round" width="64px" height="64px" viewBox="0 0 24 24" aria-label="阅读模式"><title>阅读模式</title><g transform="translate(-1.8, -1.8) scale(1.15, 1.2)"><path d="M8.9891247,2.5 C10.1384702,2.5 11.2209868,2.96705384 12.0049645,3.76669482 C12.7883914,2.96705384 13.8709081,2.5 15.0202536,2.5 L18.7549359,2.5 C19.1691495,2.5 19.5049359,2.83578644 19.5049359,3.25 L19.5046891,4.004 L21.2546891,4.00457396 C21.6343849,4.00457396 21.9481801,4.28672784 21.9978425,4.6528034 L22.0046891,4.75457396 L22.0046891,20.25 C22.0046891,20.6296958 21.7225353,20.943491 21.3564597,20.9931534 L21.2546891,21 L2.75468914,21 C2.37499337,21 2.06119817,20.7178461 2.01153575,20.3517706 L2.00468914,20.25 L2.00468914,4.75457396 C2.00468914,4.37487819 2.28684302,4.061083 2.65291858,4.01142057 L2.75468914,4.00457396 L4.50368914,4.004 L4.50444233,3.25 C4.50444233,2.87030423 4.78659621,2.55650904 5.15267177,2.50684662 L5.25444233,2.5 L8.9891247,2.5 Z M4.50368914,5.504 L3.50468914,5.504 L3.50468914,19.5 L10.9478955,19.4998273 C10.4513189,18.9207296 9.73864328,18.5588115 8.96709342,18.5065584 L8.77307039,18.5 L5.25444233,18.5 C4.87474657,18.5 4.56095137,18.2178461 4.51128895,17.8517706 L4.50444233,17.75 L4.50368914,5.504 Z M19.5049359,17.75 C19.5049359,18.1642136 19.1691495,18.5 18.7549359,18.5 L15.2363079,18.5 C14.3910149,18.5 13.5994408,18.8724714 13.0614828,19.4998273 L20.5046891,19.5 L20.5046891,5.504 L19.5046891,5.504 L19.5049359,17.75 Z M18.0059359,3.999 L15.0202536,4 L14.8259077,4.00692283 C13.9889509,4.06666544 13.2254227,4.50975805 12.7549359,5.212 L12.7549359,17.777 L12.7782651,17.7601316 C13.4923805,17.2719483 14.3447024,17 15.2363079,17 L18.0059359,16.999 L18.0056891,4.798 L18.0033792,4.75457396 L18.0056891,4.71 L18.0059359,3.999 Z M8.9891247,4 L6.00368914,3.999 L6.00599909,4.75457396 L6.00599909,4.75457396 L6.00368914,4.783 L6.00368914,16.999 L8.77307039,17 C9.57551536,17 10.3461406,17.2202781 11.0128313,17.6202194 L11.2536891,17.776 L11.2536891,5.211 C10.8200889,4.56369974 10.1361548,4.13636104 9.37521067,4.02745763 L9.18347055,4.00692283 L8.9891247,4 Z"></path></g></svg></button></div></div><div class="explorer" data-behavior="link" data-collapsed="collapsed" data-savestate="true" data-data-fns="{&quot;order&quot;:[&quot;filter&quot;,&quot;map&quot;,&quot;sort&quot;],&quot;sortFn&quot;:&quot;(a,b)=>!a.isFolder&amp;&amp;!b.isFolder||a.isFolder&amp;&amp;b.isFolder?a.displayName.localeCompare(b.displayName,void 0,{numeric:!0,sensitivity:\&quot;base\&quot;}):!a.isFolder&amp;&amp;b.isFolder?1:-1&quot;,&quot;filterFn&quot;:&quot;node=>node.slugSegment!==\&quot;tags\&quot;&quot;,&quot;mapFn&quot;:&quot;node=>{let override={\&quot;unity-Unity\\u5F15\\u64CE\&quot;:\&quot;Unity\&quot;,\&quot;csharp-dotnet-CSharp\\u4E0ENET\&quot;:\&quot;C#/.NET\&quot;,\&quot;patterns-\\u8BBE\\u8BA1\\u6A21\\u5F0F\&quot;:\&quot;\\u8BBE\\u8BA1\\u6A21\\u5F0F\&quot;,\&quot;performance-\\u6027\\u80FD\\u4F18\\u5316\&quot;:\&quot;\\u6027\\u80FD\&quot;,\&quot;tools-\\u5DE5\\u5177\\u4E0E\\u5DE5\\u4F5C\\u6D41\&quot;:\&quot;\\u5DE5\\u5177\&quot;,\&quot;gamedesign-\\u6E38\\u620F\\u8BBE\\u8BA1\&quot;:\&quot;\\u6E38\\u620F\\u8BBE\\u8BA1\&quot;,\&quot;sources-\\u6765\\u6E90\\u6458\\u8981\&quot;:\&quot;\\u6765\\u6E90\\u6458\\u8981\&quot;}[node.displayName];if(override){node.displayName=override;return}let segments=node.displayName.split(\&quot;-\&quot;),cjkStart=segments.findIndex(segment=>/[一-鿿]/.test(segment));cjkStart>-1&amp;&amp;(node.displayName=segments.slice(cjkStart).join(\&quot;-\&quot;))}&quot;}"><button type="button" class="explorer-toggle mobile-explorer hide-until-loaded" data-mobile="true" aria-controls="explorer-91"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide-menu"><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button><button type="button" class="title-button explorer-toggle desktop-explorer" data-mobile="false" aria-expanded="true"><h2>探索</h2><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="5 8 14 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="fold"><polyline points="6 9 12 15 18 9"></polyline></svg></button><div id="explorer-91" class="explorer-content" aria-expanded="false" role="group"><ul class="explorer-ul overflow" id="list-0"><li class="overflow-end"></li></ul></div><template id="template-file"><li><a href="#"></a></li></template><template id="template-folder"><li><div class="folder-container"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="5 8 14 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="folder-icon"><polyline points="6 9 12 15 18 9"></polyline></svg><div><button class="folder-button"><span class="folder-title"></span></button></div></div><div class="folder-outer"><ul class="content"></ul></div></li></template></div></div><div class="center"><div class="page-header"><div class="popover-hint"><nav class="breadcrumb-container" aria-label="breadcrumbs"><div class="breadcrumb-element"><a href="../">Home</a><p> ❯ </p></div><div class="breadcrumb-element"><a href="../tools-工具与工作流/">工具</a><p> ❯ </p></div><div class="breadcrumb-element"><a href>中层决策</a></div></nav><h1 class="article-title">framework-self-design-guide-v2-中层决策</h1><p show-comma="true" class="content-meta"><time datetime="2026-05-25T00:00:00.000Z">2026年5月25日</time><span>21分钟阅读</span></p></div></div><article class="popover-hint"><h1 id="自研框架架构决策指南-v2中层决策">自研框架架构决策指南 v2（中层决策）<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#自研框架架构决策指南-v2中层决策" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h1>
+<h2 id="本页定位">本页定位<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#本页定位" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<p>接续 <a href="../tools-工具与工作流/framework-self-design-guide-自研框架决策指南" class="internal alias" data-slug="tools-工具与工作流/framework-self-design-guide-自研框架决策指南">v1 底层决策</a>——v1 决定了<strong>范式/热更/平台/异步/模块组织/程序集分层</strong>，v2 在这些底层之上决定 4 个<strong>中层子系统</strong>的设计选项。</p>
+<p><strong>v1 是骨架，v2 是骨架上挂的器官</strong>：事件系统、启动流程、对象池、帧驱动。每个都依赖 v1 的某个底层决策——v1 选什么，v2 的选项就被收窄了。</p>
+<blockquote class="callout tip" data-callout="tip">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>阅读前提 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>必须先完成 v1 的 5 个底层决策。如果 v1 没填，v2 的判断标准用不上。</p>
+</div>
+</blockquote>
+<h2 id="决策依赖图">决策依赖图<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#决策依赖图" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="text" data-theme="github-light github-dark"><code data-language="text" data-theme="github-light github-dark" style="display:grid;"><span data-line><span>v1 决策 0（范式） ─→ 决策 6（事件系统）+ 决策 9（帧驱动）</span></span>
+<span data-line><span>v1 决策 1（热更） ─→ 决策 7（启动流程）+ 决策 9（帧驱动）</span></span>
+<span data-line><span>v1 决策 2（平台） ─→ 决策 8（对象池）</span></span>
+<span data-line><span>v1 决策 4（模块组织） ─→ 决策 6（事件系统）+ 决策 9（帧驱动）</span></span></code></pre></figure>
+<hr/>
+<h2 id="决策-6事件系统">决策 6：事件系统<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#决策-6事件系统" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<h3 id="这是什么问题">这是什么问题<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#这是什么问题" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>模块/实体之间如何通信。决定了业务代码的解耦程度和性能开销。</p>
+<h3 id="选项">选项<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#选项" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th>选项</th><th>实现复杂度</th><th>GC</th><th>类型安全</th><th>适用</th></tr></thead><tbody><tr><td><strong>A. C# event / Action</strong></td><td>极低</td><td>0（已订阅后）</td><td>编译期</td><td>直接通信、紧耦合</td></tr><tr><td><strong>B. Int Key + 委托表</strong></td><td>低</td><td>0</td><td>运行时</td><td>TEngine GameEvent 风格</td></tr><tr><td><strong>C. Source Generator + Int Key</strong></td><td>中</td><td>0</td><td>编译期</td><td>类型安全 + 零开销</td></tr><tr><td><strong>D. struct 事件 + 泛型分发</strong></td><td>中</td><td>0</td><td>编译期</td><td>ET EventSystem 风格</td></tr><tr><td><strong>E. MessagePipe / R3</strong></td><td>中（库本身简单，DI 接入有学习成本）</td><td>0</td><td>编译期</td><td>DI 容器项目</td></tr><tr><td><strong>F. UniRx</strong>（响应式流）</td><td>中</td><td>非 0（链式算子分配 IDisposable + 闭包）</td><td>编译期</td><td>数据流场景，不推荐用作通用事件总线</td></tr></tbody></table></div>
+<blockquote class="callout note" data-callout="note">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>UniRx ≠ 零 GC </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>UniRx 的链式 <code>Where().Select().Subscribe()</code> 每个算子都会分配 IDisposable 包装和闭包。如果想要”零 GC + 响应式”，用 R3（UniRx 续作，by Cysharp）或 MessagePipe。</p>
+</div>
+</blockquote>
+<h3 id="选择标准与-v1-决策强联动">选择标准（与 v1 决策强联动）<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#选择标准与-v1-决策强联动" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th>v1 你选了什么</th><th>决策 6 选什么</th><th>证据</th></tr></thead><tbody><tr><td>决策 0 = OOP + 决策 1 = 热更</td><td><strong>C</strong> Int Key + Source Generator</td><td><a href="../tools-工具与工作流/tengine-game-event-事件系统深度" class="internal alias" data-slug="tools-工具与工作流/tengine-game-event-事件系统深度">tengine-game-event-事件系统深度</a> §零 GC 实现机制</td></tr><tr><td>决策 0 = ECS</td><td><strong>D</strong> struct 事件</td><td><a href="../tools-工具与工作流/et-framework-ET框架" class="internal alias" data-slug="tools-工具与工作流/et-framework-ET框架">et-framework-ET框架</a> §EventSystem 双轨分发</td></tr><tr><td>决策 0 = OOP + 决策 1 = 无热更 + 团队小</td><td><strong>A</strong> C# event</td><td>最简单、最快</td></tr><tr><td>决策 4 = DI 容器（VContainer）</td><td><strong>E</strong> MessagePipe</td><td>DI 同生态</td></tr></tbody></table></div>
+<h3 id="必须避开的设计陷阱来自-tengine-源码-bug">必须避开的设计陷阱（来自 TEngine 源码 bug）<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#必须避开的设计陷阱来自-tengine-源码-bug" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>如果你抄 B 或 C 路线，直接复制 TEngine 的实现会带 3 个生产级缺陷。详见 <a href="../tools-工具与工作流/tengine-game-event-事件系统深度" class="internal alias" data-slug="tools-工具与工作流/tengine-game-event-事件系统深度">tengine-game-event-事件系统深度</a> §优化空间：</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th>缺陷</th><th>自研时的修法</th></tr></thead><tbody><tr><td><strong>无 try-finally</strong>：一个 handler 抛异常 → <code>_isExecute=true</code> 永不复位 → 系统僵死</td><td>dispatch 循环必须 <code>try { ... } finally { CheckModify(); }</code> 包裹</td></tr><tr><td><strong>O(n) Contains 防重复</strong>：每次 AddHandler 线性扫描</td><td>用 <code>HashSet&lt;Delegate></code> 做 O(1) 去重，或只在 Debug 模式检查</td></tr><tr><td><strong>递归 dispatch 无防护</strong>：内层 Send 同一事件会覆盖 <code>_isExecute</code> 状态</td><td>用 <code>int _dispatchDepth</code> 计数器，仅最外层合并 add/delete 列表</td></tr></tbody></table></div>
+<blockquote class="callout warning" data-callout="warning">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>不要为了零 GC 牺牲异常安全 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>“零 GC” 的代价是手写状态管理。手写状态管理的代价是状态恢复必须保证。两者不可兼得就保异常安全——一个 NullRef 导致整个事件系统僵死，影响远大于多几个字节 GC。</p>
+</div>
+</blockquote>
+<h3 id="设计原则提取">设计原则提取<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#设计原则提取" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>无论选哪个，遵守这 3 条（证据见 <a href="../tools-工具与工作流/tengine-game-event-事件系统深度" class="internal alias" data-slug="tools-工具与工作流/tengine-game-event-事件系统深度">tengine-game-event-事件系统深度</a> §重入安全机制）：</p>
+<ol>
+<li><strong>dispatch 期间允许增删订阅，但延迟生效</strong>——三 List 模式（_listExist / _addList / _deleteList）</li>
+<li><strong>handler 异常不能影响其他 handler</strong>——每个 handler 独立 try/catch</li>
+<li><strong>订阅必须有生命周期绑定</strong>——参考 TEngine 的 GameEventMgr，UI 销毁时自动取消所有订阅（详见 <a href="../tools-工具与工作流/tengine-ui-system-UI系统深度" class="internal alias" data-slug="tools-工具与工作流/tengine-ui-system-UI系统深度">tengine-ui-system-UI系统深度</a> §GameEventMgr 生命周期绑定）</li>
+</ol>
+<h3 id="反向视角事件总线不是万能来自-bigcat">反向视角：事件总线不是万能（来自 BigCat）<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#反向视角事件总线不是万能来自-bigcat" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p><a href="../tools-工具与工作流/bigcat-framework-BigCat框架" class="internal alias" data-slug="tools-工具与工作流/bigcat-framework-BigCat框架">bigcat-framework-BigCat框架</a> 作者 wjybxx <strong>明确反对纯事件驱动</strong>，理由值得在做决策 6 时纳入考虑：</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th>反对理由</th><th>解释</th></tr></thead><tbody><tr><td>子节点自加调度队列 → 父节点失控</td><td>Unity 项目尤为严重——监听器满天飞、生命周期脆弱</td></tr><tr><td>事件是跳跃性思维 vs 心跳是顺序思维</td><td>跨 4 跳 callback 的代码无法 Step Through 调试</td></tr><tr><td>错失信号导致状态机僵死</td><td>玩家碰到的很多 bug 都源于此</td></tr><tr><td>”脱离你掌控的代码一定不是好代码”</td><td>异步派发 + 订阅生命周期 + 循环触发让代码失控</td></tr></tbody></table></div>
+<p><strong>给决策 6 的修正</strong>：</p>
+<blockquote class="callout tip" data-callout="tip">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>事件系统应该用在跨模块解耦，不是替代每帧 Update </p></div>
+                  
+                </div>
+<div class="callout-content">
+<ul>
+<li><strong>跨模块通知</strong>（玩家升级 / 网络断开 / 进入战斗）→ 用事件总线 ✓</li>
+<li><strong>同模块时序逻辑</strong>（技能流程 / UI 状态切换 / AI 决策）→ 用心跳 + Context（任务树/状态机/Update）✗ 不用事件</li>
+<li><strong>判断准则</strong>：如果你需要”按顺序读懂这段流程”，就别用事件。事件适合”广播 + 多个独立反应”。</li>
+</ul>
+</div>
+</blockquote>
+<p><a href="../tools-工具与工作流/bigcat-framework-BigCat框架" class="internal alias" data-slug="tools-工具与工作流/bigcat-framework-BigCat框架">bigcat-framework-BigCat框架</a> 的 TaskTree + Context 三件套（Blackboard / CancelToken / SharedProps）就是”心跳为主、事件为辅”的具体落地——可作为决策 6 之外的<strong>第三条路</strong>。</p>
+<hr/>
+<h2 id="决策-7启动流程编排">决策 7：启动流程编排<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#决策-7启动流程编排" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<h3 id="这是什么问题-1">这是什么问题<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#这是什么问题-1" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>从 App 启动到游戏主逻辑跑起来的中间阶段（资源初始化、版本检查、DLL 加载、玩家登录），代码怎么组织。</p>
+<h3 id="选项-1">选项<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#选项-1" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th>选项</th><th>心智模型</th><th>适用</th></tr></thead><tbody><tr><td><strong>A. 纯 FSM（每步一个状态类）</strong></td><td>显式状态机</td><td>需要不可逆操作 + 回退/重试</td></tr><tr><td><strong>B. 纯 async 链</strong></td><td>线性 await</td><td>简单线性流程</td></tr><tr><td><strong>C. FSM 管阶段 + async 管细节</strong></td><td>分层组合</td><td>推荐——兼顾两者优势</td></tr><tr><td><strong>D. ScriptableObject 配置链</strong></td><td>数据驱动</td><td>设计师可改启动顺序</td></tr></tbody></table></div>
+<h3 id="选择标准">选择标准<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#选择标准" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th>你的情况</th><th>选什么</th><th>证据</th></tr></thead><tbody><tr><td>v1 决策 1 = HybridCLR 热更</td><td><strong>C</strong> FSM 管阶段 + async 管细节</td><td><a href="../tools-工具与工作流/tengine-design-decisions-设计决策分析" class="internal alias" data-slug="tools-工具与工作流/tengine-design-decisions-设计决策分析">tengine-design-decisions-设计决策分析</a> §FSM 启动 vs Async Pipeline</td></tr><tr><td>启动有不可逆步骤（如加载 DLL）</td><td><strong>A</strong> 或 <strong>C</strong></td><td>同上</td></tr><tr><td>启动有可并行步骤（音频/网络/资源系统）</td><td><strong>B</strong> 或 <strong>C</strong>（用 <code>UniTask.WhenAll</code>）</td><td><a href="../tools-工具与工作流/tengine-pool-procedure-池化与启动深度" class="internal alias" data-slug="tools-工具与工作流/tengine-pool-procedure-池化与启动深度">tengine-pool-procedure-池化与启动深度</a> §Async 替代方案示例</td></tr><tr><td>启动需要重试（下载失败重新下）</td><td><strong>A</strong> 或 <strong>C</strong></td><td>FSM 可 <code>ChangeState&lt;DownloadState>()</code></td></tr><tr><td>启动需要 Inspector 可视化当前状态</td><td><strong>A</strong> 或 <strong>C</strong></td><td>FSM 状态可序列化</td></tr></tbody></table></div>
+<h3 id="fsm-启动的标准链参考-tengine-12-步">FSM 启动的标准链（参考 TEngine 12 步）<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#fsm-启动的标准链参考-tengine-12-步" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>详见 <a href="../tools-工具与工作流/tengine-pool-procedure-池化与启动深度" class="internal alias" data-slug="tools-工具与工作流/tengine-pool-procedure-池化与启动深度">tengine-pool-procedure-池化与启动深度</a> §Part 2 Procedure 启动系统。如果你需要热更，至少要有这些不可省略的状态：</p>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="text" data-theme="github-light github-dark"><code data-language="text" data-theme="github-light github-dark" style="display:grid;"><span data-line><span>ProcedureLaunch       ← 入口</span></span>
+<span data-line><span>  → ProcedureInitResources  ← 初始化资源系统（可并行子步骤）</span></span>
+<span data-line><span>    → ProcedureUpdateVersion  ← 版本检查（可能回退）</span></span>
+<span data-line><span>      → ProcedureDownloadFile  ← 下载热更包（可重试）</span></span>
+<span data-line><span>        → ProcedureLoadAssembly  ← 加载热更 DLL ← 不可逆点</span></span>
+<span data-line><span>          → ProcedureStartGame  ← 进入业务逻辑</span></span></code></pre></figure>
+<p><strong>关键设计点</strong>：<code>ProcedureLoadAssembly</code> 之前的代码必须在 AOT 层（v1 决策 5）；之后的代码可以在 HotFix 层。这是控制反转点，由反射跨过——典型实现：<code>Assembly.Load(dllBytes) → assembly.GetType(&quot;...GameApp&quot;) → typeInfo.GetMethod(&quot;Entrance&quot;).Invoke(null, args)</code>。</p>
+<h3 id="必须避开的陷阱">必须避开的陷阱<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#必须避开的陷阱" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<blockquote class="callout warning" data-callout="warning">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>不要把启动逻辑写在 RootModule.Awake </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>启动是异步流程（要等下载、等加载），但 <code>MonoBehaviour.Awake</code> 是同步的。强行同步会卡主线程；强行 async void 会丢异常。<strong>用 FSM 或 async 方法显式管理</strong>。</p>
+</div>
+</blockquote>
+<blockquote class="callout warning" data-callout="warning">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>不要让业务逻辑（如登录）混入 Procedure </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>Procedure 应该只管”框架启动完成”为止。玩家登录、加载存档等是业务，应该在 <code>ProcedureStartGame</code> 之后由业务代码自己管。</p>
+</div>
+</blockquote>
+<h3 id="推荐的混合方案来自-tengine-pool-procedure-池化与启动深度-推荐">推荐的混合方案（来自 <a href="../tools-工具与工作流/tengine-pool-procedure-池化与启动深度" class="internal alias" data-slug="tools-工具与工作流/tengine-pool-procedure-池化与启动深度">tengine-pool-procedure-池化与启动深度</a> 推荐）<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#推荐的混合方案来自-tengine-pool-procedure-池化与启动深度-推荐" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="text" data-theme="github-light github-dark"><code data-language="text" data-theme="github-light github-dark" style="display:grid;"><span data-line><span>顶层用 FSM 管理大阶段边界（不可逆点）</span></span>
+<span data-line><span>  ↓</span></span>
+<span data-line><span>每个 FSM 状态内部用 async 处理细节</span></span>
+<span data-line><span>  ↓ (例：ProcedureInitResources 内部用 UniTask.WhenAll 并行初始化)</span></span></code></pre></figure>
+<p>代码示意见 <a href="../tools-工具与工作流/tengine-pool-procedure-池化与启动深度" class="internal alias" data-slug="tools-工具与工作流/tengine-pool-procedure-池化与启动深度">tengine-pool-procedure-池化与启动深度</a> §推荐：混合方案。</p>
+<hr/>
+<h2 id="决策-8对象池设计">决策 8：对象池设计<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#决策-8对象池设计" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<h3 id="这是什么问题-2">这是什么问题<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#这是什么问题-2" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>哪些对象需要池化、用什么池、如何控制池容量、如何防止双重释放。</p>
+<h3 id="选项-2">选项<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#选项-2" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th>池化目标</th><th>推荐方案</th><th>理由</th></tr></thead><tbody><tr><td><strong>纯 C# 小对象</strong>（事件、状态、数据载体）</td><td>自研 <code>Pool&lt;T></code> 或 Unity <code>ObjectPool&lt;T></code></td><td>需要业务逻辑 Clear</td></tr><tr><td><strong>GameObject</strong>（子弹、特效、UI Item）</td><td>专用 GameObject 池</td><td>需要 SetActive + Transform 管理</td></tr><tr><td><strong>临时字节缓冲区</strong>（网络包、序列化）</td><td><code>.NET ArrayPool&lt;T>.Shared</code></td><td>已经原生、线程安全、分桶优化</td></tr><tr><td><strong>需要自动过期的资源句柄</strong></td><td>时间+优先级策略池</td><td>TEngine ObjectPoolModule 设计</td></tr></tbody></table></div>
+<p>证据见 <a href="../tools-工具与工作流/tengine-pool-procedure-池化与启动深度" class="internal alias" data-slug="tools-工具与工作流/tengine-pool-procedure-池化与启动深度">tengine-pool-procedure-池化与启动深度</a> §Part 1 MemoryPool 内存池系统 + §与 Unity 内置 ObjectPool<t> 对比。</t></p>
+<h3 id="必须遵守的-3-条铁律">必须遵守的 3 条铁律<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#必须遵守的-3-条铁律" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>来自 TEngine MemoryPool 已发现的 3 个生产级缺陷（<a href="../tools-工具与工作流/tengine-pool-procedure-池化与启动深度" class="internal alias" data-slug="tools-工具与工作流/tengine-pool-procedure-池化与启动深度">tengine-pool-procedure-池化与启动深度</a> §线程安全分析 / 双重释放检测）：</p>
+<ol>
+<li><strong>池必须有 maxSize</strong>——TEngine 没有，导致池可无限膨胀。修法：<code>Release</code> 时检查 <code>if (_pool.Count &lt; _maxSize) _pool.Enqueue(obj); else 丢弃</code></li>
+<li><strong>双重释放至少在 Debug 模式检测</strong>——TEngine 默认关闭（<code>_enableStrictCheck = false</code>），同一对象入池两次 → 两个消费者拿到同一实例 → 数据污染。修法：用 <code>HashSet&lt;T></code> 在 Debug 模式跟踪 in-pool 状态</li>
+<li><strong>统计计数器要么全在 lock 内要么用 Interlocked</strong>——TEngine 计数器在 lock 外修改导致并发竞态。修法：<code>Interlocked.Increment(ref _count)</code> 或全部移入 lock 块</li>
+</ol>
+<h3 id="数据结构选择stack-vs-queue">数据结构选择：Stack vs Queue<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#数据结构选择stack-vs-queue" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th>选择</th><th>行为</th><th>适用</th></tr></thead><tbody><tr><td><strong>Stack（LIFO）</strong></td><td>栈顶对象被反复使用</td><td>缓存友好（热对象在 CPU cache），但底部对象沉底</td></tr><tr><td><strong>Queue（FIFO）</strong></td><td>对象均匀复用</td><td>避免内存碎片，TEngine 采用此方案</td></tr></tbody></table></div>
+<h3 id="选择决策">选择决策<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#选择决策" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th>创建/销毁频率</th><th>是否池化</th><th>备注</th></tr></thead><tbody><tr><td>每秒 100+ 次（如子弹、特效、伤害飘字）</td><td><strong>必须池化</strong></td><td>GC 压力显著</td></tr><tr><td>每秒 10-100 次</td><td><strong>看实测</strong></td><td>用 Profiler 看 Allocations 再决定，不要凭感觉</td></tr><tr><td>每秒 &lt; 10 次</td><td><strong>不池化</strong></td><td>现代设备 GC 影响微乎其微，池化成本（管理 + Clear + 双重释放风险）反而是负优化</td></tr></tbody></table></div>
+<blockquote class="callout note" data-callout="note">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>阈值不是绝对值 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>上面是手游 / 中端设备的经验阈值。低端机或主机 60+ FPS 的项目阈值要降低；PC / 高端机阈值可放宽。<strong>最终标准是 Profiler 的 GC.Alloc 报告</strong>，不是固定数字。</p>
+</div>
+</blockquote>
+<h3 id="必须避开的陷阱-1">必须避开的陷阱<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#必须避开的陷阱-1" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<blockquote class="callout warning" data-callout="warning">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>不要给所有类型加池 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>池化有维护成本：必须实现 <code>Clear</code>/<code>Reset</code>、必须考虑双重释放、必须避免持有外部引用。低频对象池化是负优化。</p>
+</div>
+</blockquote>
+<blockquote class="callout warning" data-callout="warning">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>池中对象不能持有强引用到 Unity Object </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>池化的纯 C# 对象如果持有 <code>GameObject</code>/<code>Component</code> 引用，Unity 重载场景时 C# 引用未清理 → 内存泄漏。Release 时必须 <code>gameObject = null</code>。</p>
+</div>
+</blockquote>
+<hr/>
+<h2 id="决策-9帧驱动机制">决策 9：帧驱动机制<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#决策-9帧驱动机制" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<h3 id="这是什么问题-3">这是什么问题<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#这是什么问题-3" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>Unity 只有 <code>MonoBehaviour.Update</code> 是帧入口，但框架代码大量是纯 C# 类。如何让纯 C# 代码获得帧更新能力。</p>
+<h3 id="选项-3">选项<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#选项-3" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th>选项</th><th>实现</th><th>适用</th></tr></thead><tbody><tr><td><strong>A. 单 MonoBehaviour 驱动</strong></td><td>一个 <code>GameLoop : MonoBehaviour</code> 遍历 <code>ITickable</code> 列表</td><td>不要热更的简单项目</td></tr><tr><td><strong>B. ModuleSystem 驱动</strong></td><td><code>RootModule.Update → ModuleSystem.Update → IUpdateModule</code></td><td>TEngine 风格，OOP 框架默认</td></tr><tr><td><strong>C. MonoDriver 桥接层</strong></td><td>Module 提供 <code>AddUpdateListener</code> 回调注册接口</td><td>TEngine/DGame 热更项目</td></tr><tr><td><strong>D. EntitySystem 分发</strong></td><td>按 Entity 类型批量分发 Update</td><td>ET/ECS 范式</td></tr><tr><td><strong>E. VContainer ITickable</strong></td><td>DI 容器自动注册到 PlayerLoop</td><td>VContainer 项目</td></tr></tbody></table></div>
+<h3 id="选择标准与-v1-联动">选择标准（与 v1 联动）<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#选择标准与-v1-联动" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th>v1 你选了什么</th><th>决策 9 选什么</th><th>证据</th></tr></thead><tbody><tr><td>决策 1 = 无热更 + 决策 4 = 服务定位器</td><td><strong>A</strong> 或 <strong>B</strong></td><td>简单优先</td></tr><tr><td>决策 1 = HybridCLR 热更</td><td><strong>C</strong> MonoDriver 桥接层</td><td><a href="../tools-工具与工作流/tengine-design-decisions-设计决策分析" class="internal alias" data-slug="tools-工具与工作流/tengine-design-decisions-设计决策分析">tengine-design-decisions-设计决策分析</a> §帧驱动如何统一</td></tr><tr><td>决策 0 = ECS</td><td><strong>D</strong> EntitySystem 分发</td><td><a href="../tools-工具与工作流/et-framework-ET框架" class="internal alias" data-slug="tools-工具与工作流/et-framework-ET框架">et-framework-ET框架</a> §ECS 实现</td></tr><tr><td>决策 4 = DI 容器</td><td><strong>E</strong> ITickable</td><td>VContainer 原生支持</td></tr></tbody></table></div>
+<h3 id="三层驱动的常见结构热更架构下的事实模式">三层驱动的常见结构（热更架构下的事实模式）<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#三层驱动的常见结构热更架构下的事实模式" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>如果你 v1 选了 HybridCLR 热更（决策 1 = B），决策 9 通常会演化成三层驱动结构（也可以更扁平，但 TEngine/DGame 的演化路径走到了三层），原因见 <a href="../tools-工具与工作流/tengine-design-decisions-设计决策分析" class="internal alias" data-slug="tools-工具与工作流/tengine-design-decisions-设计决策分析">tengine-design-decisions-设计决策分析</a> §帧驱动如何统一：</p>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="text" data-theme="github-light github-dark"><code data-language="text" data-theme="github-light github-dark" style="display:grid;"><span data-line><span>RootModule (MonoBehaviour, AOT 层)</span></span>
+<span data-line><span>  ↓ 驱动</span></span>
+<span data-line><span>ModuleSystem.Update (Runtime Core 层)</span></span>
+<span data-line><span>  ↓ 驱动</span></span>
+<span data-line><span>MonoDriver Module (AOT 层，但提供 HotFix 可用的回调注册接口)</span></span>
+<span data-line><span>  ↓ 驱动</span></span>
+<span data-line><span>SingletonSystem (HotFix 层) → 业务 Singleton 的 Update</span></span></code></pre></figure>
+<p><strong>为什么演化成这样</strong>：HotFix 层不能直接 <code>new</code> MonoBehaviour（程序集依赖方向不允许从 AOT 反向），所以需要 MonoDriver 这种”AOT 层提供接口、HotFix 层注册回调”的桥梁。这不是过度设计，是热更架构下的<strong>事实模式</strong>——你也可以做得更扁平（如 HotFix 直接 <code>await UniTask.Yield()</code>），但模块/系统多了之后会自然演化到三层。如果你不需要热更，三层全部可以省略。</p>
+<h3 id="priority-排序要不要">Priority 排序：要不要<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#priority-排序要不要" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th>是否需要 Priority</th><th>原因</th></tr></thead><tbody><tr><td><strong>需要</strong></td><td>Update 顺序影响逻辑正确性（物理在渲染前、输入在逻辑前）</td></tr><tr><td><strong>不需要</strong></td><td>模块互相独立，顺序不敏感</td></tr></tbody></table></div>
+<p>如果需要 Priority，参考 <a href="../tools-工具与工作流/tengine-module-system-模块系统深度" class="internal alias" data-slug="tools-工具与工作流/tengine-module-system-模块系统深度">tengine-module-system-模块系统深度</a> §优先级插入与初始化——但注意 TEngine 的 bug：<code>OnInit</code> 在 <code>RegisterUpdate</code> 内调用 → 初始化顺序 ≠ Priority 顺序。<strong>自研时分离注册和初始化</strong>：先全部注册（排序），再统一调用 OnInit。</p>
+<h3 id="必须避开的陷阱-2">必须避开的陷阱<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#必须避开的陷阱-2" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<blockquote class="callout warning" data-callout="warning">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>不要在 Update 期间 Add/Remove 监听器 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>集合在迭代中被修改 → 抛 <code>InvalidOperationException</code> 或跳过元素。如果业务确实需要，参考事件系统的”延迟生效”模式（三 List）或 UIModule 的”集合长度变化检测”（<a href="../tools-工具与工作流/tengine-ui-system-UI系统深度" class="internal alias" data-slug="tools-工具与工作流/tengine-ui-system-UI系统深度">tengine-ui-system-UI系统深度</a> §OnUpdate 集合修改检测）。</p>
+</div>
+</blockquote>
+<blockquote class="callout warning" data-callout="warning">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>不要混用多个 MonoBehaviour 驱动 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>项目里有的模块挂自己的 MonoBehaviour、有的用框架驱动 → 帧顺序不可预测、生命周期混乱。<strong>统一走框架驱动</strong>。</p>
+</div>
+</blockquote>
+<hr/>
+<h2 id="v2-中层决策清单拿走用">v2 中层决策清单（拿走用）<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#v2-中层决策清单拿走用" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<p>把下面 4 个决策结果记下，配合 v1 的 5 个底层决策，构成你框架的完整中层骨架。</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th>#</th><th>决策</th><th>我的选择</th><th>主要依据</th></tr></thead><tbody><tr><td>6</td><td>事件系统：C# event / Int Key / Source Gen / struct 泛型 / MessagePipe</td><td>_____</td><td>v1 决策 0 + 决策 4</td></tr><tr><td>7</td><td>启动流程：FSM / async / 混合 / SO</td><td>_____</td><td>v1 决策 1</td></tr><tr><td>8</td><td>对象池：哪些类型池化 + Stack/Queue + maxSize</td><td>_____</td><td>性能分析</td></tr><tr><td>9</td><td>帧驱动：单 Mono / ModuleSystem / MonoDriver / EntitySystem / ITickable</td><td>_____</td><td>v1 决策 0/1/4</td></tr></tbody></table></div>
+<hr/>
+<h2 id="中层决策的反馈环">中层决策的反馈环<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#中层决策的反馈环" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<p>v2 决策做完后，请反过来检查 v1：</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th>如果中层卡住…</th><th>可能 v1 决策错了</th></tr></thead><tbody><tr><td>事件系统怎么选都不对</td><td>范式选错了（OOP/ECS 决定通信方式）</td></tr><tr><td>启动流程过于复杂</td><td>你可能根本不需要热更（决策 1 应选 A）</td></tr><tr><td>帧驱动结构爆炸</td><td>模块组织选错了（决策 4），DI 容器可能更合适</td></tr><tr><td>对象池失控</td><td>池化对象边界没想清楚——先 profile 再决定</td></tr></tbody></table></div>
+<blockquote class="callout note" data-callout="note">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>决策是双向的 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>v1 → v2 是默认路径，但中层卡住说明底层选错。<strong>不要硬扛中层复杂度</strong>，回去重新审视底层。</p>
+</div>
+</blockquote>
+<hr/>
+<h2 id="v3-路线预告">v3 路线预告<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#v3-路线预告" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<p>v3 上层将覆盖：</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th>决策</th><th>内容</th><th>主要证据</th></tr></thead><tbody><tr><td>10</td><td>UI 系统：栈式 / 层级 / 导航图</td><td><a href="../tools-工具与工作流/tengine-ui-system-UI系统深度" class="internal alias" data-slug="tools-工具与工作流/tengine-ui-system-UI系统深度">tengine-ui-system-UI系统深度</a></td></tr><tr><td>11</td><td>资源管理：自研 / YooAsset / Addressables</td><td>DeepWiki:/tuyoogame/YooAsset</td></tr><tr><td>12</td><td>配表系统：Luban / Excel 自研 / JSON</td><td>DGame README</td></tr><tr><td>13</td><td>网络通信：TCP / KCP / WebSocket / HTTP</td><td><a href="../tools-工具与工作流/fantasy-framework-Fantasy框架" class="internal alias" data-slug="tools-工具与工作流/fantasy-framework-Fantasy框架">fantasy-framework-Fantasy框架</a></td></tr></tbody></table></div>
+<blockquote class="callout tip" data-callout="tip">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>先用 v1+v2 跑完你的框架骨架，再来 v3 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>v3 是”业务子系统”，框架骨架不稳就建子系统会让重构成本指数级上升。</p>
+</div>
+</blockquote>
+<h2 id="相关">相关<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#相关" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<ul>
+<li><a href="../tools-工具与工作流/framework-self-design-guide-自研框架决策指南" class="internal alias" data-slug="tools-工具与工作流/framework-self-design-guide-自研框架决策指南">framework-self-design-guide-自研框架决策指南</a> — v1 底层决策（前置）</li>
+<li><a href="../tools-工具与工作流/tengine-game-event-事件系统深度" class="internal alias" data-slug="tools-工具与工作流/tengine-game-event-事件系统深度">tengine-game-event-事件系统深度</a> — 决策 6 主要证据</li>
+<li><a href="../tools-工具与工作流/tengine-pool-procedure-池化与启动深度" class="internal alias" data-slug="tools-工具与工作流/tengine-pool-procedure-池化与启动深度">tengine-pool-procedure-池化与启动深度</a> — 决策 7、8 主要证据</li>
+<li><a href="../tools-工具与工作流/tengine-design-decisions-设计决策分析" class="internal alias" data-slug="tools-工具与工作流/tengine-design-decisions-设计决策分析">tengine-design-decisions-设计决策分析</a> — 决策 9 主要证据</li>
+<li><a href="../tools-工具与工作流/paradigm-comparison-范式对比" class="internal alias" data-slug="tools-工具与工作流/paradigm-comparison-范式对比">paradigm-comparison-范式对比</a> — 范式对中层决策的影响</li>
+<li><a href="../tools-工具与工作流/framework-design-principles-框架设计原则" class="internal alias" data-slug="tools-工具与工作流/framework-design-principles-框架设计原则">framework-design-principles-框架设计原则</a> — 跨决策通用原则</li>
+</ul>
+<h2 id="审阅修订记录2026-05-26">审阅修订记录（2026-05-26）<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#审阅修订记录2026-05-26" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th>位置</th><th>修订前</th><th>修订后</th><th>原因</th></tr></thead><tbody><tr><td>决策 6 选项 E</td><td>”MessagePipe / UniRx，0 GC（前者）“</td><td>拆为 E (MessagePipe / R3，零 GC) + F (UniRx，链式算子分配 IDisposable 不是零 GC)</td><td>UniRx 不是零 GC——链式 Where/Select 每个算子都分配；零 GC + 响应式应用 R3（UniRx 续作）</td></tr><tr><td>决策 6 选项 E 复杂度</td><td>”高复杂度&quot;</td><td>&quot;中（库本身简单，DI 接入有学习成本）“</td><td>MessagePipe 库本身 API 简洁，复杂在 DI 接入，措辞需更精确</td></tr><tr><td>决策 7 反射调用</td><td>”反射 <code>Activator.CreateInstance + Invoke</code> 跨过&quot;</td><td>&quot;<code>Assembly.Load(dllBytes) → assembly.GetType(...) → MethodInfo.Invoke(null, args)</code>”</td><td>GameApp.Entrance 是静态方法，机制描述需要更精确</td></tr><tr><td>决策 8 池化阈值</td><td>”> 10/秒必须池化、1-10/秒看 profiler、&lt; 1/秒不池化&quot;</td><td>&quot;100+/秒必须池化、10-100/秒实测、&lt; 10/秒不池化；阈值因设备而异，最终看 Profiler”</td><td>现代设备 10/秒 GC 影响微乎其微，实战阈值更接近 100/秒</td></tr><tr><td>决策 9 三层驱动</td><td>”几乎必须是三层驱动结构（必然产物）&quot;</td><td>&quot;通常会演化成三层驱动结构（事实模式，不是绝对必然）“</td><td>三层不是绝对，HotFix 也可走 SingletonSystem 直驱；表述需要更准确</td></tr></tbody></table></div></article><hr/><div class="page-footer"></div></div><div class="right sidebar"><div class="graph"><h3>关系图谱</h3><div class="graph-outer"><div class="graph-container" data-cfg="{&quot;drag&quot;:true,&quot;zoom&quot;:true,&quot;depth&quot;:1,&quot;scale&quot;:1.1,&quot;repelForce&quot;:0.5,&quot;centerForce&quot;:0.3,&quot;linkDistance&quot;:30,&quot;fontSize&quot;:0.6,&quot;opacityScale&quot;:1,&quot;showTags&quot;:true,&quot;removeTags&quot;:[],&quot;focusOnHover&quot;:false,&quot;enableRadial&quot;:false}"></div><button class="global-graph-icon" aria-label="Global Graph"><svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 55 55" fill="currentColor" xml:space="preserve"><path d="M49,0c-3.309,0-6,2.691-6,6c0,1.035,0.263,2.009,0.726,2.86l-9.829,9.829C32.542,17.634,30.846,17,29,17
+                s-3.542,0.634-4.898,1.688l-7.669-7.669C16.785,10.424,17,9.74,17,9c0-2.206-1.794-4-4-4S9,6.794,9,9s1.794,4,4,4
+                c0.74,0,1.424-0.215,2.019-0.567l7.669,7.669C21.634,21.458,21,23.154,21,25s0.634,3.542,1.688,4.897L10.024,42.562
+                C8.958,41.595,7.549,41,6,41c-3.309,0-6,2.691-6,6s2.691,6,6,6s6-2.691,6-6c0-1.035-0.263-2.009-0.726-2.86l12.829-12.829
+                c1.106,0.86,2.44,1.436,3.898,1.619v10.16c-2.833,0.478-5,2.942-5,5.91c0,3.309,2.691,6,6,6s6-2.691,6-6c0-2.967-2.167-5.431-5-5.91
+                v-10.16c1.458-0.183,2.792-0.759,3.898-1.619l7.669,7.669C41.215,39.576,41,40.26,41,41c0,2.206,1.794,4,4,4s4-1.794,4-4
+                s-1.794-4-4-4c-0.74,0-1.424,0.215-2.019,0.567l-7.669-7.669C36.366,28.542,37,26.846,37,25s-0.634-3.542-1.688-4.897l9.665-9.665
+                C46.042,11.405,47.451,12,49,12c3.309,0,6-2.691,6-6S52.309,0,49,0z M11,9c0-1.103,0.897-2,2-2s2,0.897,2,2s-0.897,2-2,2
+                S11,10.103,11,9z M6,51c-2.206,0-4-1.794-4-4s1.794-4,4-4s4,1.794,4,4S8.206,51,6,51z M33,49c0,2.206-1.794,4-4,4s-4-1.794-4-4
+                s1.794-4,4-4S33,46.794,33,49z M29,31c-3.309,0-6-2.691-6-6s2.691-6,6-6s6,2.691,6,6S32.309,31,29,31z M47,41c0,1.103-0.897,2-2,2
+                s-2-0.897-2-2s0.897-2,2-2S47,39.897,47,41z M49,10c-2.206,0-4-1.794-4-4s1.794-4,4-4s4,1.794,4,4S51.206,10,49,10z"></path></svg></button></div><div class="global-graph-outer"><div class="global-graph-container" data-cfg="{&quot;drag&quot;:true,&quot;zoom&quot;:true,&quot;depth&quot;:-1,&quot;scale&quot;:0.9,&quot;repelForce&quot;:0.5,&quot;centerForce&quot;:0.2,&quot;linkDistance&quot;:30,&quot;fontSize&quot;:0.6,&quot;opacityScale&quot;:1,&quot;showTags&quot;:true,&quot;removeTags&quot;:[],&quot;focusOnHover&quot;:true,&quot;enableRadial&quot;:true}"></div></div></div><div class="toc desktop-only"><button type="button" class="toc-header" aria-controls="toc-84" aria-expanded="true"><h3>目录</h3><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="fold"><polyline points="6 9 12 15 18 9"></polyline></svg></button><ul id="list-1" class="toc-content overflow"><li class="depth-0"><a href="#自研框架架构决策指南-v2中层决策" data-for="自研框架架构决策指南-v2中层决策">自研框架架构决策指南 v2（中层决策）</a></li><li class="depth-1"><a href="#本页定位" data-for="本页定位">本页定位</a></li><li class="depth-1"><a href="#决策依赖图" data-for="决策依赖图">决策依赖图</a></li><li class="depth-1"><a href="#决策-6事件系统" data-for="决策-6事件系统">决策 6：事件系统</a></li><li class="depth-2"><a href="#这是什么问题" data-for="这是什么问题">这是什么问题</a></li><li class="depth-2"><a href="#选项" data-for="选项">选项</a></li><li class="depth-2"><a href="#选择标准与-v1-决策强联动" data-for="选择标准与-v1-决策强联动">选择标准（与 v1 决策强联动）</a></li><li class="depth-2"><a href="#必须避开的设计陷阱来自-tengine-源码-bug" data-for="必须避开的设计陷阱来自-tengine-源码-bug">必须避开的设计陷阱（来自 TEngine 源码 bug）</a></li><li class="depth-2"><a href="#设计原则提取" data-for="设计原则提取">设计原则提取</a></li><li class="depth-2"><a href="#反向视角事件总线不是万能来自-bigcat" data-for="反向视角事件总线不是万能来自-bigcat">反向视角：事件总线不是万能（来自 BigCat）</a></li><li class="depth-1"><a href="#决策-7启动流程编排" data-for="决策-7启动流程编排">决策 7：启动流程编排</a></li><li class="depth-2"><a href="#这是什么问题-1" data-for="这是什么问题-1">这是什么问题</a></li><li class="depth-2"><a href="#选项-1" data-for="选项-1">选项</a></li><li class="depth-2"><a href="#选择标准" data-for="选择标准">选择标准</a></li><li class="depth-2"><a href="#fsm-启动的标准链参考-tengine-12-步" data-for="fsm-启动的标准链参考-tengine-12-步">FSM 启动的标准链（参考 TEngine 12 步）</a></li><li class="depth-2"><a href="#必须避开的陷阱" data-for="必须避开的陷阱">必须避开的陷阱</a></li><li class="depth-2"><a href="#推荐的混合方案来自-tengine-pool-procedure-池化与启动深度-推荐" data-for="推荐的混合方案来自-tengine-pool-procedure-池化与启动深度-推荐">推荐的混合方案（来自 tengine-pool-procedure-池化与启动深度 推荐）</a></li><li class="depth-1"><a href="#决策-8对象池设计" data-for="决策-8对象池设计">决策 8：对象池设计</a></li><li class="depth-2"><a href="#这是什么问题-2" data-for="这是什么问题-2">这是什么问题</a></li><li class="depth-2"><a href="#选项-2" data-for="选项-2">选项</a></li><li class="depth-2"><a href="#必须遵守的-3-条铁律" data-for="必须遵守的-3-条铁律">必须遵守的 3 条铁律</a></li><li class="depth-2"><a href="#数据结构选择stack-vs-queue" data-for="数据结构选择stack-vs-queue">数据结构选择：Stack vs Queue</a></li><li class="depth-2"><a href="#选择决策" data-for="选择决策">选择决策</a></li><li class="depth-2"><a href="#必须避开的陷阱-1" data-for="必须避开的陷阱-1">必须避开的陷阱</a></li><li class="depth-1"><a href="#决策-9帧驱动机制" data-for="决策-9帧驱动机制">决策 9：帧驱动机制</a></li><li class="depth-2"><a href="#这是什么问题-3" data-for="这是什么问题-3">这是什么问题</a></li><li class="depth-2"><a href="#选项-3" data-for="选项-3">选项</a></li><li class="depth-2"><a href="#选择标准与-v1-联动" data-for="选择标准与-v1-联动">选择标准（与 v1 联动）</a></li><li class="depth-2"><a href="#三层驱动的常见结构热更架构下的事实模式" data-for="三层驱动的常见结构热更架构下的事实模式">三层驱动的常见结构（热更架构下的事实模式）</a></li><li class="depth-2"><a href="#priority-排序要不要" data-for="priority-排序要不要">Priority 排序：要不要</a></li><li class="depth-2"><a href="#必须避开的陷阱-2" data-for="必须避开的陷阱-2">必须避开的陷阱</a></li><li class="depth-1"><a href="#v2-中层决策清单拿走用" data-for="v2-中层决策清单拿走用">v2 中层决策清单（拿走用）</a></li><li class="depth-1"><a href="#中层决策的反馈环" data-for="中层决策的反馈环">中层决策的反馈环</a></li><li class="depth-1"><a href="#v3-路线预告" data-for="v3-路线预告">v3 路线预告</a></li><li class="depth-1"><a href="#相关" data-for="相关">相关</a></li><li class="depth-1"><a href="#审阅修订记录2026-05-26" data-for="审阅修订记录2026-05-26">审阅修订记录（2026-05-26）</a></li><li class="overflow-end"></li></ul></div><div class="backlinks"><h3>反向链接</h3><ul id="list-2" class="overflow"><li><a href="../" class="internal">index</a></li><li><a href="../tools-工具与工作流/bigcat-framework-BigCat框架" class="internal">bigcat-framework-BigCat框架</a></li><li><a href="../tools-工具与工作流/framework-landscape-框架全景坐标系" class="internal">framework-landscape-框架全景坐标系</a></li><li><a href="../tools-工具与工作流/framework-self-design-guide-v3-上层决策" class="internal">framework-self-design-guide-v3-上层决策</a></li><li><a href="../tools-工具与工作流/myframework-command-system-命令系统深度" class="internal">myframework-command-system-命令系统深度</a></li><li><a href="../tools-工具与工作流/myframework-design-decisions-设计决策分析" class="internal">myframework-design-decisions-设计决策分析</a></li><li><a href="../tools-工具与工作流/myframework-pool-system-对象池与低GC深度" class="internal">myframework-pool-system-对象池与低GC深度</a></li><li><a href="../tools-工具与工作流/myframework-scene-procedure-场景与流程深度" class="internal">myframework-scene-procedure-场景与流程深度</a></li><li><a href="../tools-工具与工作流/myframework-startup-hotfix-启动与热更链" class="internal">myframework-startup-hotfix-启动与热更链</a></li><li><a href="../tools-工具与工作流/unity-ui-framework-comparison-UI框架对比" class="internal">unity-ui-framework-comparison-UI框架对比</a></li><li class="overflow-end"></li></ul></div></div><footer class><p>Created with <a href="https://quartz.jzhao.xyz/">Quartz v4.5.2</a> © 2026</p><ul><li><a href="https://github.com/jackyzha0/quartz">GitHub</a></li><li><a href="https://discord.gg/cRFFHYye7t">Discord Community</a></li></ul></footer></div></div></body><script type="application/javascript" data-persist="true">function n(){let t=this.parentElement;t.classList.toggle("is-collapsed");let e=t.getElementsByClassName("callout-content")[0];if(!e)return;let l=t.classList.contains("is-collapsed");e.style.gridTemplateRows=l?"0fr":"1fr"}function c(){let t=document.getElementsByClassName("callout is-collapsible");for(let e of t){let l=e.getElementsByClassName("callout-title")[0],s=e.getElementsByClassName("callout-content")[0];if(!l||!s)continue;l.addEventListener("click",n),window.addCleanup(()=>l.removeEventListener("click",n));let o=e.classList.contains("is-collapsed");s.style.gridTemplateRows=o?"0fr":"1fr"}}document.addEventListener("nav",c);
+</script><script type="module" data-persist="true">function E(c,e){if(!c)return;function t(s){s.target===this&&(s.preventDefault(),s.stopPropagation(),e())}function r(s){s.key.startsWith("Esc")&&(s.preventDefault(),e())}c?.addEventListener("click",t),window.addCleanup(()=>c?.removeEventListener("click",t)),document.addEventListener("keydown",r),window.addCleanup(()=>document.removeEventListener("keydown",r))}function y(c){for(;c.firstChild;)c.removeChild(c.firstChild)}var v=class{constructor(e,t){this.container=e;this.content=t;this.setupEventListeners(),this.setupNavigationControls(),this.resetTransform()}isDragging=!1;startPan={x:0,y:0};currentPan={x:0,y:0};scale=1;MIN_SCALE=.5;MAX_SCALE=3;cleanups=[];setupEventListeners(){let e=this.onMouseDown.bind(this),t=this.onMouseMove.bind(this),r=this.onMouseUp.bind(this),s=this.onTouchStart.bind(this),o=this.onTouchMove.bind(this),i=this.onTouchEnd.bind(this),n=this.resetTransform.bind(this);this.container.addEventListener("mousedown",e),document.addEventListener("mousemove",t),document.addEventListener("mouseup",r),this.container.addEventListener("touchstart",s,{passive:!1}),document.addEventListener("touchmove",o,{passive:!1}),document.addEventListener("touchend",i),window.addEventListener("resize",n),this.cleanups.push(()=>this.container.removeEventListener("mousedown",e),()=>document.removeEventListener("mousemove",t),()=>document.removeEventListener("mouseup",r),()=>this.container.removeEventListener("touchstart",s),()=>document.removeEventListener("touchmove",o),()=>document.removeEventListener("touchend",i),()=>window.removeEventListener("resize",n))}cleanup(){for(let e of this.cleanups)e()}setupNavigationControls(){let e=document.createElement("div");e.className="mermaid-controls";let t=this.createButton("+",()=>this.zoom(.1)),r=this.createButton("-",()=>this.zoom(-.1)),s=this.createButton("Reset",()=>this.resetTransform());e.appendChild(r),e.appendChild(s),e.appendChild(t),this.container.appendChild(e)}createButton(e,t){let r=document.createElement("button");return r.textContent=e,r.className="mermaid-control-button",r.addEventListener("click",t),window.addCleanup(()=>r.removeEventListener("click",t)),r}onMouseDown(e){e.button===0&&(this.isDragging=!0,this.startPan={x:e.clientX-this.currentPan.x,y:e.clientY-this.currentPan.y},this.container.style.cursor="grabbing")}onMouseMove(e){this.isDragging&&(e.preventDefault(),this.currentPan={x:e.clientX-this.startPan.x,y:e.clientY-this.startPan.y},this.updateTransform())}onMouseUp(){this.isDragging=!1,this.container.style.cursor="grab"}onTouchStart(e){if(e.touches.length!==1)return;this.isDragging=!0;let t=e.touches[0];this.startPan={x:t.clientX-this.currentPan.x,y:t.clientY-this.currentPan.y}}onTouchMove(e){if(!this.isDragging||e.touches.length!==1)return;e.preventDefault();let t=e.touches[0];this.currentPan={x:t.clientX-this.startPan.x,y:t.clientY-this.startPan.y},this.updateTransform()}onTouchEnd(){this.isDragging=!1}zoom(e){let t=Math.min(Math.max(this.scale+e,this.MIN_SCALE),this.MAX_SCALE),r=this.content.getBoundingClientRect(),s=r.width/2,o=r.height/2,i=t-this.scale;this.currentPan.x-=s*i,this.currentPan.y-=o*i,this.scale=t,this.updateTransform()}updateTransform(){this.content.style.transform=`translate(${this.currentPan.x}px, ${this.currentPan.y}px) scale(${this.scale})`}resetTransform(){let t=this.content.querySelector("svg").getBoundingClientRect(),r=t.width/this.scale,s=t.height/this.scale;this.scale=1,this.currentPan={x:(this.container.clientWidth-r)/2,y:(this.container.clientHeight-s)/2},this.updateTransform()}},T=["--secondary","--tertiary","--gray","--light","--lightgray","--highlight","--dark","--darkgray","--codeFont"],L;document.addEventListener("nav",async()=>{let e=document.querySelector(".center").querySelectorAll("code.mermaid");if(e.length===0)return;L||=await import("https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.4.0/mermaid.esm.min.mjs");let t=L.default,r=new WeakMap;for(let o of e){let i=o.getAttribute("data-clipboard"),n=o.innerText;if(i)try{n=JSON.parse(i)}catch{}r.set(o,n)}async function s(){for(let n of e){n.removeAttribute("data-processed");let a=r.get(n);a&&(n.textContent=a)}let o=T.reduce((n,a)=>(n[a]=window.getComputedStyle(document.documentElement).getPropertyValue(a),n),{}),i=document.documentElement.getAttribute("saved-theme")==="dark";t.initialize({startOnLoad:!1,securityLevel:"loose",theme:i?"dark":"base",themeVariables:{fontFamily:o["--codeFont"],primaryColor:o["--light"],primaryTextColor:o["--darkgray"],primaryBorderColor:o["--tertiary"],lineColor:o["--darkgray"],secondaryColor:o["--secondary"],tertiaryColor:o["--tertiary"],clusterBkg:o["--light"],edgeLabelBackground:o["--highlight"]}});for(let n=0;n<e.length;n++){let a=e[n],l=r.get(a);if(l)try{let u=`mermaid-svg-${Date.now()}-${n}`,{svg:p,bindFunctions:d}=await t.render(u,l);a.innerHTML=p,d&&d(a),a.setAttribute("data-processed","true")}catch(u){console.error(`mermaid render failed for node ${n}:`,u)}}}await s(),document.addEventListener("themechange",s),window.addCleanup(()=>document.removeEventListener("themechange",s));for(let o=0;o<e.length;o++){let g=function(){let f=d.querySelector("#mermaid-space"),m=d.querySelector(".mermaid-content");if(!m)return;y(m);let w=i.querySelector("svg").cloneNode(!0);m.appendChild(w),d.classList.add("active"),f.style.cursor="grab",h=new v(f,m)},M=function(){d.classList.remove("active"),h?.cleanup(),h=null},i=e[o],n=i.parentElement,a=n.querySelector(".clipboard-button"),l=n.querySelector(".expand-button"),u=window.getComputedStyle(a),p=a.offsetWidth+parseFloat(u.marginLeft||"0")+parseFloat(u.marginRight||"0");l.style.right=`calc(${p}px + 0.3rem)`,n.prepend(l);let d=n.querySelector("#mermaid-container");if(!d)return;let h=null;l.addEventListener("click",g),E(d,M),window.addCleanup(()=>{h?.cleanup(),l.removeEventListener("click",g)})}});
+</script><script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/copy-tex.min.js" type="application/javascript" data-persist="true"></script><script src="../postscript.js" type="module" data-persist="true"></script></html>

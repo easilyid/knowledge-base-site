@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr"><head><title>behavioral-patterns-行为型</title><meta charset="utf-8"/><link rel="preconnect" href="https://fonts.googleapis.com"/><link rel="preconnect" href="https://fonts.gstatic.com"/><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted Grotesk:wght@400;700&amp;family=Source Sans Pro:ital,wght@0,400;0,600;1,400;1,600&amp;family=IBM Plex Mono:wght@400;600&amp;display=swap"/><link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin="anonymous"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><meta name="og:site_name" content="Unity / C# / .NET 游戏开发知识库"/><meta property="og:title" content="behavioral-patterns-行为型"/><meta property="og:type" content="website"/><meta name="twitter:card" content="summary_large_image"/><meta name="twitter:title" content="behavioral-patterns-行为型"/><meta name="twitter:description" content="行为型模式（Behavioral Patterns） 核心思想 行为型模式关注对象间的通信与职责分配——谁做什么、谁通知谁、谁处理什么。它们解决的不是”创建什么”或”如何组合”，而是”如何协作”。 为什么重要 游戏系统交互密集：输入响应、AI 决策、事件通知、状态切换、回合流程。行为型模式帮助解耦交互逻辑，让系统更容易扩展和维护。行为型模式是游戏开发中使用频率最高的模式类别。 十种模式关系结构 graph TB OB[观察者&lt;br/>发布-订阅通知] --> |&quot;一对多 vs 多对多&quot;| ME[中介者&lt;br/>集中协调通信] CM[命令&lt;..."/><meta property="og:description" content="行为型模式（Behavioral Patterns） 核心思想 行为型模式关注对象间的通信与职责分配——谁做什么、谁通知谁、谁处理什么。它们解决的不是”创建什么”或”如何组合”，而是”如何协作”。 为什么重要 游戏系统交互密集：输入响应、AI 决策、事件通知、状态切换、回合流程。行为型模式帮助解耦交互逻辑，让系统更容易扩展和维护。行为型模式是游戏开发中使用频率最高的模式类别。 十种模式关系结构 graph TB OB[观察者&lt;br/>发布-订阅通知] --> |&quot;一对多 vs 多对多&quot;| ME[中介者&lt;br/>集中协调通信] CM[命令&lt;..."/><meta property="og:image:alt" content="行为型模式（Behavioral Patterns） 核心思想 行为型模式关注对象间的通信与职责分配——谁做什么、谁通知谁、谁处理什么。它们解决的不是”创建什么”或”如何组合”，而是”如何协作”。 为什么重要 游戏系统交互密集：输入响应、AI 决策、事件通知、状态切换、回合流程。行为型模式帮助解耦交互逻辑，让系统更容易扩展和维护。行为型模式是游戏开发中使用频率最高的模式类别。 十种模式关系结构 graph TB OB[观察者&lt;br/>发布-订阅通知] --> |&quot;一对多 vs 多对多&quot;| ME[中介者&lt;br/>集中协调通信] CM[命令&lt;..."/><meta property="twitter:domain" content="easilyid.github.io/knowledge-base-site"/><meta property="og:url" content="https://easilyid.github.io/knowledge-base-site/patterns-设计模式/behavioral-patterns-行为型"/><meta property="twitter:url" content="https://easilyid.github.io/knowledge-base-site/patterns-设计模式/behavioral-patterns-行为型"/><link rel="icon" href="../static/icon.png"/><meta name="description" content="行为型模式（Behavioral Patterns） 核心思想 行为型模式关注对象间的通信与职责分配——谁做什么、谁通知谁、谁处理什么。它们解决的不是”创建什么”或”如何组合”，而是”如何协作”。 为什么重要 游戏系统交互密集：输入响应、AI 决策、事件通知、状态切换、回合流程。行为型模式帮助解耦交互逻辑，让系统更容易扩展和维护。行为型模式是游戏开发中使用频率最高的模式类别。 十种模式关系结构 graph TB OB[观察者&lt;br/>发布-订阅通知] --> |&quot;一对多 vs 多对多&quot;| ME[中介者&lt;br/>集中协调通信] CM[命令&lt;..."/><meta name="generator" content="Quartz"/><link href="../index.css" rel="stylesheet" type="text/css" data-persist="true"/><style>.expand-button {
+  position: absolute;
+  display: flex;
+  float: right;
+  padding: 0.4rem;
+  margin: 0.3rem;
+  right: 0;
+  color: var(--gray);
+  border-color: var(--dark);
+  background-color: var(--light);
+  border: 1px solid;
+  border-radius: 5px;
+  opacity: 0;
+  transition: 0.2s;
+}
+.expand-button > svg {
+  fill: var(--light);
+  filter: contrast(0.3);
+}
+.expand-button:hover {
+  cursor: pointer;
+  border-color: var(--secondary);
+}
+.expand-button:focus {
+  outline: 0;
+}
+
+pre:hover > .expand-button {
+  opacity: 1;
+  transition: 0.2s;
+}
+
+#mermaid-container {
+  position: fixed;
+  contain: layout;
+  z-index: 999;
+  left: 0;
+  top: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  display: none;
+  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.5);
+}
+#mermaid-container.active {
+  display: inline-block;
+}
+#mermaid-container > #mermaid-space {
+  border: 1px solid var(--lightgray);
+  background-color: var(--light);
+  border-radius: 5px;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  height: 80vh;
+  width: 80vw;
+  overflow: hidden;
+}
+#mermaid-container > #mermaid-space > .mermaid-content {
+  position: relative;
+  transform-origin: 0 0;
+  transition: transform 0.1s ease;
+  overflow: visible;
+  min-height: 200px;
+  min-width: 200px;
+}
+#mermaid-container > #mermaid-space > .mermaid-content pre {
+  margin: 0;
+  border: none;
+}
+#mermaid-container > #mermaid-space > .mermaid-content svg {
+  max-width: none;
+  height: auto;
+}
+#mermaid-container > #mermaid-space > .mermaid-controls {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+  background: var(--light);
+  border: 1px solid var(--lightgray);
+  border-radius: 6px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  z-index: 2;
+}
+#mermaid-container > #mermaid-space > .mermaid-controls .mermaid-control-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--lightgray);
+  background: var(--light);
+  color: var(--dark);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  font-family: var(--bodyFont);
+  transition: all 0.2s ease;
+}
+#mermaid-container > #mermaid-space > .mermaid-controls .mermaid-control-button:hover {
+  background: var(--lightgray);
+}
+#mermaid-container > #mermaid-space > .mermaid-controls .mermaid-control-button:active {
+  transform: translateY(1px);
+}
+#mermaid-container > #mermaid-space > .mermaid-controls .mermaid-control-button:nth-child(2) {
+  width: auto;
+  padding: 0 12px;
+  font-size: 14px;
+}
+/*# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VSb290IjoiL2hvbWUvcnVubmVyL3dvcmsvS25vd2xlZGdlLUJhc2UvS25vd2xlZGdlLUJhc2UvcXVhcnR6L3F1YXJ0ei9jb21wb25lbnRzL3N0eWxlcyIsInNvdXJjZXMiOlsibWVybWFpZC5pbmxpbmUuc2NzcyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiQUFBQTtFQUNFO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBOztBQUVBO0VBQ0U7RUFDQTs7QUFHRjtFQUNFO0VBQ0E7O0FBR0Y7RUFDRTs7O0FBS0Y7RUFDRTtFQUNBOzs7QUFJSjtFQUNFO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7O0FBRUE7RUFDRTs7QUFHRjtFQUNFO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBOztBQUVBO0VBQ0U7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBOztBQUVBO0VBQ0U7RUFDQTs7QUFHRjtFQUNFO0VBQ0E7O0FBSUo7RUFDRTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBOztBQUVBO0VBQ0U7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTs7QUFFQTtFQUNFOztBQUdGO0VBQ0U7O0FBSUY7RUFDRTtFQUNBO0VBQ0EiLCJzb3VyY2VzQ29udGVudCI6WyIuZXhwYW5kLWJ1dHRvbiB7XG4gIHBvc2l0aW9uOiBhYnNvbHV0ZTtcbiAgZGlzcGxheTogZmxleDtcbiAgZmxvYXQ6IHJpZ2h0O1xuICBwYWRkaW5nOiAwLjRyZW07XG4gIG1hcmdpbjogMC4zcmVtO1xuICByaWdodDogMDsgLy8gTk9URTogcmlnaHQgd2lsbCBiZSBzZXQgaW4gbWVybWFpZC5pbmxpbmUudHNcbiAgY29sb3I6IHZhcigtLWdyYXkpO1xuICBib3JkZXItY29sb3I6IHZhcigtLWRhcmspO1xuICBiYWNrZ3JvdW5kLWNvbG9yOiB2YXIoLS1saWdodCk7XG4gIGJvcmRlcjogMXB4IHNvbGlkO1xuICBib3JkZXItcmFkaXVzOiA1cHg7XG4gIG9wYWNpdHk6IDA7XG4gIHRyYW5zaXRpb246IDAuMnM7XG5cbiAgJiA+IHN2ZyB7XG4gICAgZmlsbDogdmFyKC0tbGlnaHQpO1xuICAgIGZpbHRlcjogY29udHJhc3QoMC4zKTtcbiAgfVxuXG4gICY6aG92ZXIge1xuICAgIGN1cnNvcjogcG9pbnRlcjtcbiAgICBib3JkZXItY29sb3I6IHZhcigtLXNlY29uZGFyeSk7XG4gIH1cblxuICAmOmZvY3VzIHtcbiAgICBvdXRsaW5lOiAwO1xuICB9XG59XG5cbnByZSB7XG4gICY6aG92ZXIgPiAuZXhwYW5kLWJ1dHRvbiB7XG4gICAgb3BhY2l0eTogMTtcbiAgICB0cmFuc2l0aW9uOiAwLjJzO1xuICB9XG59XG5cbiNtZXJtYWlkLWNvbnRhaW5lciB7XG4gIHBvc2l0aW9uOiBmaXhlZDtcbiAgY29udGFpbjogbGF5b3V0O1xuICB6LWluZGV4OiA5OTk7XG4gIGxlZnQ6IDA7XG4gIHRvcDogMDtcbiAgd2lkdGg6IDEwMHZ3O1xuICBoZWlnaHQ6IDEwMHZoO1xuICBvdmVyZmxvdzogaGlkZGVuO1xuICBkaXNwbGF5OiBub25lO1xuICBiYWNrZHJvcC1maWx0ZXI6IGJsdXIoNHB4KTtcbiAgYmFja2dyb3VuZDogcmdiYSgwLCAwLCAwLCAwLjUpO1xuXG4gICYuYWN0aXZlIHtcbiAgICBkaXNwbGF5OiBpbmxpbmUtYmxvY2s7XG4gIH1cblxuICAmID4gI21lcm1haWQtc3BhY2Uge1xuICAgIGJvcmRlcjogMXB4IHNvbGlkIHZhcigtLWxpZ2h0Z3JheSk7XG4gICAgYmFja2dyb3VuZC1jb2xvcjogdmFyKC0tbGlnaHQpO1xuICAgIGJvcmRlci1yYWRpdXM6IDVweDtcbiAgICBwb3NpdGlvbjogZml4ZWQ7XG4gICAgdG9wOiA1MCU7XG4gICAgbGVmdDogNTAlO1xuICAgIHRyYW5zZm9ybTogdHJhbnNsYXRlKC01MCUsIC01MCUpO1xuICAgIGhlaWdodDogODB2aDtcbiAgICB3aWR0aDogODB2dztcbiAgICBvdmVyZmxvdzogaGlkZGVuO1xuXG4gICAgJiA+IC5tZXJtYWlkLWNvbnRlbnQge1xuICAgICAgcG9zaXRpb246IHJlbGF0aXZlO1xuICAgICAgdHJhbnNmb3JtLW9yaWdpbjogMCAwO1xuICAgICAgdHJhbnNpdGlvbjogdHJhbnNmb3JtIDAuMXMgZWFzZTtcbiAgICAgIG92ZXJmbG93OiB2aXNpYmxlO1xuICAgICAgbWluLWhlaWdodDogMjAwcHg7XG4gICAgICBtaW4td2lkdGg6IDIwMHB4O1xuXG4gICAgICBwcmUge1xuICAgICAgICBtYXJnaW46IDA7XG4gICAgICAgIGJvcmRlcjogbm9uZTtcbiAgICAgIH1cblxuICAgICAgc3ZnIHtcbiAgICAgICAgbWF4LXdpZHRoOiBub25lO1xuICAgICAgICBoZWlnaHQ6IGF1dG87XG4gICAgICB9XG4gICAgfVxuXG4gICAgJiA+IC5tZXJtYWlkLWNvbnRyb2xzIHtcbiAgICAgIHBvc2l0aW9uOiBhYnNvbHV0ZTtcbiAgICAgIGJvdHRvbTogMjBweDtcbiAgICAgIHJpZ2h0OiAyMHB4O1xuICAgICAgZGlzcGxheTogZmxleDtcbiAgICAgIGdhcDogOHB4O1xuICAgICAgcGFkZGluZzogOHB4O1xuICAgICAgYmFja2dyb3VuZDogdmFyKC0tbGlnaHQpO1xuICAgICAgYm9yZGVyOiAxcHggc29saWQgdmFyKC0tbGlnaHRncmF5KTtcbiAgICAgIGJvcmRlci1yYWRpdXM6IDZweDtcbiAgICAgIGJveC1zaGFkb3c6IDAgMnB4IDRweCByZ2JhKDAsIDAsIDAsIDAuMSk7XG4gICAgICB6LWluZGV4OiAyO1xuXG4gICAgICAubWVybWFpZC1jb250cm9sLWJ1dHRvbiB7XG4gICAgICAgIGRpc3BsYXk6IGZsZXg7XG4gICAgICAgIGFsaWduLWl0ZW1zOiBjZW50ZXI7XG4gICAgICAgIGp1c3RpZnktY29udGVudDogY2VudGVyO1xuICAgICAgICB3aWR0aDogMzJweDtcbiAgICAgICAgaGVpZ2h0OiAzMnB4O1xuICAgICAgICBwYWRkaW5nOiAwO1xuICAgICAgICBib3JkZXI6IDFweCBzb2xpZCB2YXIoLS1saWdodGdyYXkpO1xuICAgICAgICBiYWNrZ3JvdW5kOiB2YXIoLS1saWdodCk7XG4gICAgICAgIGNvbG9yOiB2YXIoLS1kYXJrKTtcbiAgICAgICAgYm9yZGVyLXJhZGl1czogNHB4O1xuICAgICAgICBjdXJzb3I6IHBvaW50ZXI7XG4gICAgICAgIGZvbnQtc2l6ZTogMTZweDtcbiAgICAgICAgZm9udC1mYW1pbHk6IHZhcigtLWJvZHlGb250KTtcbiAgICAgICAgdHJhbnNpdGlvbjogYWxsIDAuMnMgZWFzZTtcblxuICAgICAgICAmOmhvdmVyIHtcbiAgICAgICAgICBiYWNrZ3JvdW5kOiB2YXIoLS1saWdodGdyYXkpO1xuICAgICAgICB9XG5cbiAgICAgICAgJjphY3RpdmUge1xuICAgICAgICAgIHRyYW5zZm9ybTogdHJhbnNsYXRlWSgxcHgpO1xuICAgICAgICB9XG5cbiAgICAgICAgLy8gU3R5bGUgdGhlIHJlc2V0IGJ1dHRvbiBkaWZmZXJlbnRseVxuICAgICAgICAmOm50aC1jaGlsZCgyKSB7XG4gICAgICAgICAgd2lkdGg6IGF1dG87XG4gICAgICAgICAgcGFkZGluZzogMCAxMnB4O1xuICAgICAgICAgIGZvbnQtc2l6ZTogMTRweDtcbiAgICAgICAgfVxuICAgICAgfVxuICAgIH1cbiAgfVxufVxuIl19 */</style><link href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" rel="stylesheet" type="text/css" data-persist="true"/><script src="../prescript.js" type="application/javascript" data-persist="true"></script><script type="application/javascript" data-persist="true">const fetchData = fetch("../static/contentIndex.json").then(data => data.json())</script><link rel="alternate" type="application/rss+xml" title="RSS Feed" href="https://easilyid.github.io/knowledge-base-site/index.xml"/><meta property="og:image:width" content="1200"/><meta property="og:image:height" content="630"/><meta property="og:image" content="https://easilyid.github.io/knowledge-base-site/patterns-设计模式/behavioral-patterns-行为型-og-image.webp"/><meta property="og:image:url" content="https://easilyid.github.io/knowledge-base-site/patterns-设计模式/behavioral-patterns-行为型-og-image.webp"/><meta name="twitter:image" content="https://easilyid.github.io/knowledge-base-site/patterns-设计模式/behavioral-patterns-行为型-og-image.webp"/><meta property="og:image:type" content="image/.webp"/></head><body data-slug="patterns-设计模式/behavioral-patterns-行为型"><div id="quartz-root" class="page"><div id="quartz-body"><div class="left sidebar"><h2 class="page-title"><a href="..">Unity / C# / .NET 游戏开发知识库</a></h2><div class="spacer mobile-only"></div><div class="flex-component" style="flex-direction: row; flex-wrap: nowrap; gap: 1rem;"><div style="flex-grow: 1; flex-shrink: 1; flex-basis: auto; order: 0; align-self: center; justify-self: center;"><div class="search"><button class="search-button"><svg role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 19.9 19.7"><title>Search</title><g class="search-path" fill="none"><path stroke-linecap="square" d="M18.5 18.3l-5.4-5.4"></path><circle cx="8" cy="8" r="7"></circle></g></svg><p>搜索</p></button><div class="search-container"><div class="search-space"><input autocomplete="off" class="search-bar" name="search" type="text" aria-label="搜索些什么" placeholder="搜索些什么"/><div class="search-layout" data-preview="true"></div></div></div></div></div><div style="flex-grow: 0; flex-shrink: 1; flex-basis: auto; order: 0; align-self: center; justify-self: center;"><button class="darkmode"><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" class="dayIcon" x="0px" y="0px" viewBox="0 0 35 35" style="enable-background:new 0 0 35 35" xml:space="preserve" aria-label="暗色模式"><title>暗色模式</title><path d="M6,17.5C6,16.672,5.328,16,4.5,16h-3C0.672,16,0,16.672,0,17.5    S0.672,19,1.5,19h3C5.328,19,6,18.328,6,17.5z M7.5,26c-0.414,0-0.789,0.168-1.061,0.439l-2,2C4.168,28.711,4,29.086,4,29.5    C4,30.328,4.671,31,5.5,31c0.414,0,0.789-0.168,1.06-0.44l2-2C8.832,28.289,9,27.914,9,27.5C9,26.672,8.329,26,7.5,26z M17.5,6    C18.329,6,19,5.328,19,4.5v-3C19,0.672,18.329,0,17.5,0S16,0.672,16,1.5v3C16,5.328,16.671,6,17.5,6z M27.5,9    c0.414,0,0.789-0.168,1.06-0.439l2-2C30.832,6.289,31,5.914,31,5.5C31,4.672,30.329,4,29.5,4c-0.414,0-0.789,0.168-1.061,0.44    l-2,2C26.168,6.711,26,7.086,26,7.5C26,8.328,26.671,9,27.5,9z M6.439,8.561C6.711,8.832,7.086,9,7.5,9C8.328,9,9,8.328,9,7.5    c0-0.414-0.168-0.789-0.439-1.061l-2-2C6.289,4.168,5.914,4,5.5,4C4.672,4,4,4.672,4,5.5c0,0.414,0.168,0.789,0.439,1.06    L6.439,8.561z M33.5,16h-3c-0.828,0-1.5,0.672-1.5,1.5s0.672,1.5,1.5,1.5h3c0.828,0,1.5-0.672,1.5-1.5S34.328,16,33.5,16z     M28.561,26.439C28.289,26.168,27.914,26,27.5,26c-0.828,0-1.5,0.672-1.5,1.5c0,0.414,0.168,0.789,0.439,1.06l2,2    C28.711,30.832,29.086,31,29.5,31c0.828,0,1.5-0.672,1.5-1.5c0-0.414-0.168-0.789-0.439-1.061L28.561,26.439z M17.5,29    c-0.829,0-1.5,0.672-1.5,1.5v3c0,0.828,0.671,1.5,1.5,1.5s1.5-0.672,1.5-1.5v-3C19,29.672,18.329,29,17.5,29z M17.5,7    C11.71,7,7,11.71,7,17.5S11.71,28,17.5,28S28,23.29,28,17.5S23.29,7,17.5,7z M17.5,25c-4.136,0-7.5-3.364-7.5-7.5    c0-4.136,3.364-7.5,7.5-7.5c4.136,0,7.5,3.364,7.5,7.5C25,21.636,21.636,25,17.5,25z"></path></svg><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" class="nightIcon" x="0px" y="0px" viewBox="0 0 100 100" style="enable-background:new 0 0 100 100" xml:space="preserve" aria-label="亮色模式"><title>亮色模式</title><path d="M96.76,66.458c-0.853-0.852-2.15-1.064-3.23-0.534c-6.063,2.991-12.858,4.571-19.655,4.571  C62.022,70.495,50.88,65.88,42.5,57.5C29.043,44.043,25.658,23.536,34.076,6.47c0.532-1.08,0.318-2.379-0.534-3.23  c-0.851-0.852-2.15-1.064-3.23-0.534c-4.918,2.427-9.375,5.619-13.246,9.491c-9.447,9.447-14.65,22.008-14.65,35.369  c0,13.36,5.203,25.921,14.65,35.368s22.008,14.65,35.368,14.65c13.361,0,25.921-5.203,35.369-14.65  c3.872-3.871,7.064-8.328,9.491-13.246C97.826,68.608,97.611,67.309,96.76,66.458z"></path></svg></button></div><div style="flex-grow: 0; flex-shrink: 1; flex-basis: auto; order: 0; align-self: center; justify-self: center;"><button class="readermode"><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" class="readerIcon" fill="currentColor" stroke="currentColor" stroke-width="0.2" stroke-linecap="round" stroke-linejoin="round" width="64px" height="64px" viewBox="0 0 24 24" aria-label="阅读模式"><title>阅读模式</title><g transform="translate(-1.8, -1.8) scale(1.15, 1.2)"><path d="M8.9891247,2.5 C10.1384702,2.5 11.2209868,2.96705384 12.0049645,3.76669482 C12.7883914,2.96705384 13.8709081,2.5 15.0202536,2.5 L18.7549359,2.5 C19.1691495,2.5 19.5049359,2.83578644 19.5049359,3.25 L19.5046891,4.004 L21.2546891,4.00457396 C21.6343849,4.00457396 21.9481801,4.28672784 21.9978425,4.6528034 L22.0046891,4.75457396 L22.0046891,20.25 C22.0046891,20.6296958 21.7225353,20.943491 21.3564597,20.9931534 L21.2546891,21 L2.75468914,21 C2.37499337,21 2.06119817,20.7178461 2.01153575,20.3517706 L2.00468914,20.25 L2.00468914,4.75457396 C2.00468914,4.37487819 2.28684302,4.061083 2.65291858,4.01142057 L2.75468914,4.00457396 L4.50368914,4.004 L4.50444233,3.25 C4.50444233,2.87030423 4.78659621,2.55650904 5.15267177,2.50684662 L5.25444233,2.5 L8.9891247,2.5 Z M4.50368914,5.504 L3.50468914,5.504 L3.50468914,19.5 L10.9478955,19.4998273 C10.4513189,18.9207296 9.73864328,18.5588115 8.96709342,18.5065584 L8.77307039,18.5 L5.25444233,18.5 C4.87474657,18.5 4.56095137,18.2178461 4.51128895,17.8517706 L4.50444233,17.75 L4.50368914,5.504 Z M19.5049359,17.75 C19.5049359,18.1642136 19.1691495,18.5 18.7549359,18.5 L15.2363079,18.5 C14.3910149,18.5 13.5994408,18.8724714 13.0614828,19.4998273 L20.5046891,19.5 L20.5046891,5.504 L19.5046891,5.504 L19.5049359,17.75 Z M18.0059359,3.999 L15.0202536,4 L14.8259077,4.00692283 C13.9889509,4.06666544 13.2254227,4.50975805 12.7549359,5.212 L12.7549359,17.777 L12.7782651,17.7601316 C13.4923805,17.2719483 14.3447024,17 15.2363079,17 L18.0059359,16.999 L18.0056891,4.798 L18.0033792,4.75457396 L18.0056891,4.71 L18.0059359,3.999 Z M8.9891247,4 L6.00368914,3.999 L6.00599909,4.75457396 L6.00599909,4.75457396 L6.00368914,4.783 L6.00368914,16.999 L8.77307039,17 C9.57551536,17 10.3461406,17.2202781 11.0128313,17.6202194 L11.2536891,17.776 L11.2536891,5.211 C10.8200889,4.56369974 10.1361548,4.13636104 9.37521067,4.02745763 L9.18347055,4.00692283 L8.9891247,4 Z"></path></g></svg></button></div></div><div class="explorer" data-behavior="link" data-collapsed="collapsed" data-savestate="true" data-data-fns="{&quot;order&quot;:[&quot;filter&quot;,&quot;map&quot;,&quot;sort&quot;],&quot;sortFn&quot;:&quot;(a,b)=>!a.isFolder&amp;&amp;!b.isFolder||a.isFolder&amp;&amp;b.isFolder?a.displayName.localeCompare(b.displayName,void 0,{numeric:!0,sensitivity:\&quot;base\&quot;}):!a.isFolder&amp;&amp;b.isFolder?1:-1&quot;,&quot;filterFn&quot;:&quot;node=>node.slugSegment!==\&quot;tags\&quot;&quot;,&quot;mapFn&quot;:&quot;node=>{let override={\&quot;unity-Unity\\u5F15\\u64CE\&quot;:\&quot;Unity\&quot;,\&quot;csharp-dotnet-CSharp\\u4E0ENET\&quot;:\&quot;C#/.NET\&quot;,\&quot;patterns-\\u8BBE\\u8BA1\\u6A21\\u5F0F\&quot;:\&quot;\\u8BBE\\u8BA1\\u6A21\\u5F0F\&quot;,\&quot;performance-\\u6027\\u80FD\\u4F18\\u5316\&quot;:\&quot;\\u6027\\u80FD\&quot;,\&quot;tools-\\u5DE5\\u5177\\u4E0E\\u5DE5\\u4F5C\\u6D41\&quot;:\&quot;\\u5DE5\\u5177\&quot;,\&quot;gamedesign-\\u6E38\\u620F\\u8BBE\\u8BA1\&quot;:\&quot;\\u6E38\\u620F\\u8BBE\\u8BA1\&quot;,\&quot;sources-\\u6765\\u6E90\\u6458\\u8981\&quot;:\&quot;\\u6765\\u6E90\\u6458\\u8981\&quot;}[node.displayName];if(override){node.displayName=override;return}let segments=node.displayName.split(\&quot;-\&quot;),cjkStart=segments.findIndex(segment=>/[一-鿿]/.test(segment));cjkStart>-1&amp;&amp;(node.displayName=segments.slice(cjkStart).join(\&quot;-\&quot;))}&quot;}"><button type="button" class="explorer-toggle mobile-explorer hide-until-loaded" data-mobile="true" aria-controls="explorer-25"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide-menu"><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button><button type="button" class="title-button explorer-toggle desktop-explorer" data-mobile="false" aria-expanded="true"><h2>探索</h2><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="5 8 14 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="fold"><polyline points="6 9 12 15 18 9"></polyline></svg></button><div id="explorer-25" class="explorer-content" aria-expanded="false" role="group"><ul class="explorer-ul overflow" id="list-0"><li class="overflow-end"></li></ul></div><template id="template-file"><li><a href="#"></a></li></template><template id="template-folder"><li><div class="folder-container"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="5 8 14 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="folder-icon"><polyline points="6 9 12 15 18 9"></polyline></svg><div><button class="folder-button"><span class="folder-title"></span></button></div></div><div class="folder-outer"><ul class="content"></ul></div></li></template></div></div><div class="center"><div class="page-header"><div class="popover-hint"><nav class="breadcrumb-container" aria-label="breadcrumbs"><div class="breadcrumb-element"><a href="../">Home</a><p> ❯ </p></div><div class="breadcrumb-element"><a href="../patterns-设计模式/">设计模式</a><p> ❯ </p></div><div class="breadcrumb-element"><a href>行为型</a></div></nav><h1 class="article-title">behavioral-patterns-行为型</h1><p show-comma="true" class="content-meta"><time datetime="2026-05-17T00:00:00.000Z">2026年5月17日</time><span>10分钟阅读</span></p></div></div><article class="popover-hint"><h1 id="行为型模式behavioral-patterns">行为型模式（Behavioral Patterns）<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#行为型模式behavioral-patterns" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h1>
+<h2 id="核心思想">核心思想<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#核心思想" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<p>行为型模式关注对象间的通信与职责分配——谁做什么、谁通知谁、谁处理什么。它们解决的不是”创建什么”或”如何组合”，而是”如何协作”。</p>
+<h2 id="为什么重要">为什么重要<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#为什么重要" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<p>游戏系统交互密集：输入响应、AI 决策、事件通知、状态切换、回合流程。行为型模式帮助解耦交互逻辑，让系统更容易扩展和维护。行为型模式是游戏开发中使用频率最高的模式类别。</p>
+<h2 id="十种模式关系结构">十种模式关系结构<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#十种模式关系结构" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<pre><button class="expand-button" aria-label="Expand mermaid diagram" data-view-component="true"><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path fill-rule="evenodd" d="M3.72 3.72a.75.75 0 011.06 1.06L2.56 7h10.88l-2.22-2.22a.75.75 0 011.06-1.06l3.5 3.5a.75.75 0 010 1.06l-3.5 3.5a.75.75 0 11-1.06-1.06l2.22-2.22H2.56l2.22 2.22a.75.75 0 11-1.06 1.06l-3.5-3.5a.75.75 0 010-1.06l3.5-3.5z"></path></svg></button><code class="mermaid" data-clipboard="&quot;graph TB\n    OB[观察者&lt;br/>发布-订阅通知] --> |\&quot;一对多 vs 多对多\&quot;| ME[中介者&lt;br/>集中协调通信]\n    CM[命令&lt;br/>请求封装为对象] --> |\&quot;做什么 vs 怎么做\&quot;| SG[策略&lt;br/>算法族可互换]\n    CM --> |\&quot;执行 + 保存\&quot;| MM[备忘录&lt;br/>保存/恢复状态]\n    ST[状态&lt;br/>状态变化改变行为] --> |\&quot;自动切换 vs 手动选择\&quot;| SG\n    CR[责任链&lt;br/>链式传递请求] --> |\&quot;链式 vs 集中\&quot;| ME\n    TM[模板方法&lt;br/>继承重写步骤] --> |\&quot;继承 vs 组合\&quot;| SG\n    IT[迭代器&lt;br/>统一遍历集合] --> |\&quot;遍历\&quot;| CR\n    VI[访问者&lt;br/>算法与结构分离] --> |\&quot;双分派\&quot;| CR\n\n    style OB fill:#ee5a24,color:#fff\n    style CM fill:#ee5a24,color:#fff\n    style ST fill:#ee5a24,color:#fff\n    style SG fill:#ee5a24,color:#fff&quot;">graph TB
+    OB[观察者&lt;br/>发布-订阅通知] --> |&quot;一对多 vs 多对多&quot;| ME[中介者&lt;br/>集中协调通信]
+    CM[命令&lt;br/>请求封装为对象] --> |&quot;做什么 vs 怎么做&quot;| SG[策略&lt;br/>算法族可互换]
+    CM --> |&quot;执行 + 保存&quot;| MM[备忘录&lt;br/>保存/恢复状态]
+    ST[状态&lt;br/>状态变化改变行为] --> |&quot;自动切换 vs 手动选择&quot;| SG
+    CR[责任链&lt;br/>链式传递请求] --> |&quot;链式 vs 集中&quot;| ME
+    TM[模板方法&lt;br/>继承重写步骤] --> |&quot;继承 vs 组合&quot;| SG
+    IT[迭代器&lt;br/>统一遍历集合] --> |&quot;遍历&quot;| CR
+    VI[访问者&lt;br/>算法与结构分离] --> |&quot;双分派&quot;| CR
+
+    style OB fill:#ee5a24,color:#fff
+    style CM fill:#ee5a24,color:#fff
+    style ST fill:#ee5a24,color:#fff
+    style SG fill:#ee5a24,color:#fff
+</code><div id="mermaid-container" role="dialog"><div id="mermaid-space"><div class="mermaid-content"></div></div></div></pre>
+<h2 id="十种模式概览">十种模式概览<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#十种模式概览" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th>模式</th><th>核心意图</th><th>典型 Unity 场景</th><th>使用频率</th></tr></thead><tbody><tr><td><a href="../patterns-设计模式/chain-of-responsibility-责任链" class="internal alias" data-slug="patterns-设计模式/chain-of-responsibility-责任链">chain-of-responsibility-责任链</a></td><td>请求沿处理链传递</td><td>伤害计算管线、输入事件分发、日志处理器</td><td>中频</td></tr><tr><td><a href="../patterns-设计模式/command-pattern-命令" class="internal alias" data-slug="patterns-设计模式/command-pattern-命令">command-pattern-命令</a></td><td>请求封装为对象</td><td>输入绑定、撤销/重做、回放系统、技能队列</td><td>高频</td></tr><tr><td><a href="../patterns-设计模式/iterator-pattern-迭代器" class="internal alias" data-slug="patterns-设计模式/iterator-pattern-迭代器">iterator-pattern-迭代器</a></td><td>统一遍历集合</td><td>自定义集合遍历、Inventory 道具遍历</td><td>中频</td></tr><tr><td><a href="../patterns-设计模式/mediator-pattern-中介者" class="internal alias" data-slug="patterns-设计模式/mediator-pattern-中介者">mediator-pattern-中介者</a></td><td>对象通过中介者通信</td><td>UI 面板间通信、ChatMediator、EventBus</td><td>中频</td></tr><tr><td><a href="../patterns-设计模式/memento-pattern-备忘录" class="internal alias" data-slug="patterns-设计模式/memento-pattern-备忘录">memento-pattern-备忘录</a></td><td>保存/恢复对象状态</td><td>存档系统、撤销/重做（与命令模式配合）</td><td>中频</td></tr><tr><td><a href="../patterns-设计模式/observer-pattern-观察者" class="internal alias" data-slug="patterns-设计模式/observer-pattern-观察者">observer-pattern-观察者</a></td><td>发布-订阅通知</td><td>UnityEvent、Action、UniRx、成就系统</td><td>极高频</td></tr><tr><td><a href="../patterns-设计模式/state-pattern-状态" class="internal alias" data-slug="patterns-设计模式/state-pattern-状态">state-pattern-状态</a></td><td>状态变化改变行为</td><td>AI 状态机、角色状态（站立/跑/跳）、UI 状态</td><td>极高频</td></tr><tr><td><a href="../patterns-设计模式/strategy-pattern-策略" class="internal alias" data-slug="patterns-设计模式/strategy-pattern-策略">strategy-pattern-策略</a></td><td>算法族可互换</td><td>AI 行为策略、伤害计算、武器系统</td><td>高频</td></tr><tr><td><a href="../patterns-设计模式/template-method-pattern-模板方法" class="internal alias" data-slug="patterns-设计模式/template-method-pattern-模板方法">template-method-pattern-模板方法</a></td><td>超类定义算法骨架</td><td>关卡流程、Boss 行为模板、角色初始化流程</td><td>中频</td></tr><tr><td><a href="../patterns-设计模式/visitor-pattern-访问者" class="internal alias" data-slug="patterns-设计模式/visitor-pattern-访问者">visitor-pattern-访问者</a></td><td>算法与对象结构分离</td><td>序列化、AST 解析、伤害类型分发</td><td>低频</td></tr></tbody></table></div>
+<h2 id="模式间关系">模式间关系<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#模式间关系" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<ul>
+<li><strong>命令 vs 策略</strong>：命令封装请求，策略封装算法；命令强调”做什么”，策略强调”怎么做”</li>
+<li><strong>命令 vs 备忘录</strong>：命令+备忘录实现撤销——命令执行操作，备忘录保存状态快照</li>
+<li><strong>观察者 vs 中介者</strong>：观察者是一对多通知，中介者是多对多协调；观察者更轻量，中介者更集中</li>
+<li><strong>状态 vs 策略</strong>：结构相似但意图不同——状态对象随上下文自动切换，策略由客户端选择</li>
+<li><strong>责任链 vs 中介者</strong>：责任链是链式传递，中介者是集中调度</li>
+<li><strong>模板方法 vs 策略</strong>：模板方法用继承重写步骤，策略用组合替换算法</li>
+</ul>
+<h2 id="unity-中的行为型模式全景">Unity 中的行为型模式全景<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#unity-中的行为型模式全景" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<p>Unity 在行为层面提供了大量内置实现，日常开发应优先使用：</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th>引擎机制</th><th>对应模式</th><th>说明</th></tr></thead><tbody><tr><td><code>UnityEvent</code> / <code>Action&lt;T></code></td><td><a href="../patterns-设计模式/observer-pattern-观察者" class="internal alias" data-slug="patterns-设计模式/observer-pattern-观察者">观察者模式</a></td><td>一等公民级支持，编辑器可配置</td></tr><tr><td><code>UniRx</code> / R3</td><td>观察者模式（响应式）</td><td>响应式扩展，流式事件处理</td></tr><tr><td><code>Animator</code> / <code>AnimatorController</code></td><td>状态模式</td><td>可视化状态机编辑器，驱动动画切换</td></tr><tr><td><code>Input System</code> (新)</td><td><a href="../patterns-设计模式/command-pattern-命令" class="internal alias" data-slug="patterns-设计模式/command-pattern-命令">命令模式</a></td><td>输入动作封装为 <code>InputAction</code>，可运行时重绑定</td></tr><tr><td><code>Coroutine</code> / <code>IEnumerator</code></td><td>迭代器模式</td><td>Unity 特化的帧驱动迭代器</td></tr><tr><td><code>ScriptableObject</code> 事件通道</td><td>观察者 + 中介者</td><td>无需单例的跨对象通信方案</td></tr><tr><td><code>PlayerLoop</code> 子系统</td><td>模板方法变体</td><td>固定帧循环骨架，子系统注册回调</td></tr></tbody></table></div>
+<blockquote class="callout tip" data-callout="tip">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>UnityEvent 就是观察者的引擎级实现 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p><code>UnityEvent</code> 在 Inspector 可视化绑定，运行时自动通知所有监听者。日常开发优先用 <code>UnityEvent</code> 或 <code>Action&lt;T></code>，不必手写观察者基础设施。</p>
+</div>
+</blockquote>
+<h2 id="行为模式与调度">行为模式与调度<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#行为模式与调度" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<p>Unity 的 <a href="../unity-Unity引擎/player-loop-主循环" class="internal alias" data-slug="unity-Unity引擎/player-loop-主循环">player-loop-主循环</a> 定义了每帧的执行顺序，行为型模式的时序必须与帧循环对齐：</p>
+<ol>
+<li><strong>Input 阶段</strong> — 收集输入，封装为命令对象</li>
+<li><strong>Update 阶段</strong> — 命令执行，触发观察者通知，可能引发状态切换</li>
+<li><strong>Coroutine 继续</strong> — <code>yield return null</code> 后在此阶段恢复</li>
+<li><strong>LateUpdate</strong> — 状态稳定后可安全查询</li>
+</ol>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th>时序关切</th><th>涉及模式</th><th>建议</th></tr></thead><tbody><tr><td>观察者通知顺序</td><td>观察者</td><td>不依赖通知顺序；有顺序需求改用责任链</td></tr><tr><td>状态切换的副作用</td><td>状态</td><td>避免在 <code>OnDisable</code>/<code>OnDestroy</code> 中切换状态</td></tr><tr><td>Coroutine 时序</td><td>迭代器</td><td><code>yield null</code> = 下帧 Update 后；<code>WaitForFixedUpdate</code> = 物理帧后</td></tr></tbody></table></div>
+<blockquote class="callout warning" data-callout="warning">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>观察者通知中修改集合会抛异常 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>回调中添加/移除监听者会导致集合修改异常。方案：用待处理队列缓冲变更，通知完成后统一处理。</p>
+</div>
+</blockquote>
+<h2 id="gpp-中额外收录的行为模式">GPP 中额外收录的行为模式<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#gpp-中额外收录的行为模式" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<p>GoF 的 10 种行为型模式源自企业软件，游戏开发还有三种高频行为模式未被收录，由 GPP（Game Programming Patterns）补充：</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th>GPP 模式</th><th>核心意图</th><th>与 GoF 行为模式的关系</th><th>Unity 映射</th></tr></thead><tbody><tr><td><strong>字节码</strong></td><td>数据驱动的行为定义，非程序员可编写逻辑</td><td>解释器的轻量游戏版——不做完整 AST，只做指令集</td><td>Mod 系统、技能脚本、可视化编程</td></tr><tr><td><strong>子类沙箱</strong></td><td>基类提供操作集，子类只组合调用</td><td>模板方法的逆方向——模板方法是”基类定骨架、子类填细节”，子类沙箱是”基类提供积木、子类自由组合”</td><td><code>MonoBehaviour</code> 虚方法体系</td></tr><tr><td><strong>类型对象</strong></td><td>数据定义类型而非继承，运行时可增删类型</td><td>策略 + 原型的结合——策略选行为，原型克隆模板</td><td><code>ScriptableObject</code> 作为类型定义</td></tr></tbody></table></div>
+<blockquote class="callout tip" data-callout="tip">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>子类沙箱 vs 模板方法 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>两者都涉及基类与子类协作，但方向相反：</p>
+<ul>
+<li><strong>模板方法</strong>：基类定义算法骨架（控制权在基类），子类只能重写特定步骤</li>
+<li><strong>子类沙箱</strong>：基类提供操作工具箱（控制权在子类），子类自由组合调用</li>
+</ul>
+<p>Unity 的 <code>MonoBehaviour</code> 是子类沙箱的典型：引擎提供 <code>transform</code>、<code>gameObject</code>、<code>Start()</code>、<code>Update()</code> 等操作集，子类自由组合使用。</p>
+</div>
+</blockquote>
+<h2 id="游戏开发中的高频行为型模式">游戏开发中的高频行为型模式<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#游戏开发中的高频行为型模式" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<ol>
+<li><strong>观察者</strong> — 几乎无处不在（UnityEvent 本身就是观察者）</li>
+<li><strong>状态</strong> — AI、角色、UI 的核心模式</li>
+<li><strong>命令</strong> — 输入系统、撤销、技能队列</li>
+<li><strong>策略</strong> — AI 行为切换、伤害计算</li>
+</ol>
+<h2 id="常见陷阱">常见陷阱<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#常见陷阱" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<blockquote class="callout warning" data-callout="warning">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>状态模式 ≠ 状态机库 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>状态模式是一种设计模式（每个状态一个类），FSM 是一种架构工具。小规模用状态模式就够，复杂 AI 用 FSM 库（如 Stateless、Sirenix）更合适。</p>
+</div>
+</blockquote>
+<blockquote class="callout warning" data-callout="warning">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>命令不是万能解耦器 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>命令模式解耦的是”发起者”和”执行者”，但引入命令对象本身会增加 GC 压力（每个命令是一次分配）。高频路径（如每帧输入）建议用结构体命令 + 对象池，避免 GC Spike。详见 <a href="../csharp-dotnet-CSharp与NET/garbage-collection-GC与内存" class="internal alias" data-slug="csharp-dotnet-CSharp与NET/garbage-collection-GC与内存">garbage-collection-GC与内存</a>。</p>
+</div>
+</blockquote>
+<h2 id="相关">相关<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#相关" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<ul>
+<li><a href="../patterns-设计模式/design-patterns-设计模式" class="internal alias" data-slug="patterns-设计模式/design-patterns-设计模式">design-patterns-设计模式</a> — 设计模式总览</li>
+<li><a href="../patterns-设计模式/creational-patterns-创建型" class="internal alias" data-slug="patterns-设计模式/creational-patterns-创建型">creational-patterns-创建型</a> — 创建型模式</li>
+<li><a href="../patterns-设计模式/structural-patterns-结构型" class="internal alias" data-slug="patterns-设计模式/structural-patterns-结构型">structural-patterns-结构型</a> — 结构型模式</li>
+<li><a href="../unity-Unity引擎/player-loop-主循环" class="internal alias" data-slug="unity-Unity引擎/player-loop-主循环">player-loop-主循环</a> — 行为模式在帧循环中的时序位置</li>
+<li><a href="../unity-Unity引擎/coroutine-协程" class="internal alias" data-slug="unity-Unity引擎/coroutine-协程">coroutine-协程</a> — 协程与迭代器模式的关系</li>
+<li><a href="../csharp-dotnet-CSharp与NET/garbage-collection-GC与内存" class="internal alias" data-slug="csharp-dotnet-CSharp与NET/garbage-collection-GC与内存">garbage-collection-GC与内存</a> — 行为模式（尤其命令、观察者）的 GC 代价</li>
+<li><a href="../performance-性能优化/concurrency-models-synthesis-并发全景" class="internal alias" data-slug="performance-性能优化/concurrency-models-synthesis-并发全景">concurrency-models-synthesis-并发全景</a> — 事件队列与并发模型</li>
+</ul></article><hr/><div class="page-footer"></div></div><div class="right sidebar"><div class="graph"><h3>关系图谱</h3><div class="graph-outer"><div class="graph-container" data-cfg="{&quot;drag&quot;:true,&quot;zoom&quot;:true,&quot;depth&quot;:1,&quot;scale&quot;:1.1,&quot;repelForce&quot;:0.5,&quot;centerForce&quot;:0.3,&quot;linkDistance&quot;:30,&quot;fontSize&quot;:0.6,&quot;opacityScale&quot;:1,&quot;showTags&quot;:true,&quot;removeTags&quot;:[],&quot;focusOnHover&quot;:false,&quot;enableRadial&quot;:false}"></div><button class="global-graph-icon" aria-label="Global Graph"><svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 55 55" fill="currentColor" xml:space="preserve"><path d="M49,0c-3.309,0-6,2.691-6,6c0,1.035,0.263,2.009,0.726,2.86l-9.829,9.829C32.542,17.634,30.846,17,29,17
+                s-3.542,0.634-4.898,1.688l-7.669-7.669C16.785,10.424,17,9.74,17,9c0-2.206-1.794-4-4-4S9,6.794,9,9s1.794,4,4,4
+                c0.74,0,1.424-0.215,2.019-0.567l7.669,7.669C21.634,21.458,21,23.154,21,25s0.634,3.542,1.688,4.897L10.024,42.562
+                C8.958,41.595,7.549,41,6,41c-3.309,0-6,2.691-6,6s2.691,6,6,6s6-2.691,6-6c0-1.035-0.263-2.009-0.726-2.86l12.829-12.829
+                c1.106,0.86,2.44,1.436,3.898,1.619v10.16c-2.833,0.478-5,2.942-5,5.91c0,3.309,2.691,6,6,6s6-2.691,6-6c0-2.967-2.167-5.431-5-5.91
+                v-10.16c1.458-0.183,2.792-0.759,3.898-1.619l7.669,7.669C41.215,39.576,41,40.26,41,41c0,2.206,1.794,4,4,4s4-1.794,4-4
+                s-1.794-4-4-4c-0.74,0-1.424,0.215-2.019,0.567l-7.669-7.669C36.366,28.542,37,26.846,37,25s-0.634-3.542-1.688-4.897l9.665-9.665
+                C46.042,11.405,47.451,12,49,12c3.309,0,6-2.691,6-6S52.309,0,49,0z M11,9c0-1.103,0.897-2,2-2s2,0.897,2,2s-0.897,2-2,2
+                S11,10.103,11,9z M6,51c-2.206,0-4-1.794-4-4s1.794-4,4-4s4,1.794,4,4S8.206,51,6,51z M33,49c0,2.206-1.794,4-4,4s-4-1.794-4-4
+                s1.794-4,4-4S33,46.794,33,49z M29,31c-3.309,0-6-2.691-6-6s2.691-6,6-6s6,2.691,6,6S32.309,31,29,31z M47,41c0,1.103-0.897,2-2,2
+                s-2-0.897-2-2s0.897-2,2-2S47,39.897,47,41z M49,10c-2.206,0-4-1.794-4-4s1.794-4,4-4s4,1.794,4,4S51.206,10,49,10z"></path></svg></button></div><div class="global-graph-outer"><div class="global-graph-container" data-cfg="{&quot;drag&quot;:true,&quot;zoom&quot;:true,&quot;depth&quot;:-1,&quot;scale&quot;:0.9,&quot;repelForce&quot;:0.5,&quot;centerForce&quot;:0.2,&quot;linkDistance&quot;:30,&quot;fontSize&quot;:0.6,&quot;opacityScale&quot;:1,&quot;showTags&quot;:true,&quot;removeTags&quot;:[],&quot;focusOnHover&quot;:true,&quot;enableRadial&quot;:true}"></div></div></div><div class="toc desktop-only"><button type="button" class="toc-header" aria-controls="toc-18" aria-expanded="true"><h3>目录</h3><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="fold"><polyline points="6 9 12 15 18 9"></polyline></svg></button><ul id="list-1" class="toc-content overflow"><li class="depth-0"><a href="#行为型模式behavioral-patterns" data-for="行为型模式behavioral-patterns">行为型模式（Behavioral Patterns）</a></li><li class="depth-1"><a href="#核心思想" data-for="核心思想">核心思想</a></li><li class="depth-1"><a href="#为什么重要" data-for="为什么重要">为什么重要</a></li><li class="depth-1"><a href="#十种模式关系结构" data-for="十种模式关系结构">十种模式关系结构</a></li><li class="depth-1"><a href="#十种模式概览" data-for="十种模式概览">十种模式概览</a></li><li class="depth-1"><a href="#模式间关系" data-for="模式间关系">模式间关系</a></li><li class="depth-1"><a href="#unity-中的行为型模式全景" data-for="unity-中的行为型模式全景">Unity 中的行为型模式全景</a></li><li class="depth-1"><a href="#行为模式与调度" data-for="行为模式与调度">行为模式与调度</a></li><li class="depth-1"><a href="#gpp-中额外收录的行为模式" data-for="gpp-中额外收录的行为模式">GPP 中额外收录的行为模式</a></li><li class="depth-1"><a href="#游戏开发中的高频行为型模式" data-for="游戏开发中的高频行为型模式">游戏开发中的高频行为型模式</a></li><li class="depth-1"><a href="#常见陷阱" data-for="常见陷阱">常见陷阱</a></li><li class="depth-1"><a href="#相关" data-for="相关">相关</a></li><li class="overflow-end"></li></ul></div><div class="backlinks"><h3>反向链接</h3><ul id="list-2" class="overflow"><li><a href="../" class="internal">index</a></li><li><a href="../patterns-设计模式/chain-of-responsibility-责任链" class="internal">chain-of-responsibility-责任链</a></li><li><a href="../patterns-设计模式/command-pattern-命令" class="internal">command-pattern-命令</a></li><li><a href="../patterns-设计模式/creational-patterns-创建型" class="internal">creational-patterns-创建型</a></li><li><a href="../patterns-设计模式/design-patterns-设计模式" class="internal">design-patterns-设计模式</a></li><li><a href="../patterns-设计模式/game-programming-patterns-游戏编程模式" class="internal">game-programming-patterns-游戏编程模式</a></li><li><a href="../patterns-设计模式/gpp-behavioral-patterns-GPP行为" class="internal">gpp-behavioral-patterns-GPP行为</a></li><li><a href="../patterns-设计模式/iterator-pattern-迭代器" class="internal">iterator-pattern-迭代器</a></li><li><a href="../patterns-设计模式/mediator-pattern-中介者" class="internal">mediator-pattern-中介者</a></li><li><a href="../patterns-设计模式/memento-pattern-备忘录" class="internal">memento-pattern-备忘录</a></li><li><a href="../patterns-设计模式/observer-pattern-观察者" class="internal">observer-pattern-观察者</a></li><li><a href="../patterns-设计模式/state-pattern-状态" class="internal">state-pattern-状态</a></li><li><a href="../patterns-设计模式/strategy-pattern-策略" class="internal">strategy-pattern-策略</a></li><li><a href="../patterns-设计模式/structural-patterns-结构型" class="internal">structural-patterns-结构型</a></li><li><a href="../patterns-设计模式/template-method-pattern-模板方法" class="internal">template-method-pattern-模板方法</a></li><li><a href="../patterns-设计模式/visitor-pattern-访问者" class="internal">visitor-pattern-访问者</a></li><li class="overflow-end"></li></ul></div></div><footer class><p>Created with <a href="https://quartz.jzhao.xyz/">Quartz v4.5.2</a> © 2026</p><ul><li><a href="https://github.com/jackyzha0/quartz">GitHub</a></li><li><a href="https://discord.gg/cRFFHYye7t">Discord Community</a></li></ul></footer></div></div></body><script type="application/javascript" data-persist="true">function n(){let t=this.parentElement;t.classList.toggle("is-collapsed");let e=t.getElementsByClassName("callout-content")[0];if(!e)return;let l=t.classList.contains("is-collapsed");e.style.gridTemplateRows=l?"0fr":"1fr"}function c(){let t=document.getElementsByClassName("callout is-collapsible");for(let e of t){let l=e.getElementsByClassName("callout-title")[0],s=e.getElementsByClassName("callout-content")[0];if(!l||!s)continue;l.addEventListener("click",n),window.addCleanup(()=>l.removeEventListener("click",n));let o=e.classList.contains("is-collapsed");s.style.gridTemplateRows=o?"0fr":"1fr"}}document.addEventListener("nav",c);
+</script><script type="module" data-persist="true">function E(c,e){if(!c)return;function t(s){s.target===this&&(s.preventDefault(),s.stopPropagation(),e())}function r(s){s.key.startsWith("Esc")&&(s.preventDefault(),e())}c?.addEventListener("click",t),window.addCleanup(()=>c?.removeEventListener("click",t)),document.addEventListener("keydown",r),window.addCleanup(()=>document.removeEventListener("keydown",r))}function y(c){for(;c.firstChild;)c.removeChild(c.firstChild)}var v=class{constructor(e,t){this.container=e;this.content=t;this.setupEventListeners(),this.setupNavigationControls(),this.resetTransform()}isDragging=!1;startPan={x:0,y:0};currentPan={x:0,y:0};scale=1;MIN_SCALE=.5;MAX_SCALE=3;cleanups=[];setupEventListeners(){let e=this.onMouseDown.bind(this),t=this.onMouseMove.bind(this),r=this.onMouseUp.bind(this),s=this.onTouchStart.bind(this),o=this.onTouchMove.bind(this),i=this.onTouchEnd.bind(this),n=this.resetTransform.bind(this);this.container.addEventListener("mousedown",e),document.addEventListener("mousemove",t),document.addEventListener("mouseup",r),this.container.addEventListener("touchstart",s,{passive:!1}),document.addEventListener("touchmove",o,{passive:!1}),document.addEventListener("touchend",i),window.addEventListener("resize",n),this.cleanups.push(()=>this.container.removeEventListener("mousedown",e),()=>document.removeEventListener("mousemove",t),()=>document.removeEventListener("mouseup",r),()=>this.container.removeEventListener("touchstart",s),()=>document.removeEventListener("touchmove",o),()=>document.removeEventListener("touchend",i),()=>window.removeEventListener("resize",n))}cleanup(){for(let e of this.cleanups)e()}setupNavigationControls(){let e=document.createElement("div");e.className="mermaid-controls";let t=this.createButton("+",()=>this.zoom(.1)),r=this.createButton("-",()=>this.zoom(-.1)),s=this.createButton("Reset",()=>this.resetTransform());e.appendChild(r),e.appendChild(s),e.appendChild(t),this.container.appendChild(e)}createButton(e,t){let r=document.createElement("button");return r.textContent=e,r.className="mermaid-control-button",r.addEventListener("click",t),window.addCleanup(()=>r.removeEventListener("click",t)),r}onMouseDown(e){e.button===0&&(this.isDragging=!0,this.startPan={x:e.clientX-this.currentPan.x,y:e.clientY-this.currentPan.y},this.container.style.cursor="grabbing")}onMouseMove(e){this.isDragging&&(e.preventDefault(),this.currentPan={x:e.clientX-this.startPan.x,y:e.clientY-this.startPan.y},this.updateTransform())}onMouseUp(){this.isDragging=!1,this.container.style.cursor="grab"}onTouchStart(e){if(e.touches.length!==1)return;this.isDragging=!0;let t=e.touches[0];this.startPan={x:t.clientX-this.currentPan.x,y:t.clientY-this.currentPan.y}}onTouchMove(e){if(!this.isDragging||e.touches.length!==1)return;e.preventDefault();let t=e.touches[0];this.currentPan={x:t.clientX-this.startPan.x,y:t.clientY-this.startPan.y},this.updateTransform()}onTouchEnd(){this.isDragging=!1}zoom(e){let t=Math.min(Math.max(this.scale+e,this.MIN_SCALE),this.MAX_SCALE),r=this.content.getBoundingClientRect(),s=r.width/2,o=r.height/2,i=t-this.scale;this.currentPan.x-=s*i,this.currentPan.y-=o*i,this.scale=t,this.updateTransform()}updateTransform(){this.content.style.transform=`translate(${this.currentPan.x}px, ${this.currentPan.y}px) scale(${this.scale})`}resetTransform(){let t=this.content.querySelector("svg").getBoundingClientRect(),r=t.width/this.scale,s=t.height/this.scale;this.scale=1,this.currentPan={x:(this.container.clientWidth-r)/2,y:(this.container.clientHeight-s)/2},this.updateTransform()}},T=["--secondary","--tertiary","--gray","--light","--lightgray","--highlight","--dark","--darkgray","--codeFont"],L;document.addEventListener("nav",async()=>{let e=document.querySelector(".center").querySelectorAll("code.mermaid");if(e.length===0)return;L||=await import("https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.4.0/mermaid.esm.min.mjs");let t=L.default,r=new WeakMap;for(let o of e){let i=o.getAttribute("data-clipboard"),n=o.innerText;if(i)try{n=JSON.parse(i)}catch{}r.set(o,n)}async function s(){for(let n of e){n.removeAttribute("data-processed");let a=r.get(n);a&&(n.textContent=a)}let o=T.reduce((n,a)=>(n[a]=window.getComputedStyle(document.documentElement).getPropertyValue(a),n),{}),i=document.documentElement.getAttribute("saved-theme")==="dark";t.initialize({startOnLoad:!1,securityLevel:"loose",theme:i?"dark":"base",themeVariables:{fontFamily:o["--codeFont"],primaryColor:o["--light"],primaryTextColor:o["--darkgray"],primaryBorderColor:o["--tertiary"],lineColor:o["--darkgray"],secondaryColor:o["--secondary"],tertiaryColor:o["--tertiary"],clusterBkg:o["--light"],edgeLabelBackground:o["--highlight"]}});for(let n=0;n<e.length;n++){let a=e[n],l=r.get(a);if(l)try{let u=`mermaid-svg-${Date.now()}-${n}`,{svg:p,bindFunctions:d}=await t.render(u,l);a.innerHTML=p,d&&d(a),a.setAttribute("data-processed","true")}catch(u){console.error(`mermaid render failed for node ${n}:`,u)}}}await s(),document.addEventListener("themechange",s),window.addCleanup(()=>document.removeEventListener("themechange",s));for(let o=0;o<e.length;o++){let g=function(){let f=d.querySelector("#mermaid-space"),m=d.querySelector(".mermaid-content");if(!m)return;y(m);let w=i.querySelector("svg").cloneNode(!0);m.appendChild(w),d.classList.add("active"),f.style.cursor="grab",h=new v(f,m)},M=function(){d.classList.remove("active"),h?.cleanup(),h=null},i=e[o],n=i.parentElement,a=n.querySelector(".clipboard-button"),l=n.querySelector(".expand-button"),u=window.getComputedStyle(a),p=a.offsetWidth+parseFloat(u.marginLeft||"0")+parseFloat(u.marginRight||"0");l.style.right=`calc(${p}px + 0.3rem)`,n.prepend(l);let d=n.querySelector("#mermaid-container");if(!d)return;let h=null;l.addEventListener("click",g),E(d,M),window.addCleanup(()=>{h?.cleanup(),l.removeEventListener("click",g)})}});
+</script><script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/copy-tex.min.js" type="application/javascript" data-persist="true"></script><script src="../postscript.js" type="module" data-persist="true"></script></html>

@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr"><head><title>game-programming-patterns-游戏编程模式</title><meta charset="utf-8"/><link rel="preconnect" href="https://fonts.googleapis.com"/><link rel="preconnect" href="https://fonts.gstatic.com"/><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted Grotesk:wght@400;700&amp;family=Source Sans Pro:ital,wght@0,400;0,600;1,400;1,600&amp;family=IBM Plex Mono:wght@400;600&amp;display=swap"/><link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin="anonymous"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><meta name="og:site_name" content="Unity / C# / .NET 游戏开发知识库"/><meta property="og:title" content="game-programming-patterns-游戏编程模式"/><meta property="og:type" content="website"/><meta name="twitter:card" content="summary_large_image"/><meta name="twitter:title" content="game-programming-patterns-游戏编程模式"/><meta name="twitter:description" content="游戏编程模式（Game Programming Patterns） 核心思想 《Game Programming Patterns》是 Robert Nystrom（EA 8 年工作经验）从游戏开发实战出发归纳的设计模式体系。全书覆盖 19 种模式，其中 6 种复访 GoF（命令、享元、观察者、原型、单例、状态），13 种是 GoF 未收录的游戏特有模式。 GPP 与 GoF 的根本区分：GoF 解决”对象间关系”，GPP 解决”游戏独有关切”——帧驱动（游戏循环/更新方法）、性能约束（数据局部性/对象池/空间分区）、数据驱动（类型对象/字节码/脏标识）。理解这条脉络，就知道为什么有些 GoF..."/><meta property="og:description" content="游戏编程模式（Game Programming Patterns） 核心思想 《Game Programming Patterns》是 Robert Nystrom（EA 8 年工作经验）从游戏开发实战出发归纳的设计模式体系。全书覆盖 19 种模式，其中 6 种复访 GoF（命令、享元、观察者、原型、单例、状态），13 种是 GoF 未收录的游戏特有模式。 GPP 与 GoF 的根本区分：GoF 解决”对象间关系”，GPP 解决”游戏独有关切”——帧驱动（游戏循环/更新方法）、性能约束（数据局部性/对象池/空间分区）、数据驱动（类型对象/字节码/脏标识）。理解这条脉络，就知道为什么有些 GoF..."/><meta property="og:image:alt" content="游戏编程模式（Game Programming Patterns） 核心思想 《Game Programming Patterns》是 Robert Nystrom（EA 8 年工作经验）从游戏开发实战出发归纳的设计模式体系。全书覆盖 19 种模式，其中 6 种复访 GoF（命令、享元、观察者、原型、单例、状态），13 种是 GoF 未收录的游戏特有模式。 GPP 与 GoF 的根本区分：GoF 解决”对象间关系”，GPP 解决”游戏独有关切”——帧驱动（游戏循环/更新方法）、性能约束（数据局部性/对象池/空间分区）、数据驱动（类型对象/字节码/脏标识）。理解这条脉络，就知道为什么有些 GoF..."/><meta property="twitter:domain" content="easilyid.github.io/knowledge-base-site"/><meta property="og:url" content="https://easilyid.github.io/knowledge-base-site/patterns-设计模式/game-programming-patterns-游戏编程模式"/><meta property="twitter:url" content="https://easilyid.github.io/knowledge-base-site/patterns-设计模式/game-programming-patterns-游戏编程模式"/><link rel="icon" href="../static/icon.png"/><meta name="description" content="游戏编程模式（Game Programming Patterns） 核心思想 《Game Programming Patterns》是 Robert Nystrom（EA 8 年工作经验）从游戏开发实战出发归纳的设计模式体系。全书覆盖 19 种模式，其中 6 种复访 GoF（命令、享元、观察者、原型、单例、状态），13 种是 GoF 未收录的游戏特有模式。 GPP 与 GoF 的根本区分：GoF 解决”对象间关系”，GPP 解决”游戏独有关切”——帧驱动（游戏循环/更新方法）、性能约束（数据局部性/对象池/空间分区）、数据驱动（类型对象/字节码/脏标识）。理解这条脉络，就知道为什么有些 GoF..."/><meta name="generator" content="Quartz"/><link href="../index.css" rel="stylesheet" type="text/css" data-persist="true"/><style>.expand-button {
+  position: absolute;
+  display: flex;
+  float: right;
+  padding: 0.4rem;
+  margin: 0.3rem;
+  right: 0;
+  color: var(--gray);
+  border-color: var(--dark);
+  background-color: var(--light);
+  border: 1px solid;
+  border-radius: 5px;
+  opacity: 0;
+  transition: 0.2s;
+}
+.expand-button > svg {
+  fill: var(--light);
+  filter: contrast(0.3);
+}
+.expand-button:hover {
+  cursor: pointer;
+  border-color: var(--secondary);
+}
+.expand-button:focus {
+  outline: 0;
+}
+
+pre:hover > .expand-button {
+  opacity: 1;
+  transition: 0.2s;
+}
+
+#mermaid-container {
+  position: fixed;
+  contain: layout;
+  z-index: 999;
+  left: 0;
+  top: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  display: none;
+  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.5);
+}
+#mermaid-container.active {
+  display: inline-block;
+}
+#mermaid-container > #mermaid-space {
+  border: 1px solid var(--lightgray);
+  background-color: var(--light);
+  border-radius: 5px;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  height: 80vh;
+  width: 80vw;
+  overflow: hidden;
+}
+#mermaid-container > #mermaid-space > .mermaid-content {
+  position: relative;
+  transform-origin: 0 0;
+  transition: transform 0.1s ease;
+  overflow: visible;
+  min-height: 200px;
+  min-width: 200px;
+}
+#mermaid-container > #mermaid-space > .mermaid-content pre {
+  margin: 0;
+  border: none;
+}
+#mermaid-container > #mermaid-space > .mermaid-content svg {
+  max-width: none;
+  height: auto;
+}
+#mermaid-container > #mermaid-space > .mermaid-controls {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+  background: var(--light);
+  border: 1px solid var(--lightgray);
+  border-radius: 6px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  z-index: 2;
+}
+#mermaid-container > #mermaid-space > .mermaid-controls .mermaid-control-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--lightgray);
+  background: var(--light);
+  color: var(--dark);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  font-family: var(--bodyFont);
+  transition: all 0.2s ease;
+}
+#mermaid-container > #mermaid-space > .mermaid-controls .mermaid-control-button:hover {
+  background: var(--lightgray);
+}
+#mermaid-container > #mermaid-space > .mermaid-controls .mermaid-control-button:active {
+  transform: translateY(1px);
+}
+#mermaid-container > #mermaid-space > .mermaid-controls .mermaid-control-button:nth-child(2) {
+  width: auto;
+  padding: 0 12px;
+  font-size: 14px;
+}
+/*# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VSb290IjoiL2hvbWUvcnVubmVyL3dvcmsvS25vd2xlZGdlLUJhc2UvS25vd2xlZGdlLUJhc2UvcXVhcnR6L3F1YXJ0ei9jb21wb25lbnRzL3N0eWxlcyIsInNvdXJjZXMiOlsibWVybWFpZC5pbmxpbmUuc2NzcyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiQUFBQTtFQUNFO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBOztBQUVBO0VBQ0U7RUFDQTs7QUFHRjtFQUNFO0VBQ0E7O0FBR0Y7RUFDRTs7O0FBS0Y7RUFDRTtFQUNBOzs7QUFJSjtFQUNFO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7O0FBRUE7RUFDRTs7QUFHRjtFQUNFO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBOztBQUVBO0VBQ0U7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBOztBQUVBO0VBQ0U7RUFDQTs7QUFHRjtFQUNFO0VBQ0E7O0FBSUo7RUFDRTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBOztBQUVBO0VBQ0U7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTs7QUFFQTtFQUNFOztBQUdGO0VBQ0U7O0FBSUY7RUFDRTtFQUNBO0VBQ0EiLCJzb3VyY2VzQ29udGVudCI6WyIuZXhwYW5kLWJ1dHRvbiB7XG4gIHBvc2l0aW9uOiBhYnNvbHV0ZTtcbiAgZGlzcGxheTogZmxleDtcbiAgZmxvYXQ6IHJpZ2h0O1xuICBwYWRkaW5nOiAwLjRyZW07XG4gIG1hcmdpbjogMC4zcmVtO1xuICByaWdodDogMDsgLy8gTk9URTogcmlnaHQgd2lsbCBiZSBzZXQgaW4gbWVybWFpZC5pbmxpbmUudHNcbiAgY29sb3I6IHZhcigtLWdyYXkpO1xuICBib3JkZXItY29sb3I6IHZhcigtLWRhcmspO1xuICBiYWNrZ3JvdW5kLWNvbG9yOiB2YXIoLS1saWdodCk7XG4gIGJvcmRlcjogMXB4IHNvbGlkO1xuICBib3JkZXItcmFkaXVzOiA1cHg7XG4gIG9wYWNpdHk6IDA7XG4gIHRyYW5zaXRpb246IDAuMnM7XG5cbiAgJiA+IHN2ZyB7XG4gICAgZmlsbDogdmFyKC0tbGlnaHQpO1xuICAgIGZpbHRlcjogY29udHJhc3QoMC4zKTtcbiAgfVxuXG4gICY6aG92ZXIge1xuICAgIGN1cnNvcjogcG9pbnRlcjtcbiAgICBib3JkZXItY29sb3I6IHZhcigtLXNlY29uZGFyeSk7XG4gIH1cblxuICAmOmZvY3VzIHtcbiAgICBvdXRsaW5lOiAwO1xuICB9XG59XG5cbnByZSB7XG4gICY6aG92ZXIgPiAuZXhwYW5kLWJ1dHRvbiB7XG4gICAgb3BhY2l0eTogMTtcbiAgICB0cmFuc2l0aW9uOiAwLjJzO1xuICB9XG59XG5cbiNtZXJtYWlkLWNvbnRhaW5lciB7XG4gIHBvc2l0aW9uOiBmaXhlZDtcbiAgY29udGFpbjogbGF5b3V0O1xuICB6LWluZGV4OiA5OTk7XG4gIGxlZnQ6IDA7XG4gIHRvcDogMDtcbiAgd2lkdGg6IDEwMHZ3O1xuICBoZWlnaHQ6IDEwMHZoO1xuICBvdmVyZmxvdzogaGlkZGVuO1xuICBkaXNwbGF5OiBub25lO1xuICBiYWNrZHJvcC1maWx0ZXI6IGJsdXIoNHB4KTtcbiAgYmFja2dyb3VuZDogcmdiYSgwLCAwLCAwLCAwLjUpO1xuXG4gICYuYWN0aXZlIHtcbiAgICBkaXNwbGF5OiBpbmxpbmUtYmxvY2s7XG4gIH1cblxuICAmID4gI21lcm1haWQtc3BhY2Uge1xuICAgIGJvcmRlcjogMXB4IHNvbGlkIHZhcigtLWxpZ2h0Z3JheSk7XG4gICAgYmFja2dyb3VuZC1jb2xvcjogdmFyKC0tbGlnaHQpO1xuICAgIGJvcmRlci1yYWRpdXM6IDVweDtcbiAgICBwb3NpdGlvbjogZml4ZWQ7XG4gICAgdG9wOiA1MCU7XG4gICAgbGVmdDogNTAlO1xuICAgIHRyYW5zZm9ybTogdHJhbnNsYXRlKC01MCUsIC01MCUpO1xuICAgIGhlaWdodDogODB2aDtcbiAgICB3aWR0aDogODB2dztcbiAgICBvdmVyZmxvdzogaGlkZGVuO1xuXG4gICAgJiA+IC5tZXJtYWlkLWNvbnRlbnQge1xuICAgICAgcG9zaXRpb246IHJlbGF0aXZlO1xuICAgICAgdHJhbnNmb3JtLW9yaWdpbjogMCAwO1xuICAgICAgdHJhbnNpdGlvbjogdHJhbnNmb3JtIDAuMXMgZWFzZTtcbiAgICAgIG92ZXJmbG93OiB2aXNpYmxlO1xuICAgICAgbWluLWhlaWdodDogMjAwcHg7XG4gICAgICBtaW4td2lkdGg6IDIwMHB4O1xuXG4gICAgICBwcmUge1xuICAgICAgICBtYXJnaW46IDA7XG4gICAgICAgIGJvcmRlcjogbm9uZTtcbiAgICAgIH1cblxuICAgICAgc3ZnIHtcbiAgICAgICAgbWF4LXdpZHRoOiBub25lO1xuICAgICAgICBoZWlnaHQ6IGF1dG87XG4gICAgICB9XG4gICAgfVxuXG4gICAgJiA+IC5tZXJtYWlkLWNvbnRyb2xzIHtcbiAgICAgIHBvc2l0aW9uOiBhYnNvbHV0ZTtcbiAgICAgIGJvdHRvbTogMjBweDtcbiAgICAgIHJpZ2h0OiAyMHB4O1xuICAgICAgZGlzcGxheTogZmxleDtcbiAgICAgIGdhcDogOHB4O1xuICAgICAgcGFkZGluZzogOHB4O1xuICAgICAgYmFja2dyb3VuZDogdmFyKC0tbGlnaHQpO1xuICAgICAgYm9yZGVyOiAxcHggc29saWQgdmFyKC0tbGlnaHRncmF5KTtcbiAgICAgIGJvcmRlci1yYWRpdXM6IDZweDtcbiAgICAgIGJveC1zaGFkb3c6IDAgMnB4IDRweCByZ2JhKDAsIDAsIDAsIDAuMSk7XG4gICAgICB6LWluZGV4OiAyO1xuXG4gICAgICAubWVybWFpZC1jb250cm9sLWJ1dHRvbiB7XG4gICAgICAgIGRpc3BsYXk6IGZsZXg7XG4gICAgICAgIGFsaWduLWl0ZW1zOiBjZW50ZXI7XG4gICAgICAgIGp1c3RpZnktY29udGVudDogY2VudGVyO1xuICAgICAgICB3aWR0aDogMzJweDtcbiAgICAgICAgaGVpZ2h0OiAzMnB4O1xuICAgICAgICBwYWRkaW5nOiAwO1xuICAgICAgICBib3JkZXI6IDFweCBzb2xpZCB2YXIoLS1saWdodGdyYXkpO1xuICAgICAgICBiYWNrZ3JvdW5kOiB2YXIoLS1saWdodCk7XG4gICAgICAgIGNvbG9yOiB2YXIoLS1kYXJrKTtcbiAgICAgICAgYm9yZGVyLXJhZGl1czogNHB4O1xuICAgICAgICBjdXJzb3I6IHBvaW50ZXI7XG4gICAgICAgIGZvbnQtc2l6ZTogMTZweDtcbiAgICAgICAgZm9udC1mYW1pbHk6IHZhcigtLWJvZHlGb250KTtcbiAgICAgICAgdHJhbnNpdGlvbjogYWxsIDAuMnMgZWFzZTtcblxuICAgICAgICAmOmhvdmVyIHtcbiAgICAgICAgICBiYWNrZ3JvdW5kOiB2YXIoLS1saWdodGdyYXkpO1xuICAgICAgICB9XG5cbiAgICAgICAgJjphY3RpdmUge1xuICAgICAgICAgIHRyYW5zZm9ybTogdHJhbnNsYXRlWSgxcHgpO1xuICAgICAgICB9XG5cbiAgICAgICAgLy8gU3R5bGUgdGhlIHJlc2V0IGJ1dHRvbiBkaWZmZXJlbnRseVxuICAgICAgICAmOm50aC1jaGlsZCgyKSB7XG4gICAgICAgICAgd2lkdGg6IGF1dG87XG4gICAgICAgICAgcGFkZGluZzogMCAxMnB4O1xuICAgICAgICAgIGZvbnQtc2l6ZTogMTRweDtcbiAgICAgICAgfVxuICAgICAgfVxuICAgIH1cbiAgfVxufVxuIl19 */</style><link href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" rel="stylesheet" type="text/css" data-persist="true"/><script src="../prescript.js" type="application/javascript" data-persist="true"></script><script type="application/javascript" data-persist="true">const fetchData = fetch("../static/contentIndex.json").then(data => data.json())</script><link rel="alternate" type="application/rss+xml" title="RSS Feed" href="https://easilyid.github.io/knowledge-base-site/index.xml"/><meta property="og:image:width" content="1200"/><meta property="og:image:height" content="630"/><meta property="og:image" content="https://easilyid.github.io/knowledge-base-site/patterns-设计模式/game-programming-patterns-游戏编程模式-og-image.webp"/><meta property="og:image:url" content="https://easilyid.github.io/knowledge-base-site/patterns-设计模式/game-programming-patterns-游戏编程模式-og-image.webp"/><meta name="twitter:image" content="https://easilyid.github.io/knowledge-base-site/patterns-设计模式/game-programming-patterns-游戏编程模式-og-image.webp"/><meta property="og:image:type" content="image/.webp"/></head><body data-slug="patterns-设计模式/game-programming-patterns-游戏编程模式"><div id="quartz-root" class="page"><div id="quartz-body"><div class="left sidebar"><h2 class="page-title"><a href="..">Unity / C# / .NET 游戏开发知识库</a></h2><div class="spacer mobile-only"></div><div class="flex-component" style="flex-direction: row; flex-wrap: nowrap; gap: 1rem;"><div style="flex-grow: 1; flex-shrink: 1; flex-basis: auto; order: 0; align-self: center; justify-self: center;"><div class="search"><button class="search-button"><svg role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 19.9 19.7"><title>Search</title><g class="search-path" fill="none"><path stroke-linecap="square" d="M18.5 18.3l-5.4-5.4"></path><circle cx="8" cy="8" r="7"></circle></g></svg><p>搜索</p></button><div class="search-container"><div class="search-space"><input autocomplete="off" class="search-bar" name="search" type="text" aria-label="搜索些什么" placeholder="搜索些什么"/><div class="search-layout" data-preview="true"></div></div></div></div></div><div style="flex-grow: 0; flex-shrink: 1; flex-basis: auto; order: 0; align-self: center; justify-self: center;"><button class="darkmode"><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" class="dayIcon" x="0px" y="0px" viewBox="0 0 35 35" style="enable-background:new 0 0 35 35" xml:space="preserve" aria-label="暗色模式"><title>暗色模式</title><path d="M6,17.5C6,16.672,5.328,16,4.5,16h-3C0.672,16,0,16.672,0,17.5    S0.672,19,1.5,19h3C5.328,19,6,18.328,6,17.5z M7.5,26c-0.414,0-0.789,0.168-1.061,0.439l-2,2C4.168,28.711,4,29.086,4,29.5    C4,30.328,4.671,31,5.5,31c0.414,0,0.789-0.168,1.06-0.44l2-2C8.832,28.289,9,27.914,9,27.5C9,26.672,8.329,26,7.5,26z M17.5,6    C18.329,6,19,5.328,19,4.5v-3C19,0.672,18.329,0,17.5,0S16,0.672,16,1.5v3C16,5.328,16.671,6,17.5,6z M27.5,9    c0.414,0,0.789-0.168,1.06-0.439l2-2C30.832,6.289,31,5.914,31,5.5C31,4.672,30.329,4,29.5,4c-0.414,0-0.789,0.168-1.061,0.44    l-2,2C26.168,6.711,26,7.086,26,7.5C26,8.328,26.671,9,27.5,9z M6.439,8.561C6.711,8.832,7.086,9,7.5,9C8.328,9,9,8.328,9,7.5    c0-0.414-0.168-0.789-0.439-1.061l-2-2C6.289,4.168,5.914,4,5.5,4C4.672,4,4,4.672,4,5.5c0,0.414,0.168,0.789,0.439,1.06    L6.439,8.561z M33.5,16h-3c-0.828,0-1.5,0.672-1.5,1.5s0.672,1.5,1.5,1.5h3c0.828,0,1.5-0.672,1.5-1.5S34.328,16,33.5,16z     M28.561,26.439C28.289,26.168,27.914,26,27.5,26c-0.828,0-1.5,0.672-1.5,1.5c0,0.414,0.168,0.789,0.439,1.06l2,2    C28.711,30.832,29.086,31,29.5,31c0.828,0,1.5-0.672,1.5-1.5c0-0.414-0.168-0.789-0.439-1.061L28.561,26.439z M17.5,29    c-0.829,0-1.5,0.672-1.5,1.5v3c0,0.828,0.671,1.5,1.5,1.5s1.5-0.672,1.5-1.5v-3C19,29.672,18.329,29,17.5,29z M17.5,7    C11.71,7,7,11.71,7,17.5S11.71,28,17.5,28S28,23.29,28,17.5S23.29,7,17.5,7z M17.5,25c-4.136,0-7.5-3.364-7.5-7.5    c0-4.136,3.364-7.5,7.5-7.5c4.136,0,7.5,3.364,7.5,7.5C25,21.636,21.636,25,17.5,25z"></path></svg><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" class="nightIcon" x="0px" y="0px" viewBox="0 0 100 100" style="enable-background:new 0 0 100 100" xml:space="preserve" aria-label="亮色模式"><title>亮色模式</title><path d="M96.76,66.458c-0.853-0.852-2.15-1.064-3.23-0.534c-6.063,2.991-12.858,4.571-19.655,4.571  C62.022,70.495,50.88,65.88,42.5,57.5C29.043,44.043,25.658,23.536,34.076,6.47c0.532-1.08,0.318-2.379-0.534-3.23  c-0.851-0.852-2.15-1.064-3.23-0.534c-4.918,2.427-9.375,5.619-13.246,9.491c-9.447,9.447-14.65,22.008-14.65,35.369  c0,13.36,5.203,25.921,14.65,35.368s22.008,14.65,35.368,14.65c13.361,0,25.921-5.203,35.369-14.65  c3.872-3.871,7.064-8.328,9.491-13.246C97.826,68.608,97.611,67.309,96.76,66.458z"></path></svg></button></div><div style="flex-grow: 0; flex-shrink: 1; flex-basis: auto; order: 0; align-self: center; justify-self: center;"><button class="readermode"><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" class="readerIcon" fill="currentColor" stroke="currentColor" stroke-width="0.2" stroke-linecap="round" stroke-linejoin="round" width="64px" height="64px" viewBox="0 0 24 24" aria-label="阅读模式"><title>阅读模式</title><g transform="translate(-1.8, -1.8) scale(1.15, 1.2)"><path d="M8.9891247,2.5 C10.1384702,2.5 11.2209868,2.96705384 12.0049645,3.76669482 C12.7883914,2.96705384 13.8709081,2.5 15.0202536,2.5 L18.7549359,2.5 C19.1691495,2.5 19.5049359,2.83578644 19.5049359,3.25 L19.5046891,4.004 L21.2546891,4.00457396 C21.6343849,4.00457396 21.9481801,4.28672784 21.9978425,4.6528034 L22.0046891,4.75457396 L22.0046891,20.25 C22.0046891,20.6296958 21.7225353,20.943491 21.3564597,20.9931534 L21.2546891,21 L2.75468914,21 C2.37499337,21 2.06119817,20.7178461 2.01153575,20.3517706 L2.00468914,20.25 L2.00468914,4.75457396 C2.00468914,4.37487819 2.28684302,4.061083 2.65291858,4.01142057 L2.75468914,4.00457396 L4.50368914,4.004 L4.50444233,3.25 C4.50444233,2.87030423 4.78659621,2.55650904 5.15267177,2.50684662 L5.25444233,2.5 L8.9891247,2.5 Z M4.50368914,5.504 L3.50468914,5.504 L3.50468914,19.5 L10.9478955,19.4998273 C10.4513189,18.9207296 9.73864328,18.5588115 8.96709342,18.5065584 L8.77307039,18.5 L5.25444233,18.5 C4.87474657,18.5 4.56095137,18.2178461 4.51128895,17.8517706 L4.50444233,17.75 L4.50368914,5.504 Z M19.5049359,17.75 C19.5049359,18.1642136 19.1691495,18.5 18.7549359,18.5 L15.2363079,18.5 C14.3910149,18.5 13.5994408,18.8724714 13.0614828,19.4998273 L20.5046891,19.5 L20.5046891,5.504 L19.5046891,5.504 L19.5049359,17.75 Z M18.0059359,3.999 L15.0202536,4 L14.8259077,4.00692283 C13.9889509,4.06666544 13.2254227,4.50975805 12.7549359,5.212 L12.7549359,17.777 L12.7782651,17.7601316 C13.4923805,17.2719483 14.3447024,17 15.2363079,17 L18.0059359,16.999 L18.0056891,4.798 L18.0033792,4.75457396 L18.0056891,4.71 L18.0059359,3.999 Z M8.9891247,4 L6.00368914,3.999 L6.00599909,4.75457396 L6.00599909,4.75457396 L6.00368914,4.783 L6.00368914,16.999 L8.77307039,17 C9.57551536,17 10.3461406,17.2202781 11.0128313,17.6202194 L11.2536891,17.776 L11.2536891,5.211 C10.8200889,4.56369974 10.1361548,4.13636104 9.37521067,4.02745763 L9.18347055,4.00692283 L8.9891247,4 Z"></path></g></svg></button></div></div><div class="explorer" data-behavior="link" data-collapsed="collapsed" data-savestate="true" data-data-fns="{&quot;order&quot;:[&quot;filter&quot;,&quot;map&quot;,&quot;sort&quot;],&quot;sortFn&quot;:&quot;(a,b)=>!a.isFolder&amp;&amp;!b.isFolder||a.isFolder&amp;&amp;b.isFolder?a.displayName.localeCompare(b.displayName,void 0,{numeric:!0,sensitivity:\&quot;base\&quot;}):!a.isFolder&amp;&amp;b.isFolder?1:-1&quot;,&quot;filterFn&quot;:&quot;node=>node.slugSegment!==\&quot;tags\&quot;&quot;,&quot;mapFn&quot;:&quot;node=>{let override={\&quot;unity-Unity\\u5F15\\u64CE\&quot;:\&quot;Unity\&quot;,\&quot;csharp-dotnet-CSharp\\u4E0ENET\&quot;:\&quot;C#/.NET\&quot;,\&quot;patterns-\\u8BBE\\u8BA1\\u6A21\\u5F0F\&quot;:\&quot;\\u8BBE\\u8BA1\\u6A21\\u5F0F\&quot;,\&quot;performance-\\u6027\\u80FD\\u4F18\\u5316\&quot;:\&quot;\\u6027\\u80FD\&quot;,\&quot;tools-\\u5DE5\\u5177\\u4E0E\\u5DE5\\u4F5C\\u6D41\&quot;:\&quot;\\u5DE5\\u5177\&quot;,\&quot;gamedesign-\\u6E38\\u620F\\u8BBE\\u8BA1\&quot;:\&quot;\\u6E38\\u620F\\u8BBE\\u8BA1\&quot;,\&quot;sources-\\u6765\\u6E90\\u6458\\u8981\&quot;:\&quot;\\u6765\\u6E90\\u6458\\u8981\&quot;}[node.displayName];if(override){node.displayName=override;return}let segments=node.displayName.split(\&quot;-\&quot;),cjkStart=segments.findIndex(segment=>/[一-鿿]/.test(segment));cjkStart>-1&amp;&amp;(node.displayName=segments.slice(cjkStart).join(\&quot;-\&quot;))}&quot;}"><button type="button" class="explorer-toggle mobile-explorer hide-until-loaded" data-mobile="true" aria-controls="explorer-45"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide-menu"><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button><button type="button" class="title-button explorer-toggle desktop-explorer" data-mobile="false" aria-expanded="true"><h2>探索</h2><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="5 8 14 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="fold"><polyline points="6 9 12 15 18 9"></polyline></svg></button><div id="explorer-45" class="explorer-content" aria-expanded="false" role="group"><ul class="explorer-ul overflow" id="list-0"><li class="overflow-end"></li></ul></div><template id="template-file"><li><a href="#"></a></li></template><template id="template-folder"><li><div class="folder-container"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="5 8 14 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="folder-icon"><polyline points="6 9 12 15 18 9"></polyline></svg><div><button class="folder-button"><span class="folder-title"></span></button></div></div><div class="folder-outer"><ul class="content"></ul></div></li></template></div></div><div class="center"><div class="page-header"><div class="popover-hint"><nav class="breadcrumb-container" aria-label="breadcrumbs"><div class="breadcrumb-element"><a href="../">Home</a><p> ❯ </p></div><div class="breadcrumb-element"><a href="../patterns-设计模式/">设计模式</a><p> ❯ </p></div><div class="breadcrumb-element"><a href>游戏编程模式</a></div></nav><h1 class="article-title">game-programming-patterns-游戏编程模式</h1><p show-comma="true" class="content-meta"><time datetime="2026-05-17T00:00:00.000Z">2026年5月17日</time><span>26分钟阅读</span></p></div></div><article class="popover-hint"><h1 id="游戏编程模式game-programming-patterns">游戏编程模式（Game Programming Patterns）<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#游戏编程模式game-programming-patterns" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h1>
+<h2 id="核心思想">核心思想<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#核心思想" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<p>《Game Programming Patterns》是 Robert Nystrom（EA 8 年工作经验）从游戏开发实战出发归纳的设计模式体系。全书覆盖 19 种模式，其中 6 种复访 GoF（命令、享元、观察者、原型、单例、状态），<strong>13 种是 GoF 未收录的游戏特有模式</strong>。</p>
+<p>GPP 与 GoF 的根本区分：<strong>GoF 解决”对象间关系”，GPP 解决”游戏独有关切”</strong>——帧驱动（游戏循环/更新方法）、性能约束（数据局部性/对象池/空间分区）、数据驱动（类型对象/字节码/脏标识）。理解这条脉络，就知道为什么有些 GoF 模式在游戏中低频（如访问者），而 GPP 模式反而天天用。</p>
+<h2 id="架构哲学长期速度运行速度与短期速度的角力">架构哲学：长期速度、运行速度与短期速度的角力<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#架构哲学长期速度运行速度与短期速度的角力" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<p>GPP 序言提出了一个被多数设计模式书籍忽略的宏观视角：<strong>软件架构的核心目标是降低”理解代码”的认知开销</strong>。</p>
+<blockquote>
+<p>评价架构设计就是评价它应对变化有多么轻松。没有了变化，它就是永远不会离开起跑线的运动员。
+—— Robert Nystrom, Game Programming Patterns</p>
+</blockquote>
+<p>整个开发周期中，三大要素始终在角力：</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th>要素</th><th>含义</th><th>与其他要素的冲突</th></tr></thead><tbody><tr><td><strong>长期开发速度</strong></td><td>好架构长期来看提高了生产力——改动局部化，理解成本低</td><td>但维护每个变化都需要更多努力让代码保持整洁</td></tr><tr><td><strong>游戏运行速度</strong></td><td>高度优化的代码消除帧预算超标</td><td>但优化后代码不灵活、难改动，还污染架构</td></tr><tr><td><strong>短期开发速度</strong></td><td>尽可能快地实现特性，尽早得到反馈</td><td>但快速堆代码会积累黑魔法，阻碍未来产出</td></tr></tbody></table></div>
+<p>这三点都是”速度”——长期开发的速度、游戏运行的速度、短期开发的速度。它们至少部分对立，<strong>没有银弹，只有具体问题具体分析的动态平衡</strong>。</p>
+<h3 id="解耦的真实含义">解耦的真实含义<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#解耦的真实含义" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>两种理解方式：</p>
+<ol>
+<li><strong>学习阶段视角</strong>：如果两块代码是耦合的，就无法只理解其中一个而不了解另一个。解耦后可以独立理解——<strong>最小化进入大脑的知识量</strong>。</li>
+<li><strong>变化传播视角</strong>：一块代码变化时，不必修改另一块代码。耦合程度越小，变化波及范围越小。</li>
+</ol>
+<h3 id="yagni-与过度设计">YAGNI 与过度设计<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#yagni-与过度设计" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>每添加一层抽象或扩展点，就是在赌”这部分功能以后用得上”。赌对了，功夫不负有心人；赌错了，有害——你得花时间去实现和维护无人使用的代码。社区用 <strong>YAGNI</strong>（You Aren’t Gonna Need It）对抗”面向未来编程”的冲动。</p>
+<blockquote class="callout warning" data-callout="warning">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>无数开发者听着加强可扩展性的&quot;警世名言&quot;，花费多年时间制作&quot;引擎&quot;，却没有搞清楚做引擎是为了什么。 </p></div>
+                  
+                </div>
+</blockquote>
+<h3 id="烂代码在原型阶段的合理性">烂代码在原型阶段的合理性<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#烂代码在原型阶段的合理性" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>原型阶段的代码<strong>不必、也不应该</strong>是好架构的代码。关键约束：</p>
+<ul>
+<li>原型代码的目标是<strong>尽快验证想法</strong>，如果想法不对，花在优雅设计上的时间全部白费</li>
+<li>但必须让所有人清楚：可抛弃的代码即使看上去能工作，也不能被维护，<strong>必须重写</strong></li>
+<li>一个保证原型代码不会变成正式代码的技巧：使用和正式游戏不同的编程语言</li>
+</ul>
+<h3 id="保持灵活直到设计定型">保持灵活直到设计定型<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#保持灵活直到设计定型" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>GPP 给出的折中策略：</p>
+<ol>
+<li><strong>保持代码灵活</strong>直到设计定下来——用接口、用模式、用解耦</li>
+<li>设计定下来后，<strong>抽出抽象层来提高性能</strong>——这时牺牲灵活性换运行速度是值得的</li>
+<li>C++ 模板是一个有趣的中间地带——编译时决定调用哪些类，既有抽象的灵活性，又没有虚调度的运行时开销</li>
+</ol>
+<h2 id="问题动机">问题动机<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#问题动机" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<p>为什么 GoF 不够用？因为游戏有三项传统软件不具备的独有关切：</p>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="csharp" data-theme="github-light github-dark"><code data-language="csharp" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 反面教材：用纯 GoF 思路写游戏——遗漏帧驱动、性能和数据驱动</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">public</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> class</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Game</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> : </span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">MonoBehaviour</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{</span></span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">    // 问题 1：没有帧驱动意识——以为&quot;事件驱动&quot;就够了</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    public</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> void</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> OnEnemyDied</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Enemy</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> enemy</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">)</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    {</span></span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">        // GoF 观察者：通知成就系统、UI、掉落</span></span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">        // 但游戏不是&quot;事件来了才响应&quot;，而是&quot;每帧都要推进整个世界&quot;</span></span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">        // 敌人站着不动时也要播放 idle 动画、检测玩家距离、更新巡逻路径</span></span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">        // 这些都不是事件能驱动的</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    }</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">    // 问题 2：没有性能意识——GoF 模式天然不关心缓存</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    private</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> void</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Update</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">()</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    {</span></span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">        // GoF 策略模式：每个 Enemy 持有 IAIMode 引用</span></span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">        // 1000 个 Enemy 的 AI 策略散布在堆上 → Cache Miss 灾难</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">        foreach</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> (</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">var</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> enemy</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> in</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> _enemies)</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">            enemy.AI.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Decide</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(); </span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 虚调用 → 指针跳转 → Cache Miss</span></span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">        // GoF 从不讨论 Cache Line，但游戏每帧跑 1000 次</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    }</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">    // 问题 3：没有数据驱动意识——行为硬编码在类中</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    public</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> class</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Fireball</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> : </span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Spell</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> { </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">public</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> override</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> void</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Cast</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">() { </span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">DealDamage</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">50</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">); } }</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    public</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> class</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> IceBolt</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> : </span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Spell</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> { </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">public</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> override</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> void</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Cast</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">() { </span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">DealDamage</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">30</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">); </span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Freeze</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(); } }</span></span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">    // 100 种技能 = 100 个子类，策划改数值必须找程序员改代码</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">}</span></span></code></pre></figure>
+<p>这种写法的问题：</p>
+<ul>
+<li><strong>帧驱动盲区</strong>：GoF 没有”每帧执行”的概念——观察者是”事件来了通知”，但游戏需要”每帧主动推进”</li>
+<li><strong>性能盲区</strong>：GoF 模式（策略、状态、命令）大量使用虚调用和堆分配，在每帧执行 1000 次时性能不可接受</li>
+<li><strong>数据驱动盲区</strong>：GoF 用继承和多态定义行为差异，游戏中行为种类爆炸（100 种技能、200 种怪物），继承体系无法承载</li>
+</ul>
+<h2 id="gpp-模式分类结构">GPP 模式分类结构<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#gpp-模式分类结构" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<pre><button class="expand-button" aria-label="Expand mermaid diagram" data-view-component="true"><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path fill-rule="evenodd" d="M3.72 3.72a.75.75 0 011.06 1.06L2.56 7h10.88l-2.22-2.22a.75.75 0 011.06-1.06l3.5 3.5a.75.75 0 010 1.06l-3.5 3.5a.75.75 0 11-1.06-1.06l2.22-2.22H2.56l2.22 2.22a.75.75 0 11-1.06 1.06l-3.5-3.5a.75.75 0 010-1.06l3.5-3.5z"></path></svg></button><code class="mermaid" data-clipboard="&quot;graph TB\n    GPP[\&quot;GPP 全景&lt;br/>19 种模式\&quot;] --> GOF[\&quot;GoF 复访&lt;br/>6 种\&quot;]\n    GPP --> SEQ[\&quot;序列模式&lt;br/>Sequencing\&quot;]\n    GPP --> BHR[\&quot;行为模式&lt;br/>Behavioral\&quot;]\n    GPP --> DCP[\&quot;解耦模式&lt;br/>Decoupling\&quot;]\n    GPP --> OPT[\&quot;优化模式&lt;br/>Optimization\&quot;]\n\n    GOF --> CMD[\&quot;命令&lt;br/>Command\&quot;]\n    GOF --> FW[\&quot;享元&lt;br/>Flyweight\&quot;]\n    GOF --> OBS[\&quot;观察者&lt;br/>Observer\&quot;]\n    GOF --> PRO[\&quot;原型&lt;br/>Prototype\&quot;]\n    GOF --> SIN[\&quot;单例&lt;br/>Singleton\&quot;]\n    GOF --> STA[\&quot;状态&lt;br/>State\&quot;]\n\n    SEQ --> DB[\&quot;双缓冲&lt;br/>Double Buffer\&quot;]\n    SEQ --> GL[\&quot;游戏循环&lt;br/>Game Loop\&quot;]\n    SEQ --> UM[\&quot;更新方法&lt;br/>Update Method\&quot;]\n\n    BHR --> BC[\&quot;字节码&lt;br/>Bytecode\&quot;]\n    BHR --> SS[\&quot;子类沙箱&lt;br/>Subclass Sandbox\&quot;]\n    BHR --> TO[\&quot;类型对象&lt;br/>Type Object\&quot;]\n\n    DCP --> CP[\&quot;组件&lt;br/>Component\&quot;]\n    DCP --> EQ[\&quot;事件队列&lt;br/>Event Queue\&quot;]\n    DCP --> SL[\&quot;服务定位器&lt;br/>Service Locator\&quot;]\n\n    OPT --> DL[\&quot;数据局部性&lt;br/>Data Locality\&quot;]\n    OPT --> DF[\&quot;脏标识&lt;br/>Dirty Flag\&quot;]\n    OPT --> OP[\&quot;对象池&lt;br/>Object Pool\&quot;]\n    OPT --> SP[\&quot;空间分区&lt;br/>Spatial Partition\&quot;]\n\n    style SEQ fill:#e8f5e9\n    style BHR fill:#fff3e0\n    style DCP fill:#e3f2fd\n    style OPT fill:#fce4ec\n    style GOF fill:#f3e5f5&quot;">graph TB
+    GPP[&quot;GPP 全景&lt;br/>19 种模式&quot;] --> GOF[&quot;GoF 复访&lt;br/>6 种&quot;]
+    GPP --> SEQ[&quot;序列模式&lt;br/>Sequencing&quot;]
+    GPP --> BHR[&quot;行为模式&lt;br/>Behavioral&quot;]
+    GPP --> DCP[&quot;解耦模式&lt;br/>Decoupling&quot;]
+    GPP --> OPT[&quot;优化模式&lt;br/>Optimization&quot;]
+
+    GOF --> CMD[&quot;命令&lt;br/>Command&quot;]
+    GOF --> FW[&quot;享元&lt;br/>Flyweight&quot;]
+    GOF --> OBS[&quot;观察者&lt;br/>Observer&quot;]
+    GOF --> PRO[&quot;原型&lt;br/>Prototype&quot;]
+    GOF --> SIN[&quot;单例&lt;br/>Singleton&quot;]
+    GOF --> STA[&quot;状态&lt;br/>State&quot;]
+
+    SEQ --> DB[&quot;双缓冲&lt;br/>Double Buffer&quot;]
+    SEQ --> GL[&quot;游戏循环&lt;br/>Game Loop&quot;]
+    SEQ --> UM[&quot;更新方法&lt;br/>Update Method&quot;]
+
+    BHR --> BC[&quot;字节码&lt;br/>Bytecode&quot;]
+    BHR --> SS[&quot;子类沙箱&lt;br/>Subclass Sandbox&quot;]
+    BHR --> TO[&quot;类型对象&lt;br/>Type Object&quot;]
+
+    DCP --> CP[&quot;组件&lt;br/>Component&quot;]
+    DCP --> EQ[&quot;事件队列&lt;br/>Event Queue&quot;]
+    DCP --> SL[&quot;服务定位器&lt;br/>Service Locator&quot;]
+
+    OPT --> DL[&quot;数据局部性&lt;br/>Data Locality&quot;]
+    OPT --> DF[&quot;脏标识&lt;br/>Dirty Flag&quot;]
+    OPT --> OP[&quot;对象池&lt;br/>Object Pool&quot;]
+    OPT --> SP[&quot;空间分区&lt;br/>Spatial Partition&quot;]
+
+    style SEQ fill:#e8f5e9
+    style BHR fill:#fff3e0
+    style DCP fill:#e3f2fd
+    style OPT fill:#fce4ec
+    style GOF fill:#f3e5f5
+</code><div id="mermaid-container" role="dialog"><div id="mermaid-space"><div class="mermaid-content"></div></div></div></pre>
+<h2 id="参与者">参与者<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#参与者" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th>角色</th><th>GoF 关注点</th><th>GPP 新增关注点</th><th>典型 GPP 模式</th></tr></thead><tbody><tr><td><strong>帧驱动层</strong></td><td>无</td><td>每帧必须完成、状态一致性、帧率适配</td><td>游戏循环、更新方法、双缓冲</td></tr><tr><td><strong>行为定义层</strong></td><td>对象间通信</td><td>行为由数据定义、运行时可配置</td><td>字节码、类型对象、子类沙箱</td></tr><tr><td><strong>解耦层</strong></td><td>接口隔离</td><td>运行时替换、跨帧/跨系统通信</td><td>组件、事件队列、服务定位器</td></tr><tr><td><strong>优化层</strong></td><td>可选</td><td>第一等公民，硬性帧预算约束</td><td>数据局部性、脏标识、对象池、空间分区</td></tr></tbody></table></div>
+<h2 id="四大分类简介">四大分类简介<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#四大分类简介" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th>分类</th><th>核心关切</th><th>包含模式</th><th>Unity 映射</th></tr></thead><tbody><tr><td><strong>序列模式</strong></td><td>帧驱动——“何时”和”多快”执行</td><td><a href="../patterns-设计模式/double-buffer-双缓冲" class="internal alias" data-slug="patterns-设计模式/double-buffer-双缓冲">double-buffer-双缓冲</a>、<a href="../patterns-设计模式/game-loop-游戏循环" class="internal alias" data-slug="patterns-设计模式/game-loop-游戏循环">game-loop-游戏循环</a>、<a href="../patterns-设计模式/update-method-更新方法" class="internal alias" data-slug="patterns-设计模式/update-method-更新方法">update-method-更新方法</a></td><td><a href="../unity-Unity引擎/player-loop-主循环" class="internal alias" data-slug="unity-Unity引擎/player-loop-主循环">player-loop-主循环</a>、<code>Update()</code>/<code>FixedUpdate()</code>/<code>LateUpdate()</code>、GPU 双缓冲</td></tr><tr><td><strong>行为模式</strong></td><td>数据驱动行为——行为由数据定义</td><td><a href="../patterns-设计模式/bytecode-字节码" class="internal alias" data-slug="patterns-设计模式/bytecode-字节码">bytecode-字节码</a>、<a href="../patterns-设计模式/subclass-sandbox-子类沙箱" class="internal alias" data-slug="patterns-设计模式/subclass-sandbox-子类沙箱">subclass-sandbox-子类沙箱</a>、<a href="../patterns-设计模式/type-object-类型对象" class="internal alias" data-slug="patterns-设计模式/type-object-类型对象">type-object-类型对象</a></td><td>Visual Scripting VM、<code>MonoBehaviour</code> 虚方法体系、<code>ScriptableObject</code> 配置</td></tr><tr><td><strong>解耦模式</strong></td><td>架构解耦——减少模块间直接依赖</td><td><a href="../patterns-设计模式/component-组件模式" class="internal alias" data-slug="patterns-设计模式/component-组件模式">component-组件模式</a>、<a href="../patterns-设计模式/event-queue-事件队列" class="internal alias" data-slug="patterns-设计模式/event-queue-事件队列">event-queue-事件队列</a>、<a href="../patterns-设计模式/service-locator-服务定位" class="internal alias" data-slug="patterns-设计模式/service-locator-服务定位">service-locator-服务定位</a></td><td><code>MonoBehaviour</code> 组件体系、<code>UnityEvent</code> + 队列、<code>VContainer</code> DI</td></tr><tr><td><strong>优化模式</strong></td><td>性能约束——在帧预算内交付</td><td><a href="../patterns-设计模式/data-locality-数据局部性" class="internal alias" data-slug="patterns-设计模式/data-locality-数据局部性">data-locality-数据局部性</a>、<a href="../patterns-设计模式/dirty-flag-脏标识" class="internal alias" data-slug="patterns-设计模式/dirty-flag-脏标识">dirty-flag-脏标识</a>、<a href="../patterns-设计模式/object-pool-对象池" class="internal alias" data-slug="patterns-设计模式/object-pool-对象池">object-pool-对象池</a>、<a href="../patterns-设计模式/spatial-partition-空间分区" class="internal alias" data-slug="patterns-设计模式/spatial-partition-空间分区">spatial-partition-空间分区</a></td><td><a href="../unity-Unity引擎/dots-ecs-数据导向" class="internal alias" data-slug="unity-Unity引擎/dots-ecs-数据导向">dots-ecs-数据导向</a>/<a href="../performance-性能优化/job-system-作业系统" class="internal alias" data-slug="performance-性能优化/job-system-作业系统">job-system-作业系统</a>/<a href="../performance-性能优化/burst-compiler-Burst编译" class="internal alias" data-slug="performance-性能优化/burst-compiler-Burst编译">burst-compiler-Burst编译</a>、<code>Transform.hasChanged</code>、<code>ObjectPool&lt;T></code>、QuadTree/Octree</td></tr></tbody></table></div>
+<h2 id="gpp-13-种独有模式速查表">GPP 13 种独有模式速查表<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#gpp-13-种独有模式速查表" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th>模式</th><th>一句话</th><th>详页</th><th>GoF 近亲</th></tr></thead><tbody><tr><td>双缓冲</td><td>读写分离，消除同一帧内的半更新状态</td><td><a href="../patterns-设计模式/double-buffer-双缓冲" class="internal alias" data-slug="patterns-设计模式/double-buffer-双缓冲">double-buffer-双缓冲</a></td><td>—</td></tr><tr><td>游戏循环</td><td>固定/可变帧率的主循环，解耦游戏速度与硬件速度</td><td><a href="../patterns-设计模式/game-loop-游戏循环" class="internal alias" data-slug="patterns-设计模式/game-loop-游戏循环">game-loop-游戏循环</a></td><td>—</td></tr><tr><td>更新方法</td><td>每帧通知对象更新自身，游戏循环只负责遍历</td><td><a href="../patterns-设计模式/update-method-更新方法" class="internal alias" data-slug="patterns-设计模式/update-method-更新方法">update-method-更新方法</a></td><td>观察者（帧驱动版）</td></tr><tr><td>字节码</td><td>行为编译为虚拟机指令，运行时解释执行</td><td><a href="../patterns-设计模式/bytecode-字节码" class="internal alias" data-slug="patterns-设计模式/bytecode-字节码">bytecode-字节码</a></td><td>解释器（轻量高性能版）</td></tr><tr><td>子类沙箱</td><td>基类提供操作集，子类只组合调用</td><td><a href="../patterns-设计模式/subclass-sandbox-子类沙箱" class="internal alias" data-slug="patterns-设计模式/subclass-sandbox-子类沙箱">subclass-sandbox-子类沙箱</a></td><td>模板方法（逆方向）</td></tr><tr><td>类型对象</td><td>数据定义类型而非继承，策划用配置表定义种类</td><td><a href="../patterns-设计模式/type-object-类型对象" class="internal alias" data-slug="patterns-设计模式/type-object-类型对象">type-object-类型对象</a></td><td>策略 + 原型</td></tr><tr><td>组件</td><td>用组合替代继承，实体行为由挂载的组件决定</td><td><a href="../patterns-设计模式/component-组件模式" class="internal alias" data-slug="patterns-设计模式/component-组件模式">component-组件模式</a></td><td>装饰（结构类似，意图不同）</td></tr><tr><td>事件队列</td><td>异步解耦生产者与消费者，通知延迟到安全时机</td><td><a href="../patterns-设计模式/event-queue-事件队列" class="internal alias" data-slug="patterns-设计模式/event-queue-事件队列">event-queue-事件队列</a></td><td>观察者（异步版）</td></tr><tr><td>服务定位器</td><td>全局服务的间接访问，单例的解耦版</td><td><a href="../patterns-设计模式/service-locator-服务定位" class="internal alias" data-slug="patterns-设计模式/service-locator-服务定位">service-locator-服务定位</a></td><td>单例的解耦版</td></tr><tr><td>数据局部性</td><td>数据连续排列最大化 CPU 缓存命中</td><td><a href="../patterns-设计模式/data-locality-数据局部性" class="internal alias" data-slug="patterns-设计模式/data-locality-数据局部性">data-locality-数据局部性</a></td><td>—</td></tr><tr><td>脏标识</td><td>只在结果被请求时才重新计算，延期不必要的工作</td><td><a href="../patterns-设计模式/dirty-flag-脏标识" class="internal alias" data-slug="patterns-设计模式/dirty-flag-脏标识">dirty-flag-脏标识</a></td><td>—</td></tr><tr><td>对象池</td><td>复用对象避免反复创建/销毁，消除 GC 压力</td><td><a href="../patterns-设计模式/object-pool-对象池" class="internal alias" data-slug="patterns-设计模式/object-pool-对象池">object-pool-对象池</a></td><td>享元（实例级复用）</td></tr><tr><td>空间分区</td><td>按空间位置组织对象，加速邻近查询</td><td><a href="../patterns-设计模式/spatial-partition-空间分区" class="internal alias" data-slug="patterns-设计模式/spatial-partition-空间分区">spatial-partition-空间分区</a></td><td>组合（空间树结构）</td></tr></tbody></table></div>
+<h2 id="从-gof-到-gpp-的演进脉络">从 GoF 到 GPP 的演进脉络<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#从-gof-到-gpp-的演进脉络" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<pre><button class="expand-button" aria-label="Expand mermaid diagram" data-view-component="true"><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path fill-rule="evenodd" d="M3.72 3.72a.75.75 0 011.06 1.06L2.56 7h10.88l-2.22-2.22a.75.75 0 011.06-1.06l3.5 3.5a.75.75 0 010 1.06l-3.5 3.5a.75.75 0 11-1.06-1.06l2.22-2.22H2.56l2.22 2.22a.75.75 0 11-1.06 1.06l-3.5-3.5a.75.75 0 010-1.06l3.5-3.5z"></path></svg></button><code class="mermaid" data-clipboard="&quot;graph LR\n    subgraph 帧驱动层\n        OBS1[\&quot;GoF 观察者&lt;br/>事件来了通知\&quot;] --> UM1[\&quot;更新方法&lt;br/>每帧主动推进\&quot;]\n        UM1 --> GL1[\&quot;游戏循环&lt;br/>帧率与时间步\&quot;]\n        GL1 --> DB1[\&quot;双缓冲&lt;br/>帧内状态一致性\&quot;]\n    end\n\n    subgraph 解耦层\n        SIN1[\&quot;GoF 单例&lt;br/>全局且绑死具体类\&quot;] --> SL1[\&quot;服务定位器&lt;br/>全局但接口解耦\&quot;]\n        DEC1[\&quot;GoF 装饰&lt;br/>纵向叠加行为\&quot;] --> CP1[\&quot;组件&lt;br/>横向拆分行为\&quot;]\n        OBS2[\&quot;GoF 观察者&lt;br/>同步通知\&quot;] --> EQ1[\&quot;事件队列&lt;br/>异步解耦\&quot;]\n    end\n\n    subgraph 优化层\n        FW1[\&quot;GoF 享元&lt;br/>共享内在状态\&quot;] --> OP1[\&quot;对象池&lt;br/>复用实例\&quot;]\n        NO1[\&quot;无 GoF 对应\&quot;] --> DL1[\&quot;数据局部性&lt;br/>缓存友好\&quot;]\n        NO2[\&quot;无 GoF 对应\&quot;] --> DF1[\&quot;脏标识&lt;br/>延期计算\&quot;]\n        NO3[\&quot;无 GoF 对应\&quot;] --> SP1[\&quot;空间分区&lt;br/>空间查询加速\&quot;]\n    end&quot;">graph LR
+    subgraph 帧驱动层
+        OBS1[&quot;GoF 观察者&lt;br/>事件来了通知&quot;] --> UM1[&quot;更新方法&lt;br/>每帧主动推进&quot;]
+        UM1 --> GL1[&quot;游戏循环&lt;br/>帧率与时间步&quot;]
+        GL1 --> DB1[&quot;双缓冲&lt;br/>帧内状态一致性&quot;]
+    end
+
+    subgraph 解耦层
+        SIN1[&quot;GoF 单例&lt;br/>全局且绑死具体类&quot;] --> SL1[&quot;服务定位器&lt;br/>全局但接口解耦&quot;]
+        DEC1[&quot;GoF 装饰&lt;br/>纵向叠加行为&quot;] --> CP1[&quot;组件&lt;br/>横向拆分行为&quot;]
+        OBS2[&quot;GoF 观察者&lt;br/>同步通知&quot;] --> EQ1[&quot;事件队列&lt;br/>异步解耦&quot;]
+    end
+
+    subgraph 优化层
+        FW1[&quot;GoF 享元&lt;br/>共享内在状态&quot;] --> OP1[&quot;对象池&lt;br/>复用实例&quot;]
+        NO1[&quot;无 GoF 对应&quot;] --> DL1[&quot;数据局部性&lt;br/>缓存友好&quot;]
+        NO2[&quot;无 GoF 对应&quot;] --> DF1[&quot;脏标识&lt;br/>延期计算&quot;]
+        NO3[&quot;无 GoF 对应&quot;] --> SP1[&quot;空间分区&lt;br/>空间查询加速&quot;]
+    end
+</code><div id="mermaid-container" role="dialog"><div id="mermaid-space"><div class="mermaid-content"></div></div></div></pre>
+<p>三大演进方向：</p>
+<ol>
+<li><strong>帧驱动层</strong>：GoF 没有时序概念 → GPP 增加了”每帧执行”和”帧边界原子性”</li>
+<li><strong>解耦层</strong>：GoF 的解耦是”接口隔离” → GPP 进一步要求”运行时可替换”和”时序解耦”</li>
+<li><strong>优化层</strong>：GoF 将性能视为可选 → GPP 将性能视为第一等公民</li>
+</ol>
+<h2 id="与-gof-重叠的-6-种模式">与 GoF 重叠的 6 种模式<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#与-gof-重叠的-6-种模式" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<p>GPP 复访了 GoF 的 6 种模式，但对每种都给出了<strong>游戏特化解读</strong>——不是简单复述，而是指出”游戏中怎么用”和”游戏中的坑”。理解这 6 种模式的 GoF→GPP 演化，是掌握 GPP 体系的关键桥梁。</p>
+<h3 id="命令command">命令（Command）<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#命令command" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>GoF 说：将请求封装为对象。GPP 说：<strong>这是被 GoF 低估的模式</strong>——输入重映射、撤销/重做、回放系统的基石。游戏中命令模式的使用频率远高于企业软件。</p>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="csharp" data-theme="github-light github-dark"><code data-language="csharp" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// GPP 游戏特化：输入重映射</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">public</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> interface</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> ICommand</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> { </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">void</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Execute</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(); }</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">public</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> class</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> JumpCommand</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> : </span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">ICommand</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> { </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">public</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> void</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Execute</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">() </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">=></span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> _player.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Jump</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(); }</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">public</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> class</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> FireCommand</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> : </span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">ICommand</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> { </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">public</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> void</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Execute</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">() </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">=></span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> _player.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Fire</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(); }</span></span>
+<span data-line> </span>
+<span data-line><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">// 配置表驱动输入映射——玩家可以自定义键位</span></span>
+<span data-line><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">private</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> Dictionary</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">KeyCode</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">, </span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">ICommand</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">> </span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">_keyBindings</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> new</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">()</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    [KeyCode.Space] </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">=</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> new</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> JumpCommand</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(),</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    [KeyCode.Mouse0] </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">=</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> new</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> FireCommand</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(),</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">};</span></span></code></pre></figure>
+<p>GPP 额外贡献的 5 种游戏用法：(1) 输入重映射、(2) 撤销/重做（<code>IUndoableCommand</code>）、(3) 回放系统（录制命令序列逐帧重放）、(4) AI 代理（AI 产生命令而非直接操作对象）、(5) 异步命令（<code>IAsyncCommand</code> + UniTask）。详见 <a href="../patterns-设计模式/command-pattern-命令" class="internal alias" data-slug="patterns-设计模式/command-pattern-命令">command-pattern-命令</a>。</p>
+<h3 id="享元flyweight">享元（Flyweight）<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#享元flyweight" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>GoF 说：共享内在状态以节省内存。GPP 重点区分了<strong>享元与对象池</strong>——享元共享的是数据（同一把剑的模型纹理），对象池复用的是实例（同一个子弹对象的内存槽位）。两者常组合使用：享元定义”共享什么”，对象池管理”复用谁”。</p>
+<p>游戏中享元的典型场景：(1) 共享纹理/模型/Mesh——1000 把同类型剑共享 1 个 Mesh、(2) 共享 Tile/Block 数据——Minecraft 的方块类型、(3) 共享动画状态——AnimatorController 在同类型角色间共享。详见 <a href="../patterns-设计模式/flyweight-pattern-享元" class="internal alias" data-slug="patterns-设计模式/flyweight-pattern-享元">flyweight-pattern-享元</a>。</p>
+<h3 id="观察者observer">观察者（Observer）<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#观察者observer" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>GoF 说：一对多依赖关系，状态变化自动通知。GPP 重点讨论了<strong>失效监听者问题</strong>（Lapsed Listener）——观察者已销毁但未取消订阅，导致空引用或幽灵回调。Unity 中 <code>OnEnable</code>/<code>OnDisable</code> 配对是标准解法。</p>
+<p>GPP 的进一步贡献：观察者 → 事件队列的演进脉络。观察者是同步直接调用（生产者等消费者），事件队列是异步缓冲解耦（生产者入队即返）。当观察者链中有慢消费者（如音效加载、网络请求），必须升级为事件队列。详见 <a href="../patterns-设计模式/observer-pattern-观察者" class="internal alias" data-slug="patterns-设计模式/observer-pattern-观察者">observer-pattern-观察者</a>、<a href="../patterns-设计模式/event-queue-事件队列" class="internal alias" data-slug="patterns-设计模式/event-queue-事件队列">event-queue-事件队列</a>。</p>
+<h3 id="原型prototype">原型（Prototype）<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#原型prototype" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>GoF 说：通过克隆已有对象创建新对象。GPP 指出 <strong>Unity 的 <code>Instantiate()</code> 就是原型模式</strong>——克隆 Prefab 实例。GPP 还讨论了深拷贝 vs 浅拷贝的陷阱：<code>Instantiate</code> 是浅拷贝，子物体引用的共享资源不会被复制。</p>
+<p>游戏中原型的核心价值：策划配置一个”模板”实体，运行时通过克隆快速产出大量实例。这与 <a href="../patterns-设计模式/type-object-类型对象" class="internal alias" data-slug="patterns-设计模式/type-object-类型对象">type-object-类型对象</a> 天然组合——类型对象定义”克隆什么”，原型模式执行”如何克隆”。详见 <a href="../patterns-设计模式/prototype-pattern-原型" class="internal alias" data-slug="patterns-设计模式/prototype-pattern-原型">prototype-pattern-原型</a>。</p>
+<h3 id="单例singleton">单例（Singleton）<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#单例singleton" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>GoF 说：保证全局唯一实例。GPP 的态度是<strong>被过度使用的模式</strong>——Nystrom 专门用一章来”批判”单例，指出三大问题：</p>
+<ol>
+<li><strong>隐藏依赖</strong>：类的构造函数看不出它依赖了哪些单例，耦合隐式散落在方法体中</li>
+<li><strong>初始化顺序不可控</strong>：单例之间可能有依赖关系，<code>Awake</code> 执行顺序不确定</li>
+<li><strong>与具体实现绑定</strong>：<code>GameManager.Instance</code> 直接绑死了具体类，无法替换为 Mock 测试</li>
+</ol>
+<p>替代方案的演进路径：单例 → <a href="../patterns-设计模式/service-locator-服务定位" class="internal alias" data-slug="patterns-设计模式/service-locator-服务定位">service-locator-服务定位</a>（全局但接口解耦）→ 依赖注入（VContainer，推模式，依赖显式化）→ ECS 单例组件（DOTS 中用 <code>SystemAPI.GetSingleton&lt;T>()</code>）。详见 <a href="../patterns-设计模式/singleton-pattern-单例" class="internal alias" data-slug="patterns-设计模式/singleton-pattern-单例">singleton-pattern-单例</a>。</p>
+<h3 id="状态state">状态（State）<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#状态state" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>GoF 说：内部状态变化改变行为。GPP 展示了从枚举 + switch → 状态模式 → 并发状态机 → 层次状态机 → 下推自动机的<strong>完整演进路径</strong>。游戏中角色状态比企业软件复杂得多：</p>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="text" data-theme="github-light github-dark"><code data-language="text" data-theme="github-light github-dark" style="display:grid;"><span data-line><span>枚举+switch → 状态模式 → 并发状态机（同时移动+攻击）→ 层次FSM（站立→移动→跑步）→ 下推自动机（菜单返回）</span></span></code></pre></figure>
+<p>GPP 最有价值的洞察：<strong>游戏角色的状态不是互斥的</strong>——角色可以同时处于”移动”和”攻击”状态，这需要并发状态机而非 GoF 的单状态切换。详见 <a href="../patterns-设计模式/state-pattern-状态" class="internal alias" data-slug="patterns-设计模式/state-pattern-状态">state-pattern-状态</a>。</p>
+<h3 id="6-种重叠模式的-gofgpp-演化总结">6 种重叠模式的 GoF→GPP 演化总结<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#6-种重叠模式的-gofgpp-演化总结" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th>模式</th><th>GoF 视角</th><th>GPP 游戏特化</th><th>演化方向</th></tr></thead><tbody><tr><td>命令</td><td>封装请求</td><td>输入重映射 / 撤销 / 回放 / AI 代理</td><td>从”执行”到”记录+重放”</td></tr><tr><td>享元</td><td>共享内在状态</td><td>区分享元与对象池，两者组合</td><td>从”省内存”到”省内存+省分配”</td></tr><tr><td>观察者</td><td>一对多通知</td><td>失效监听者问题 + 事件队列演进</td><td>从”同步通知”到”异步解耦”</td></tr><tr><td>原型</td><td>克隆创建</td><td>Instantiate 是原型 + 类型对象组合</td><td>从”创建模式”到”数据驱动创建”</td></tr><tr><td>单例</td><td>全局唯一</td><td>三大批判 → 服务定位器/DI</td><td>从”硬绑定”到”接口解耦”</td></tr><tr><td>状态</td><td>状态切换行为</td><td>并发FSM/层次FSM/下推自动机</td><td>从”互斥切换”到”并发叠加”</td></tr></tbody></table></div>
+<h2 id="频率分层">频率分层<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#频率分层" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th>频率</th><th>模式</th><th>说明</th></tr></thead><tbody><tr><td><strong>极高频</strong></td><td>组件、对象池、游戏循环</td><td>几乎每个游戏必用，Unity 已内置</td></tr><tr><td><strong>高频</strong></td><td>更新方法、服务定位器、类型对象、事件队列</td><td>中大型项目核心架构</td></tr><tr><td><strong>中频</strong></td><td>数据局部性、脏标识、双缓冲、空间分区</td><td>性能敏感子系统按需引入</td></tr><tr><td><strong>低频</strong></td><td>字节码、子类沙箱</td><td>特殊需求（Mod 系统、技能框架）</td></tr></tbody></table></div>
+<h2 id="gpp-模式选择决策">GPP 模式选择决策<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#gpp-模式选择决策" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<p>选择 GPP 模式的关键不是”哪个模式好”，而是”你的问题属于哪一层关切”：</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th>你的问题</th><th>属于哪层</th><th>先看</th><th>再看</th></tr></thead><tbody><tr><td>”每帧执行顺序/时序有问题”</td><td>帧驱动层</td><td><a href="../patterns-设计模式/game-loop-游戏循环" class="internal alias" data-slug="patterns-设计模式/game-loop-游戏循环">game-loop-游戏循环</a></td><td><a href="../patterns-设计模式/double-buffer-双缓冲" class="internal alias" data-slug="patterns-设计模式/double-buffer-双缓冲">double-buffer-双缓冲</a>、<a href="../patterns-设计模式/update-method-更新方法" class="internal alias" data-slug="patterns-设计模式/update-method-更新方法">update-method-更新方法</a></td></tr><tr><td>”行为硬编码，策划改数值要改代码”</td><td>行为定义层</td><td><a href="../patterns-设计模式/type-object-类型对象" class="internal alias" data-slug="patterns-设计模式/type-object-类型对象">type-object-类型对象</a></td><td><a href="../patterns-设计模式/bytecode-字节码" class="internal alias" data-slug="patterns-设计模式/bytecode-字节码">bytecode-字节码</a>、<a href="../patterns-设计模式/subclass-sandbox-子类沙箱" class="internal alias" data-slug="patterns-设计模式/subclass-sandbox-子类沙箱">subclass-sandbox-子类沙箱</a></td></tr><tr><td>”模块间耦合，改一个崩一片”</td><td>解耦层</td><td><a href="../patterns-设计模式/component-组件模式" class="internal alias" data-slug="patterns-设计模式/component-组件模式">component-组件模式</a></td><td><a href="../patterns-设计模式/event-queue-事件队列" class="internal alias" data-slug="patterns-设计模式/event-queue-事件队列">event-queue-事件队列</a>、<a href="../patterns-设计模式/service-locator-服务定位" class="internal alias" data-slug="patterns-设计模式/service-locator-服务定位">service-locator-服务定位</a></td></tr><tr><td>”帧时间超标/卡顿/GC Spike”</td><td>优化层</td><td><a href="../patterns-设计模式/data-locality-数据局部性" class="internal alias" data-slug="patterns-设计模式/data-locality-数据局部性">data-locality-数据局部性</a></td><td><a href="../patterns-设计模式/object-pool-对象池" class="internal alias" data-slug="patterns-设计模式/object-pool-对象池">object-pool-对象池</a>、<a href="../patterns-设计模式/dirty-flag-脏标识" class="internal alias" data-slug="patterns-设计模式/dirty-flag-脏标识">dirty-flag-脏标识</a>、<a href="../patterns-设计模式/spatial-partition-空间分区" class="internal alias" data-slug="patterns-设计模式/spatial-partition-空间分区">spatial-partition-空间分区</a></td></tr></tbody></table></div>
+<blockquote class="callout tip" data-callout="tip">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>诊断优先级：帧驱动 > 解耦 > 优化 > 行为定义 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>帧驱动是游戏运行的前提（不跑起来什么都没用），解耦是架构可持续演化的基础，优化在 Profiler 确认瓶颈后做，行为定义模式（字节码/类型对象）通常在项目成熟期引入。不要一上来就搞字节码 VM——先让游戏跑起来再说。</p>
+</div>
+</blockquote>
+<h2 id="反模式">反模式<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#反模式" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<blockquote class="callout warning" data-callout="warning">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>拿 GoF 模式生搬硬套到游戏中 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>不考虑帧驱动和性能约束，直接在 <code>Update</code> 中使用 GoF 的虚调用链——1000 个敌人每个持有 3 个策略接口，每帧 3000 次虚调用 + Cache Miss。GoF 模式本身没错，但<strong>在热路径上必须考虑数据局部性和批量处理</strong>。</p>
+</div>
+</blockquote>
+<blockquote class="callout warning" data-callout="warning">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>忽视 GPP 的&quot;游戏特化解读&quot; </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>命令模式不只是”封装请求”——它还是输入重映射和回放系统的基石。观察者模式不只是”通知”——还要处理失效监听者。单例不只是”全局唯一”——更要警惕隐藏依赖。读 GPP 的价值在于这些游戏特化洞察，而非模式的通用定义。</p>
+</div>
+</blockquote>
+<blockquote class="callout warning" data-callout="warning">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>13 种模式全上 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>不是每个游戏都需要字节码或空间分区。按频率分层选择：极高频模式（组件、对象池、游戏循环）几乎必用，中低频模式按需引入。过早引入不需要的模式徒增复杂度。</p>
+</div>
+</blockquote>
+<blockquote class="callout warning" data-callout="warning">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>混淆 GoF 策略与 GPP 类型对象 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>两者都能让对象行为可替换，但机制完全不同：GoF 策略用<strong>接口多态</strong>（每个策略一个类，虚调用分发），GPP 类型对象用<strong>数据驱动</strong>（一个类读配置表，行为由数据决定）。100 种技能用策略 = 100 个子类 + 100 次虚调用；用类型对象 = 1 个类 + 100 条配置。在行为种类爆炸时，类型对象远优于策略。</p>
+</div>
+</blockquote>
+<h2 id="相关">相关<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#相关" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<h3 id="分类详页">分类详页<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#分类详页" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<ul>
+<li><a href="../patterns-设计模式/sequencing-patterns-序列模式" class="internal alias" data-slug="patterns-设计模式/sequencing-patterns-序列模式">sequencing-patterns-序列模式</a> — 序列模式分类页</li>
+<li><a href="../patterns-设计模式/gpp-behavioral-patterns-GPP行为" class="internal alias" data-slug="patterns-设计模式/gpp-behavioral-patterns-GPP行为">gpp-behavioral-patterns-GPP行为</a> — GPP 行为模式分类页</li>
+<li><a href="../patterns-设计模式/decoupling-patterns-解耦" class="internal alias" data-slug="patterns-设计模式/decoupling-patterns-解耦">decoupling-patterns-解耦</a> — 解耦模式分类页</li>
+<li><a href="../patterns-设计模式/optimization-patterns-优化" class="internal alias" data-slug="patterns-设计模式/optimization-patterns-优化">optimization-patterns-优化</a> — 优化模式分类页</li>
+</ul>
+<h3 id="gof-关联">GoF 关联<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#gof-关联" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<ul>
+<li><a href="../patterns-设计模式/design-patterns-设计模式" class="internal alias" data-slug="patterns-设计模式/design-patterns-设计模式">design-patterns-设计模式</a> — GoF 22 种模式总览</li>
+<li><a href="../patterns-设计模式/creational-patterns-创建型" class="internal alias" data-slug="patterns-设计模式/creational-patterns-创建型">creational-patterns-创建型</a> — GoF 创建型模式</li>
+<li><a href="../patterns-设计模式/structural-patterns-结构型" class="internal alias" data-slug="patterns-设计模式/structural-patterns-结构型">structural-patterns-结构型</a> — GoF 结构型模式</li>
+<li><a href="../patterns-设计模式/behavioral-patterns-行为型" class="internal alias" data-slug="patterns-设计模式/behavioral-patterns-行为型">behavioral-patterns-行为型</a> — GoF 行为型模式</li>
+<li><a href="../patterns-设计模式/command-pattern-命令" class="internal alias" data-slug="patterns-设计模式/command-pattern-命令">command-pattern-命令</a> — 命令模式（GPP 重点复访）</li>
+<li><a href="../patterns-设计模式/observer-pattern-观察者" class="internal alias" data-slug="patterns-设计模式/observer-pattern-观察者">observer-pattern-观察者</a> — 观察者模式（GPP 重点复访）</li>
+<li><a href="../patterns-设计模式/state-pattern-状态" class="internal alias" data-slug="patterns-设计模式/state-pattern-状态">state-pattern-状态</a> — 状态模式（GPP 重点复访）</li>
+<li><a href="../patterns-设计模式/singleton-pattern-单例" class="internal alias" data-slug="patterns-设计模式/singleton-pattern-单例">singleton-pattern-单例</a> — 单例模式（GPP 批判性复访）</li>
+<li><a href="../patterns-设计模式/prototype-pattern-原型" class="internal alias" data-slug="patterns-设计模式/prototype-pattern-原型">prototype-pattern-原型</a> — 原型模式（GPP 复访）</li>
+<li><a href="../patterns-设计模式/flyweight-pattern-享元" class="internal alias" data-slug="patterns-设计模式/flyweight-pattern-享元">flyweight-pattern-享元</a> — 享元模式（GPP 复访）</li>
+</ul>
+<h3 id="unity-架构关联">Unity 架构关联<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#unity-架构关联" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<ul>
+<li><a href="../unity-Unity引擎/player-loop-主循环" class="internal alias" data-slug="unity-Unity引擎/player-loop-主循环">player-loop-主循环</a> — Unity 主循环（游戏循环的引擎级实现）</li>
+<li><a href="../unity-Unity引擎/dots-ecs-数据导向" class="internal alias" data-slug="unity-Unity引擎/dots-ecs-数据导向">dots-ecs-数据导向</a> — DOTS/ECS（组件模式 + 数据局部性的终极形态）</li>
+<li><a href="../csharp-dotnet-CSharp与NET/garbage-collection-GC与内存" class="internal alias" data-slug="csharp-dotnet-CSharp与NET/garbage-collection-GC与内存">garbage-collection-GC与内存</a> — GC 与对象池的关系</li>
+<li><a href="../performance-性能优化/job-system-作业系统" class="internal alias" data-slug="performance-性能优化/job-system-作业系统">job-system-作业系统</a> — Job System（数据局部性的工程落地）</li>
+<li><a href="../performance-性能优化/burst-compiler-Burst编译" class="internal alias" data-slug="performance-性能优化/burst-compiler-Burst编译">burst-compiler-Burst编译</a> — Burst 编译器（数据局部性 + SIMD）</li>
+</ul></article><hr/><div class="page-footer"></div></div><div class="right sidebar"><div class="graph"><h3>关系图谱</h3><div class="graph-outer"><div class="graph-container" data-cfg="{&quot;drag&quot;:true,&quot;zoom&quot;:true,&quot;depth&quot;:1,&quot;scale&quot;:1.1,&quot;repelForce&quot;:0.5,&quot;centerForce&quot;:0.3,&quot;linkDistance&quot;:30,&quot;fontSize&quot;:0.6,&quot;opacityScale&quot;:1,&quot;showTags&quot;:true,&quot;removeTags&quot;:[],&quot;focusOnHover&quot;:false,&quot;enableRadial&quot;:false}"></div><button class="global-graph-icon" aria-label="Global Graph"><svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 55 55" fill="currentColor" xml:space="preserve"><path d="M49,0c-3.309,0-6,2.691-6,6c0,1.035,0.263,2.009,0.726,2.86l-9.829,9.829C32.542,17.634,30.846,17,29,17
+                s-3.542,0.634-4.898,1.688l-7.669-7.669C16.785,10.424,17,9.74,17,9c0-2.206-1.794-4-4-4S9,6.794,9,9s1.794,4,4,4
+                c0.74,0,1.424-0.215,2.019-0.567l7.669,7.669C21.634,21.458,21,23.154,21,25s0.634,3.542,1.688,4.897L10.024,42.562
+                C8.958,41.595,7.549,41,6,41c-3.309,0-6,2.691-6,6s2.691,6,6,6s6-2.691,6-6c0-1.035-0.263-2.009-0.726-2.86l12.829-12.829
+                c1.106,0.86,2.44,1.436,3.898,1.619v10.16c-2.833,0.478-5,2.942-5,5.91c0,3.309,2.691,6,6,6s6-2.691,6-6c0-2.967-2.167-5.431-5-5.91
+                v-10.16c1.458-0.183,2.792-0.759,3.898-1.619l7.669,7.669C41.215,39.576,41,40.26,41,41c0,2.206,1.794,4,4,4s4-1.794,4-4
+                s-1.794-4-4-4c-0.74,0-1.424,0.215-2.019,0.567l-7.669-7.669C36.366,28.542,37,26.846,37,25s-0.634-3.542-1.688-4.897l9.665-9.665
+                C46.042,11.405,47.451,12,49,12c3.309,0,6-2.691,6-6S52.309,0,49,0z M11,9c0-1.103,0.897-2,2-2s2,0.897,2,2s-0.897,2-2,2
+                S11,10.103,11,9z M6,51c-2.206,0-4-1.794-4-4s1.794-4,4-4s4,1.794,4,4S8.206,51,6,51z M33,49c0,2.206-1.794,4-4,4s-4-1.794-4-4
+                s1.794-4,4-4S33,46.794,33,49z M29,31c-3.309,0-6-2.691-6-6s2.691-6,6-6s6,2.691,6,6S32.309,31,29,31z M47,41c0,1.103-0.897,2-2,2
+                s-2-0.897-2-2s0.897-2,2-2S47,39.897,47,41z M49,10c-2.206,0-4-1.794-4-4s1.794-4,4-4s4,1.794,4,4S51.206,10,49,10z"></path></svg></button></div><div class="global-graph-outer"><div class="global-graph-container" data-cfg="{&quot;drag&quot;:true,&quot;zoom&quot;:true,&quot;depth&quot;:-1,&quot;scale&quot;:0.9,&quot;repelForce&quot;:0.5,&quot;centerForce&quot;:0.2,&quot;linkDistance&quot;:30,&quot;fontSize&quot;:0.6,&quot;opacityScale&quot;:1,&quot;showTags&quot;:true,&quot;removeTags&quot;:[],&quot;focusOnHover&quot;:true,&quot;enableRadial&quot;:true}"></div></div></div><div class="toc desktop-only"><button type="button" class="toc-header" aria-controls="toc-38" aria-expanded="true"><h3>目录</h3><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="fold"><polyline points="6 9 12 15 18 9"></polyline></svg></button><ul id="list-1" class="toc-content overflow"><li class="depth-0"><a href="#游戏编程模式game-programming-patterns" data-for="游戏编程模式game-programming-patterns">游戏编程模式（Game Programming Patterns）</a></li><li class="depth-1"><a href="#核心思想" data-for="核心思想">核心思想</a></li><li class="depth-1"><a href="#架构哲学长期速度运行速度与短期速度的角力" data-for="架构哲学长期速度运行速度与短期速度的角力">架构哲学：长期速度、运行速度与短期速度的角力</a></li><li class="depth-2"><a href="#解耦的真实含义" data-for="解耦的真实含义">解耦的真实含义</a></li><li class="depth-2"><a href="#yagni-与过度设计" data-for="yagni-与过度设计">YAGNI 与过度设计</a></li><li class="depth-2"><a href="#烂代码在原型阶段的合理性" data-for="烂代码在原型阶段的合理性">烂代码在原型阶段的合理性</a></li><li class="depth-2"><a href="#保持灵活直到设计定型" data-for="保持灵活直到设计定型">保持灵活直到设计定型</a></li><li class="depth-1"><a href="#问题动机" data-for="问题动机">问题动机</a></li><li class="depth-1"><a href="#gpp-模式分类结构" data-for="gpp-模式分类结构">GPP 模式分类结构</a></li><li class="depth-1"><a href="#参与者" data-for="参与者">参与者</a></li><li class="depth-1"><a href="#四大分类简介" data-for="四大分类简介">四大分类简介</a></li><li class="depth-1"><a href="#gpp-13-种独有模式速查表" data-for="gpp-13-种独有模式速查表">GPP 13 种独有模式速查表</a></li><li class="depth-1"><a href="#从-gof-到-gpp-的演进脉络" data-for="从-gof-到-gpp-的演进脉络">从 GoF 到 GPP 的演进脉络</a></li><li class="depth-1"><a href="#与-gof-重叠的-6-种模式" data-for="与-gof-重叠的-6-种模式">与 GoF 重叠的 6 种模式</a></li><li class="depth-2"><a href="#命令command" data-for="命令command">命令（Command）</a></li><li class="depth-2"><a href="#享元flyweight" data-for="享元flyweight">享元（Flyweight）</a></li><li class="depth-2"><a href="#观察者observer" data-for="观察者observer">观察者（Observer）</a></li><li class="depth-2"><a href="#原型prototype" data-for="原型prototype">原型（Prototype）</a></li><li class="depth-2"><a href="#单例singleton" data-for="单例singleton">单例（Singleton）</a></li><li class="depth-2"><a href="#状态state" data-for="状态state">状态（State）</a></li><li class="depth-2"><a href="#6-种重叠模式的-gofgpp-演化总结" data-for="6-种重叠模式的-gofgpp-演化总结">6 种重叠模式的 GoF→GPP 演化总结</a></li><li class="depth-1"><a href="#频率分层" data-for="频率分层">频率分层</a></li><li class="depth-1"><a href="#gpp-模式选择决策" data-for="gpp-模式选择决策">GPP 模式选择决策</a></li><li class="depth-1"><a href="#反模式" data-for="反模式">反模式</a></li><li class="depth-1"><a href="#相关" data-for="相关">相关</a></li><li class="depth-2"><a href="#分类详页" data-for="分类详页">分类详页</a></li><li class="depth-2"><a href="#gof-关联" data-for="gof-关联">GoF 关联</a></li><li class="depth-2"><a href="#unity-架构关联" data-for="unity-架构关联">Unity 架构关联</a></li><li class="overflow-end"></li></ul></div><div class="backlinks"><h3>反向链接</h3><ul id="list-2" class="overflow"><li><a href="../" class="internal">index</a></li><li><a href="../patterns-设计模式/bytecode-字节码" class="internal">bytecode-字节码</a></li><li><a href="../patterns-设计模式/component-组件模式" class="internal">component-组件模式</a></li><li><a href="../patterns-设计模式/data-locality-数据局部性" class="internal">data-locality-数据局部性</a></li><li><a href="../patterns-设计模式/decoupling-patterns-解耦" class="internal">decoupling-patterns-解耦</a></li><li><a href="../patterns-设计模式/design-patterns-设计模式" class="internal">design-patterns-设计模式</a></li><li><a href="../patterns-设计模式/dirty-flag-脏标识" class="internal">dirty-flag-脏标识</a></li><li><a href="../patterns-设计模式/double-buffer-双缓冲" class="internal">double-buffer-双缓冲</a></li><li><a href="../patterns-设计模式/event-queue-事件队列" class="internal">event-queue-事件队列</a></li><li><a href="../patterns-设计模式/game-loop-游戏循环" class="internal">game-loop-游戏循环</a></li><li><a href="../patterns-设计模式/gpp-behavioral-patterns-GPP行为" class="internal">gpp-behavioral-patterns-GPP行为</a></li><li><a href="../patterns-设计模式/object-pool-对象池" class="internal">object-pool-对象池</a></li><li><a href="../patterns-设计模式/optimization-patterns-优化" class="internal">optimization-patterns-优化</a></li><li><a href="../patterns-设计模式/sequencing-patterns-序列模式" class="internal">sequencing-patterns-序列模式</a></li><li><a href="../patterns-设计模式/service-locator-服务定位" class="internal">service-locator-服务定位</a></li><li><a href="../patterns-设计模式/spatial-partition-空间分区" class="internal">spatial-partition-空间分区</a></li><li><a href="../patterns-设计模式/subclass-sandbox-子类沙箱" class="internal">subclass-sandbox-子类沙箱</a></li><li><a href="../patterns-设计模式/type-object-类型对象" class="internal">type-object-类型对象</a></li><li><a href="../patterns-设计模式/update-method-更新方法" class="internal">update-method-更新方法</a></li><li class="overflow-end"></li></ul></div></div><footer class><p>Created with <a href="https://quartz.jzhao.xyz/">Quartz v4.5.2</a> © 2026</p><ul><li><a href="https://github.com/jackyzha0/quartz">GitHub</a></li><li><a href="https://discord.gg/cRFFHYye7t">Discord Community</a></li></ul></footer></div></div></body><script type="application/javascript" data-persist="true">function n(){let t=this.parentElement;t.classList.toggle("is-collapsed");let e=t.getElementsByClassName("callout-content")[0];if(!e)return;let l=t.classList.contains("is-collapsed");e.style.gridTemplateRows=l?"0fr":"1fr"}function c(){let t=document.getElementsByClassName("callout is-collapsible");for(let e of t){let l=e.getElementsByClassName("callout-title")[0],s=e.getElementsByClassName("callout-content")[0];if(!l||!s)continue;l.addEventListener("click",n),window.addCleanup(()=>l.removeEventListener("click",n));let o=e.classList.contains("is-collapsed");s.style.gridTemplateRows=o?"0fr":"1fr"}}document.addEventListener("nav",c);
+</script><script type="module" data-persist="true">function E(c,e){if(!c)return;function t(s){s.target===this&&(s.preventDefault(),s.stopPropagation(),e())}function r(s){s.key.startsWith("Esc")&&(s.preventDefault(),e())}c?.addEventListener("click",t),window.addCleanup(()=>c?.removeEventListener("click",t)),document.addEventListener("keydown",r),window.addCleanup(()=>document.removeEventListener("keydown",r))}function y(c){for(;c.firstChild;)c.removeChild(c.firstChild)}var v=class{constructor(e,t){this.container=e;this.content=t;this.setupEventListeners(),this.setupNavigationControls(),this.resetTransform()}isDragging=!1;startPan={x:0,y:0};currentPan={x:0,y:0};scale=1;MIN_SCALE=.5;MAX_SCALE=3;cleanups=[];setupEventListeners(){let e=this.onMouseDown.bind(this),t=this.onMouseMove.bind(this),r=this.onMouseUp.bind(this),s=this.onTouchStart.bind(this),o=this.onTouchMove.bind(this),i=this.onTouchEnd.bind(this),n=this.resetTransform.bind(this);this.container.addEventListener("mousedown",e),document.addEventListener("mousemove",t),document.addEventListener("mouseup",r),this.container.addEventListener("touchstart",s,{passive:!1}),document.addEventListener("touchmove",o,{passive:!1}),document.addEventListener("touchend",i),window.addEventListener("resize",n),this.cleanups.push(()=>this.container.removeEventListener("mousedown",e),()=>document.removeEventListener("mousemove",t),()=>document.removeEventListener("mouseup",r),()=>this.container.removeEventListener("touchstart",s),()=>document.removeEventListener("touchmove",o),()=>document.removeEventListener("touchend",i),()=>window.removeEventListener("resize",n))}cleanup(){for(let e of this.cleanups)e()}setupNavigationControls(){let e=document.createElement("div");e.className="mermaid-controls";let t=this.createButton("+",()=>this.zoom(.1)),r=this.createButton("-",()=>this.zoom(-.1)),s=this.createButton("Reset",()=>this.resetTransform());e.appendChild(r),e.appendChild(s),e.appendChild(t),this.container.appendChild(e)}createButton(e,t){let r=document.createElement("button");return r.textContent=e,r.className="mermaid-control-button",r.addEventListener("click",t),window.addCleanup(()=>r.removeEventListener("click",t)),r}onMouseDown(e){e.button===0&&(this.isDragging=!0,this.startPan={x:e.clientX-this.currentPan.x,y:e.clientY-this.currentPan.y},this.container.style.cursor="grabbing")}onMouseMove(e){this.isDragging&&(e.preventDefault(),this.currentPan={x:e.clientX-this.startPan.x,y:e.clientY-this.startPan.y},this.updateTransform())}onMouseUp(){this.isDragging=!1,this.container.style.cursor="grab"}onTouchStart(e){if(e.touches.length!==1)return;this.isDragging=!0;let t=e.touches[0];this.startPan={x:t.clientX-this.currentPan.x,y:t.clientY-this.currentPan.y}}onTouchMove(e){if(!this.isDragging||e.touches.length!==1)return;e.preventDefault();let t=e.touches[0];this.currentPan={x:t.clientX-this.startPan.x,y:t.clientY-this.startPan.y},this.updateTransform()}onTouchEnd(){this.isDragging=!1}zoom(e){let t=Math.min(Math.max(this.scale+e,this.MIN_SCALE),this.MAX_SCALE),r=this.content.getBoundingClientRect(),s=r.width/2,o=r.height/2,i=t-this.scale;this.currentPan.x-=s*i,this.currentPan.y-=o*i,this.scale=t,this.updateTransform()}updateTransform(){this.content.style.transform=`translate(${this.currentPan.x}px, ${this.currentPan.y}px) scale(${this.scale})`}resetTransform(){let t=this.content.querySelector("svg").getBoundingClientRect(),r=t.width/this.scale,s=t.height/this.scale;this.scale=1,this.currentPan={x:(this.container.clientWidth-r)/2,y:(this.container.clientHeight-s)/2},this.updateTransform()}},T=["--secondary","--tertiary","--gray","--light","--lightgray","--highlight","--dark","--darkgray","--codeFont"],L;document.addEventListener("nav",async()=>{let e=document.querySelector(".center").querySelectorAll("code.mermaid");if(e.length===0)return;L||=await import("https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.4.0/mermaid.esm.min.mjs");let t=L.default,r=new WeakMap;for(let o of e){let i=o.getAttribute("data-clipboard"),n=o.innerText;if(i)try{n=JSON.parse(i)}catch{}r.set(o,n)}async function s(){for(let n of e){n.removeAttribute("data-processed");let a=r.get(n);a&&(n.textContent=a)}let o=T.reduce((n,a)=>(n[a]=window.getComputedStyle(document.documentElement).getPropertyValue(a),n),{}),i=document.documentElement.getAttribute("saved-theme")==="dark";t.initialize({startOnLoad:!1,securityLevel:"loose",theme:i?"dark":"base",themeVariables:{fontFamily:o["--codeFont"],primaryColor:o["--light"],primaryTextColor:o["--darkgray"],primaryBorderColor:o["--tertiary"],lineColor:o["--darkgray"],secondaryColor:o["--secondary"],tertiaryColor:o["--tertiary"],clusterBkg:o["--light"],edgeLabelBackground:o["--highlight"]}});for(let n=0;n<e.length;n++){let a=e[n],l=r.get(a);if(l)try{let u=`mermaid-svg-${Date.now()}-${n}`,{svg:p,bindFunctions:d}=await t.render(u,l);a.innerHTML=p,d&&d(a),a.setAttribute("data-processed","true")}catch(u){console.error(`mermaid render failed for node ${n}:`,u)}}}await s(),document.addEventListener("themechange",s),window.addCleanup(()=>document.removeEventListener("themechange",s));for(let o=0;o<e.length;o++){let g=function(){let f=d.querySelector("#mermaid-space"),m=d.querySelector(".mermaid-content");if(!m)return;y(m);let w=i.querySelector("svg").cloneNode(!0);m.appendChild(w),d.classList.add("active"),f.style.cursor="grab",h=new v(f,m)},M=function(){d.classList.remove("active"),h?.cleanup(),h=null},i=e[o],n=i.parentElement,a=n.querySelector(".clipboard-button"),l=n.querySelector(".expand-button"),u=window.getComputedStyle(a),p=a.offsetWidth+parseFloat(u.marginLeft||"0")+parseFloat(u.marginRight||"0");l.style.right=`calc(${p}px + 0.3rem)`,n.prepend(l);let d=n.querySelector("#mermaid-container");if(!d)return;let h=null;l.addEventListener("click",g),E(d,M),window.addCleanup(()=>{h?.cleanup(),l.removeEventListener("click",g)})}});
+</script><script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/copy-tex.min.js" type="application/javascript" data-persist="true"></script><script src="../postscript.js" type="module" data-persist="true"></script></html>

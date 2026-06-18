@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr"><head><title>framework-landscape-框架全景坐标系</title><meta charset="utf-8"/><link rel="preconnect" href="https://fonts.googleapis.com"/><link rel="preconnect" href="https://fonts.gstatic.com"/><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted Grotesk:wght@400;700&amp;family=Source Sans Pro:ital,wght@0,400;0,600;1,400;1,600&amp;family=IBM Plex Mono:wght@400;600&amp;display=swap"/><link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin="anonymous"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><meta name="og:site_name" content="Unity / C# / .NET 游戏开发知识库"/><meta property="og:title" content="framework-landscape-框架全景坐标系"/><meta property="og:type" content="website"/><meta name="twitter:card" content="summary_large_image"/><meta name="twitter:title" content="framework-landscape-框架全景坐标系"/><meta name="twitter:description" content="Unity 游戏框架全景坐标系（Framework Landscape Synthesis） 本页定位 这是 tools 分支 7 个框架页的顶层枢纽（Hub-of-Hubs）。它不重复任何单框架的细节，只做一件事：把全部 7 个框架放进同一个坐标系，让”该选谁 / 该借鉴谁”的判断有统一参照。 本库已有两个单轴深挖 synthesis，本页是它们的上层入口，不与之重复： paradigm-comparison-范式对比 — 范式轴深挖：OOP-Module vs ECS-Entity 的源码级对比（high） unity-framework-comparison-Unity框架架构对比 — ..."/><meta property="og:description" content="Unity 游戏框架全景坐标系（Framework Landscape Synthesis） 本页定位 这是 tools 分支 7 个框架页的顶层枢纽（Hub-of-Hubs）。它不重复任何单框架的细节，只做一件事：把全部 7 个框架放进同一个坐标系，让”该选谁 / 该借鉴谁”的判断有统一参照。 本库已有两个单轴深挖 synthesis，本页是它们的上层入口，不与之重复： paradigm-comparison-范式对比 — 范式轴深挖：OOP-Module vs ECS-Entity 的源码级对比（high） unity-framework-comparison-Unity框架架构对比 — ..."/><meta property="og:image:alt" content="Unity 游戏框架全景坐标系（Framework Landscape Synthesis） 本页定位 这是 tools 分支 7 个框架页的顶层枢纽（Hub-of-Hubs）。它不重复任何单框架的细节，只做一件事：把全部 7 个框架放进同一个坐标系，让”该选谁 / 该借鉴谁”的判断有统一参照。 本库已有两个单轴深挖 synthesis，本页是它们的上层入口，不与之重复： paradigm-comparison-范式对比 — 范式轴深挖：OOP-Module vs ECS-Entity 的源码级对比（high） unity-framework-comparison-Unity框架架构对比 — ..."/><meta property="twitter:domain" content="easilyid.github.io/knowledge-base-site"/><meta property="og:url" content="https://easilyid.github.io/knowledge-base-site/tools-工具与工作流/framework-landscape-框架全景坐标系"/><meta property="twitter:url" content="https://easilyid.github.io/knowledge-base-site/tools-工具与工作流/framework-landscape-框架全景坐标系"/><link rel="icon" href="../static/icon.png"/><meta name="description" content="Unity 游戏框架全景坐标系（Framework Landscape Synthesis） 本页定位 这是 tools 分支 7 个框架页的顶层枢纽（Hub-of-Hubs）。它不重复任何单框架的细节，只做一件事：把全部 7 个框架放进同一个坐标系，让”该选谁 / 该借鉴谁”的判断有统一参照。 本库已有两个单轴深挖 synthesis，本页是它们的上层入口，不与之重复： paradigm-comparison-范式对比 — 范式轴深挖：OOP-Module vs ECS-Entity 的源码级对比（high） unity-framework-comparison-Unity框架架构对比 — ..."/><meta name="generator" content="Quartz"/><link href="../index.css" rel="stylesheet" type="text/css" data-persist="true"/><style>.expand-button {
+  position: absolute;
+  display: flex;
+  float: right;
+  padding: 0.4rem;
+  margin: 0.3rem;
+  right: 0;
+  color: var(--gray);
+  border-color: var(--dark);
+  background-color: var(--light);
+  border: 1px solid;
+  border-radius: 5px;
+  opacity: 0;
+  transition: 0.2s;
+}
+.expand-button > svg {
+  fill: var(--light);
+  filter: contrast(0.3);
+}
+.expand-button:hover {
+  cursor: pointer;
+  border-color: var(--secondary);
+}
+.expand-button:focus {
+  outline: 0;
+}
+
+pre:hover > .expand-button {
+  opacity: 1;
+  transition: 0.2s;
+}
+
+#mermaid-container {
+  position: fixed;
+  contain: layout;
+  z-index: 999;
+  left: 0;
+  top: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  display: none;
+  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.5);
+}
+#mermaid-container.active {
+  display: inline-block;
+}
+#mermaid-container > #mermaid-space {
+  border: 1px solid var(--lightgray);
+  background-color: var(--light);
+  border-radius: 5px;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  height: 80vh;
+  width: 80vw;
+  overflow: hidden;
+}
+#mermaid-container > #mermaid-space > .mermaid-content {
+  position: relative;
+  transform-origin: 0 0;
+  transition: transform 0.1s ease;
+  overflow: visible;
+  min-height: 200px;
+  min-width: 200px;
+}
+#mermaid-container > #mermaid-space > .mermaid-content pre {
+  margin: 0;
+  border: none;
+}
+#mermaid-container > #mermaid-space > .mermaid-content svg {
+  max-width: none;
+  height: auto;
+}
+#mermaid-container > #mermaid-space > .mermaid-controls {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+  background: var(--light);
+  border: 1px solid var(--lightgray);
+  border-radius: 6px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  z-index: 2;
+}
+#mermaid-container > #mermaid-space > .mermaid-controls .mermaid-control-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--lightgray);
+  background: var(--light);
+  color: var(--dark);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  font-family: var(--bodyFont);
+  transition: all 0.2s ease;
+}
+#mermaid-container > #mermaid-space > .mermaid-controls .mermaid-control-button:hover {
+  background: var(--lightgray);
+}
+#mermaid-container > #mermaid-space > .mermaid-controls .mermaid-control-button:active {
+  transform: translateY(1px);
+}
+#mermaid-container > #mermaid-space > .mermaid-controls .mermaid-control-button:nth-child(2) {
+  width: auto;
+  padding: 0 12px;
+  font-size: 14px;
+}
+/*# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VSb290IjoiL2hvbWUvcnVubmVyL3dvcmsvS25vd2xlZGdlLUJhc2UvS25vd2xlZGdlLUJhc2UvcXVhcnR6L3F1YXJ0ei9jb21wb25lbnRzL3N0eWxlcyIsInNvdXJjZXMiOlsibWVybWFpZC5pbmxpbmUuc2NzcyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiQUFBQTtFQUNFO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBOztBQUVBO0VBQ0U7RUFDQTs7QUFHRjtFQUNFO0VBQ0E7O0FBR0Y7RUFDRTs7O0FBS0Y7RUFDRTtFQUNBOzs7QUFJSjtFQUNFO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7O0FBRUE7RUFDRTs7QUFHRjtFQUNFO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBOztBQUVBO0VBQ0U7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBOztBQUVBO0VBQ0U7RUFDQTs7QUFHRjtFQUNFO0VBQ0E7O0FBSUo7RUFDRTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBOztBQUVBO0VBQ0U7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTs7QUFFQTtFQUNFOztBQUdGO0VBQ0U7O0FBSUY7RUFDRTtFQUNBO0VBQ0EiLCJzb3VyY2VzQ29udGVudCI6WyIuZXhwYW5kLWJ1dHRvbiB7XG4gIHBvc2l0aW9uOiBhYnNvbHV0ZTtcbiAgZGlzcGxheTogZmxleDtcbiAgZmxvYXQ6IHJpZ2h0O1xuICBwYWRkaW5nOiAwLjRyZW07XG4gIG1hcmdpbjogMC4zcmVtO1xuICByaWdodDogMDsgLy8gTk9URTogcmlnaHQgd2lsbCBiZSBzZXQgaW4gbWVybWFpZC5pbmxpbmUudHNcbiAgY29sb3I6IHZhcigtLWdyYXkpO1xuICBib3JkZXItY29sb3I6IHZhcigtLWRhcmspO1xuICBiYWNrZ3JvdW5kLWNvbG9yOiB2YXIoLS1saWdodCk7XG4gIGJvcmRlcjogMXB4IHNvbGlkO1xuICBib3JkZXItcmFkaXVzOiA1cHg7XG4gIG9wYWNpdHk6IDA7XG4gIHRyYW5zaXRpb246IDAuMnM7XG5cbiAgJiA+IHN2ZyB7XG4gICAgZmlsbDogdmFyKC0tbGlnaHQpO1xuICAgIGZpbHRlcjogY29udHJhc3QoMC4zKTtcbiAgfVxuXG4gICY6aG92ZXIge1xuICAgIGN1cnNvcjogcG9pbnRlcjtcbiAgICBib3JkZXItY29sb3I6IHZhcigtLXNlY29uZGFyeSk7XG4gIH1cblxuICAmOmZvY3VzIHtcbiAgICBvdXRsaW5lOiAwO1xuICB9XG59XG5cbnByZSB7XG4gICY6aG92ZXIgPiAuZXhwYW5kLWJ1dHRvbiB7XG4gICAgb3BhY2l0eTogMTtcbiAgICB0cmFuc2l0aW9uOiAwLjJzO1xuICB9XG59XG5cbiNtZXJtYWlkLWNvbnRhaW5lciB7XG4gIHBvc2l0aW9uOiBmaXhlZDtcbiAgY29udGFpbjogbGF5b3V0O1xuICB6LWluZGV4OiA5OTk7XG4gIGxlZnQ6IDA7XG4gIHRvcDogMDtcbiAgd2lkdGg6IDEwMHZ3O1xuICBoZWlnaHQ6IDEwMHZoO1xuICBvdmVyZmxvdzogaGlkZGVuO1xuICBkaXNwbGF5OiBub25lO1xuICBiYWNrZHJvcC1maWx0ZXI6IGJsdXIoNHB4KTtcbiAgYmFja2dyb3VuZDogcmdiYSgwLCAwLCAwLCAwLjUpO1xuXG4gICYuYWN0aXZlIHtcbiAgICBkaXNwbGF5OiBpbmxpbmUtYmxvY2s7XG4gIH1cblxuICAmID4gI21lcm1haWQtc3BhY2Uge1xuICAgIGJvcmRlcjogMXB4IHNvbGlkIHZhcigtLWxpZ2h0Z3JheSk7XG4gICAgYmFja2dyb3VuZC1jb2xvcjogdmFyKC0tbGlnaHQpO1xuICAgIGJvcmRlci1yYWRpdXM6IDVweDtcbiAgICBwb3NpdGlvbjogZml4ZWQ7XG4gICAgdG9wOiA1MCU7XG4gICAgbGVmdDogNTAlO1xuICAgIHRyYW5zZm9ybTogdHJhbnNsYXRlKC01MCUsIC01MCUpO1xuICAgIGhlaWdodDogODB2aDtcbiAgICB3aWR0aDogODB2dztcbiAgICBvdmVyZmxvdzogaGlkZGVuO1xuXG4gICAgJiA+IC5tZXJtYWlkLWNvbnRlbnQge1xuICAgICAgcG9zaXRpb246IHJlbGF0aXZlO1xuICAgICAgdHJhbnNmb3JtLW9yaWdpbjogMCAwO1xuICAgICAgdHJhbnNpdGlvbjogdHJhbnNmb3JtIDAuMXMgZWFzZTtcbiAgICAgIG92ZXJmbG93OiB2aXNpYmxlO1xuICAgICAgbWluLWhlaWdodDogMjAwcHg7XG4gICAgICBtaW4td2lkdGg6IDIwMHB4O1xuXG4gICAgICBwcmUge1xuICAgICAgICBtYXJnaW46IDA7XG4gICAgICAgIGJvcmRlcjogbm9uZTtcbiAgICAgIH1cblxuICAgICAgc3ZnIHtcbiAgICAgICAgbWF4LXdpZHRoOiBub25lO1xuICAgICAgICBoZWlnaHQ6IGF1dG87XG4gICAgICB9XG4gICAgfVxuXG4gICAgJiA+IC5tZXJtYWlkLWNvbnRyb2xzIHtcbiAgICAgIHBvc2l0aW9uOiBhYnNvbHV0ZTtcbiAgICAgIGJvdHRvbTogMjBweDtcbiAgICAgIHJpZ2h0OiAyMHB4O1xuICAgICAgZGlzcGxheTogZmxleDtcbiAgICAgIGdhcDogOHB4O1xuICAgICAgcGFkZGluZzogOHB4O1xuICAgICAgYmFja2dyb3VuZDogdmFyKC0tbGlnaHQpO1xuICAgICAgYm9yZGVyOiAxcHggc29saWQgdmFyKC0tbGlnaHRncmF5KTtcbiAgICAgIGJvcmRlci1yYWRpdXM6IDZweDtcbiAgICAgIGJveC1zaGFkb3c6IDAgMnB4IDRweCByZ2JhKDAsIDAsIDAsIDAuMSk7XG4gICAgICB6LWluZGV4OiAyO1xuXG4gICAgICAubWVybWFpZC1jb250cm9sLWJ1dHRvbiB7XG4gICAgICAgIGRpc3BsYXk6IGZsZXg7XG4gICAgICAgIGFsaWduLWl0ZW1zOiBjZW50ZXI7XG4gICAgICAgIGp1c3RpZnktY29udGVudDogY2VudGVyO1xuICAgICAgICB3aWR0aDogMzJweDtcbiAgICAgICAgaGVpZ2h0OiAzMnB4O1xuICAgICAgICBwYWRkaW5nOiAwO1xuICAgICAgICBib3JkZXI6IDFweCBzb2xpZCB2YXIoLS1saWdodGdyYXkpO1xuICAgICAgICBiYWNrZ3JvdW5kOiB2YXIoLS1saWdodCk7XG4gICAgICAgIGNvbG9yOiB2YXIoLS1kYXJrKTtcbiAgICAgICAgYm9yZGVyLXJhZGl1czogNHB4O1xuICAgICAgICBjdXJzb3I6IHBvaW50ZXI7XG4gICAgICAgIGZvbnQtc2l6ZTogMTZweDtcbiAgICAgICAgZm9udC1mYW1pbHk6IHZhcigtLWJvZHlGb250KTtcbiAgICAgICAgdHJhbnNpdGlvbjogYWxsIDAuMnMgZWFzZTtcblxuICAgICAgICAmOmhvdmVyIHtcbiAgICAgICAgICBiYWNrZ3JvdW5kOiB2YXIoLS1saWdodGdyYXkpO1xuICAgICAgICB9XG5cbiAgICAgICAgJjphY3RpdmUge1xuICAgICAgICAgIHRyYW5zZm9ybTogdHJhbnNsYXRlWSgxcHgpO1xuICAgICAgICB9XG5cbiAgICAgICAgLy8gU3R5bGUgdGhlIHJlc2V0IGJ1dHRvbiBkaWZmZXJlbnRseVxuICAgICAgICAmOm50aC1jaGlsZCgyKSB7XG4gICAgICAgICAgd2lkdGg6IGF1dG87XG4gICAgICAgICAgcGFkZGluZzogMCAxMnB4O1xuICAgICAgICAgIGZvbnQtc2l6ZTogMTRweDtcbiAgICAgICAgfVxuICAgICAgfVxuICAgIH1cbiAgfVxufVxuIl19 */</style><link href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" rel="stylesheet" type="text/css" data-persist="true"/><script src="../prescript.js" type="application/javascript" data-persist="true"></script><script type="application/javascript" data-persist="true">const fetchData = fetch("../static/contentIndex.json").then(data => data.json())</script><link rel="alternate" type="application/rss+xml" title="RSS Feed" href="https://easilyid.github.io/knowledge-base-site/index.xml"/><meta property="og:image:width" content="1200"/><meta property="og:image:height" content="630"/><meta property="og:image" content="https://easilyid.github.io/knowledge-base-site/tools-工具与工作流/framework-landscape-框架全景坐标系-og-image.webp"/><meta property="og:image:url" content="https://easilyid.github.io/knowledge-base-site/tools-工具与工作流/framework-landscape-框架全景坐标系-og-image.webp"/><meta name="twitter:image" content="https://easilyid.github.io/knowledge-base-site/tools-工具与工作流/framework-landscape-框架全景坐标系-og-image.webp"/><meta property="og:image:type" content="image/.webp"/></head><body data-slug="tools-工具与工作流/framework-landscape-框架全景坐标系"><div id="quartz-root" class="page"><div id="quartz-body"><div class="left sidebar"><h2 class="page-title"><a href="..">Unity / C# / .NET 游戏开发知识库</a></h2><div class="spacer mobile-only"></div><div class="flex-component" style="flex-direction: row; flex-wrap: nowrap; gap: 1rem;"><div style="flex-grow: 1; flex-shrink: 1; flex-basis: auto; order: 0; align-self: center; justify-self: center;"><div class="search"><button class="search-button"><svg role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 19.9 19.7"><title>Search</title><g class="search-path" fill="none"><path stroke-linecap="square" d="M18.5 18.3l-5.4-5.4"></path><circle cx="8" cy="8" r="7"></circle></g></svg><p>搜索</p></button><div class="search-container"><div class="search-space"><input autocomplete="off" class="search-bar" name="search" type="text" aria-label="搜索些什么" placeholder="搜索些什么"/><div class="search-layout" data-preview="true"></div></div></div></div></div><div style="flex-grow: 0; flex-shrink: 1; flex-basis: auto; order: 0; align-self: center; justify-self: center;"><button class="darkmode"><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" class="dayIcon" x="0px" y="0px" viewBox="0 0 35 35" style="enable-background:new 0 0 35 35" xml:space="preserve" aria-label="暗色模式"><title>暗色模式</title><path d="M6,17.5C6,16.672,5.328,16,4.5,16h-3C0.672,16,0,16.672,0,17.5    S0.672,19,1.5,19h3C5.328,19,6,18.328,6,17.5z M7.5,26c-0.414,0-0.789,0.168-1.061,0.439l-2,2C4.168,28.711,4,29.086,4,29.5    C4,30.328,4.671,31,5.5,31c0.414,0,0.789-0.168,1.06-0.44l2-2C8.832,28.289,9,27.914,9,27.5C9,26.672,8.329,26,7.5,26z M17.5,6    C18.329,6,19,5.328,19,4.5v-3C19,0.672,18.329,0,17.5,0S16,0.672,16,1.5v3C16,5.328,16.671,6,17.5,6z M27.5,9    c0.414,0,0.789-0.168,1.06-0.439l2-2C30.832,6.289,31,5.914,31,5.5C31,4.672,30.329,4,29.5,4c-0.414,0-0.789,0.168-1.061,0.44    l-2,2C26.168,6.711,26,7.086,26,7.5C26,8.328,26.671,9,27.5,9z M6.439,8.561C6.711,8.832,7.086,9,7.5,9C8.328,9,9,8.328,9,7.5    c0-0.414-0.168-0.789-0.439-1.061l-2-2C6.289,4.168,5.914,4,5.5,4C4.672,4,4,4.672,4,5.5c0,0.414,0.168,0.789,0.439,1.06    L6.439,8.561z M33.5,16h-3c-0.828,0-1.5,0.672-1.5,1.5s0.672,1.5,1.5,1.5h3c0.828,0,1.5-0.672,1.5-1.5S34.328,16,33.5,16z     M28.561,26.439C28.289,26.168,27.914,26,27.5,26c-0.828,0-1.5,0.672-1.5,1.5c0,0.414,0.168,0.789,0.439,1.06l2,2    C28.711,30.832,29.086,31,29.5,31c0.828,0,1.5-0.672,1.5-1.5c0-0.414-0.168-0.789-0.439-1.061L28.561,26.439z M17.5,29    c-0.829,0-1.5,0.672-1.5,1.5v3c0,0.828,0.671,1.5,1.5,1.5s1.5-0.672,1.5-1.5v-3C19,29.672,18.329,29,17.5,29z M17.5,7    C11.71,7,7,11.71,7,17.5S11.71,28,17.5,28S28,23.29,28,17.5S23.29,7,17.5,7z M17.5,25c-4.136,0-7.5-3.364-7.5-7.5    c0-4.136,3.364-7.5,7.5-7.5c4.136,0,7.5,3.364,7.5,7.5C25,21.636,21.636,25,17.5,25z"></path></svg><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" class="nightIcon" x="0px" y="0px" viewBox="0 0 100 100" style="enable-background:new 0 0 100 100" xml:space="preserve" aria-label="亮色模式"><title>亮色模式</title><path d="M96.76,66.458c-0.853-0.852-2.15-1.064-3.23-0.534c-6.063,2.991-12.858,4.571-19.655,4.571  C62.022,70.495,50.88,65.88,42.5,57.5C29.043,44.043,25.658,23.536,34.076,6.47c0.532-1.08,0.318-2.379-0.534-3.23  c-0.851-0.852-2.15-1.064-3.23-0.534c-4.918,2.427-9.375,5.619-13.246,9.491c-9.447,9.447-14.65,22.008-14.65,35.369  c0,13.36,5.203,25.921,14.65,35.368s22.008,14.65,35.368,14.65c13.361,0,25.921-5.203,35.369-14.65  c3.872-3.871,7.064-8.328,9.491-13.246C97.826,68.608,97.611,67.309,96.76,66.458z"></path></svg></button></div><div style="flex-grow: 0; flex-shrink: 1; flex-basis: auto; order: 0; align-self: center; justify-self: center;"><button class="readermode"><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" class="readerIcon" fill="currentColor" stroke="currentColor" stroke-width="0.2" stroke-linecap="round" stroke-linejoin="round" width="64px" height="64px" viewBox="0 0 24 24" aria-label="阅读模式"><title>阅读模式</title><g transform="translate(-1.8, -1.8) scale(1.15, 1.2)"><path d="M8.9891247,2.5 C10.1384702,2.5 11.2209868,2.96705384 12.0049645,3.76669482 C12.7883914,2.96705384 13.8709081,2.5 15.0202536,2.5 L18.7549359,2.5 C19.1691495,2.5 19.5049359,2.83578644 19.5049359,3.25 L19.5046891,4.004 L21.2546891,4.00457396 C21.6343849,4.00457396 21.9481801,4.28672784 21.9978425,4.6528034 L22.0046891,4.75457396 L22.0046891,20.25 C22.0046891,20.6296958 21.7225353,20.943491 21.3564597,20.9931534 L21.2546891,21 L2.75468914,21 C2.37499337,21 2.06119817,20.7178461 2.01153575,20.3517706 L2.00468914,20.25 L2.00468914,4.75457396 C2.00468914,4.37487819 2.28684302,4.061083 2.65291858,4.01142057 L2.75468914,4.00457396 L4.50368914,4.004 L4.50444233,3.25 C4.50444233,2.87030423 4.78659621,2.55650904 5.15267177,2.50684662 L5.25444233,2.5 L8.9891247,2.5 Z M4.50368914,5.504 L3.50468914,5.504 L3.50468914,19.5 L10.9478955,19.4998273 C10.4513189,18.9207296 9.73864328,18.5588115 8.96709342,18.5065584 L8.77307039,18.5 L5.25444233,18.5 C4.87474657,18.5 4.56095137,18.2178461 4.51128895,17.8517706 L4.50444233,17.75 L4.50368914,5.504 Z M19.5049359,17.75 C19.5049359,18.1642136 19.1691495,18.5 18.7549359,18.5 L15.2363079,18.5 C14.3910149,18.5 13.5994408,18.8724714 13.0614828,19.4998273 L20.5046891,19.5 L20.5046891,5.504 L19.5046891,5.504 L19.5049359,17.75 Z M18.0059359,3.999 L15.0202536,4 L14.8259077,4.00692283 C13.9889509,4.06666544 13.2254227,4.50975805 12.7549359,5.212 L12.7549359,17.777 L12.7782651,17.7601316 C13.4923805,17.2719483 14.3447024,17 15.2363079,17 L18.0059359,16.999 L18.0056891,4.798 L18.0033792,4.75457396 L18.0056891,4.71 L18.0059359,3.999 Z M8.9891247,4 L6.00368914,3.999 L6.00599909,4.75457396 L6.00599909,4.75457396 L6.00368914,4.783 L6.00368914,16.999 L8.77307039,17 C9.57551536,17 10.3461406,17.2202781 11.0128313,17.6202194 L11.2536891,17.776 L11.2536891,5.211 C10.8200889,4.56369974 10.1361548,4.13636104 9.37521067,4.02745763 L9.18347055,4.00692283 L8.9891247,4 Z"></path></g></svg></button></div></div><div class="explorer" data-behavior="link" data-collapsed="collapsed" data-savestate="true" data-data-fns="{&quot;order&quot;:[&quot;filter&quot;,&quot;map&quot;,&quot;sort&quot;],&quot;sortFn&quot;:&quot;(a,b)=>!a.isFolder&amp;&amp;!b.isFolder||a.isFolder&amp;&amp;b.isFolder?a.displayName.localeCompare(b.displayName,void 0,{numeric:!0,sensitivity:\&quot;base\&quot;}):!a.isFolder&amp;&amp;b.isFolder?1:-1&quot;,&quot;filterFn&quot;:&quot;node=>node.slugSegment!==\&quot;tags\&quot;&quot;,&quot;mapFn&quot;:&quot;node=>{let override={\&quot;unity-Unity\\u5F15\\u64CE\&quot;:\&quot;Unity\&quot;,\&quot;csharp-dotnet-CSharp\\u4E0ENET\&quot;:\&quot;C#/.NET\&quot;,\&quot;patterns-\\u8BBE\\u8BA1\\u6A21\\u5F0F\&quot;:\&quot;\\u8BBE\\u8BA1\\u6A21\\u5F0F\&quot;,\&quot;performance-\\u6027\\u80FD\\u4F18\\u5316\&quot;:\&quot;\\u6027\\u80FD\&quot;,\&quot;tools-\\u5DE5\\u5177\\u4E0E\\u5DE5\\u4F5C\\u6D41\&quot;:\&quot;\\u5DE5\\u5177\&quot;,\&quot;gamedesign-\\u6E38\\u620F\\u8BBE\\u8BA1\&quot;:\&quot;\\u6E38\\u620F\\u8BBE\\u8BA1\&quot;,\&quot;sources-\\u6765\\u6E90\\u6458\\u8981\&quot;:\&quot;\\u6765\\u6E90\\u6458\\u8981\&quot;}[node.displayName];if(override){node.displayName=override;return}let segments=node.displayName.split(\&quot;-\&quot;),cjkStart=segments.findIndex(segment=>/[一-鿿]/.test(segment));cjkStart>-1&amp;&amp;(node.displayName=segments.slice(cjkStart).join(\&quot;-\&quot;))}&quot;}"><button type="button" class="explorer-toggle mobile-explorer hide-until-loaded" data-mobile="true" aria-controls="explorer-90"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide-menu"><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button><button type="button" class="title-button explorer-toggle desktop-explorer" data-mobile="false" aria-expanded="true"><h2>探索</h2><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="5 8 14 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="fold"><polyline points="6 9 12 15 18 9"></polyline></svg></button><div id="explorer-90" class="explorer-content" aria-expanded="false" role="group"><ul class="explorer-ul overflow" id="list-0"><li class="overflow-end"></li></ul></div><template id="template-file"><li><a href="#"></a></li></template><template id="template-folder"><li><div class="folder-container"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="5 8 14 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="folder-icon"><polyline points="6 9 12 15 18 9"></polyline></svg><div><button class="folder-button"><span class="folder-title"></span></button></div></div><div class="folder-outer"><ul class="content"></ul></div></li></template></div></div><div class="center"><div class="page-header"><div class="popover-hint"><nav class="breadcrumb-container" aria-label="breadcrumbs"><div class="breadcrumb-element"><a href="../">Home</a><p> ❯ </p></div><div class="breadcrumb-element"><a href="../tools-工具与工作流/">工具</a><p> ❯ </p></div><div class="breadcrumb-element"><a href>框架全景坐标系</a></div></nav><h1 class="article-title">framework-landscape-框架全景坐标系</h1><p show-comma="true" class="content-meta"><time datetime="2026-06-18T00:00:00.000Z">2026年6月18日</time><span>12分钟阅读</span></p></div></div><article class="popover-hint"><h1 id="unity-游戏框架全景坐标系framework-landscape-synthesis">Unity 游戏框架全景坐标系（Framework Landscape Synthesis）<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#unity-游戏框架全景坐标系framework-landscape-synthesis" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h1>
+<h2 id="本页定位">本页定位<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#本页定位" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<p>这是 tools 分支 <strong>7 个框架页的顶层枢纽（Hub-of-Hubs）</strong>。它不重复任何单框架的细节，只做一件事：<strong>把全部 7 个框架放进同一个坐标系</strong>，让”该选谁 / 该借鉴谁”的判断有统一参照。</p>
+<p>本库已有两个<strong>单轴深挖</strong> synthesis，本页是它们的上层入口，不与之重复：</p>
+<ul>
+<li><a href="../tools-工具与工作流/paradigm-comparison-范式对比" class="internal alias" data-slug="tools-工具与工作流/paradigm-comparison-范式对比">paradigm-comparison-范式对比</a> — <strong>范式轴</strong>深挖：OOP-Module vs ECS-Entity 的源码级对比（high）</li>
+<li><a href="../tools-工具与工作流/unity-framework-comparison-Unity框架架构对比" class="internal alias" data-slug="tools-工具与工作流/unity-framework-comparison-Unity框架架构对比">unity-framework-comparison-Unity框架架构对比</a> — <strong>选型/演化轴</strong>深挖：TEngine/ET/QFramework/GameFramework 选型矩阵 + 演化树</li>
+</ul>
+<blockquote class="callout info" data-callout="info">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>阅读顺序 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>先用本页的”两轴定位图”建立全局观 → 命中某个区域后，跳对应单轴 synthesis 看深挖 → 再下钻到具体框架页。</p>
+</div>
+</blockquote>
+<h2 id="主线脉络">主线脉络<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#主线脉络" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<p>中国 Unity 生态的开源框架，沿<strong>两条正交的轴</strong>分布，几乎所有框架都能被这两轴定位：</p>
+<ul>
+<li><strong>范式轴（横）</strong>：OOP-Module（模块+服务定位器+继承）↔ ECS-Entity（实体+组件+静态系统）</li>
+<li><strong>目标轴（纵）</strong>：客户端全栈 ↔ 服务端/双端分布式</li>
+</ul>
+<p>第三条隐含轴是<strong>团队 vs 个人</strong>——它不决定架构，但决定”能不能落地”：团队框架优先解决协作+交付+热更，个人精品框架优先解决”代码怎么写才是对的”，两者 KPI 不同，不可直接选型对比。</p>
+<h2 id="关键节点">关键节点<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#关键节点" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<h3 id="两轴定位图">两轴定位图<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#两轴定位图" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="text" data-theme="github-light github-dark"><code data-language="text" data-theme="github-light github-dark" style="display:grid;"><span data-line><span>                  ECS-Entity 范式</span></span>
+<span data-line><span>                        ▲</span></span>
+<span data-line><span>                        │</span></span>
+<span data-line><span>          Fantasy ●     │     ● ET</span></span>
+<span data-line><span>       (零反射/AOT/      │   (双端共享/Fiber/</span></span>
+<span data-line><span>        服务端为主)      │    反射注册)</span></span>
+<span data-line><span>                        │</span></span>
+<span data-line><span>  服务端/双端 ◄─────────┼─────────► 客户端全栈</span></span>
+<span data-line><span>                        │</span></span>
+<span data-line><span>                        │   ● TEngine ── ● DGame</span></span>
+<span data-line><span>              BigCat ●  │  (全栈热更)   (增强版)</span></span>
+<span data-line><span>          (任务树/心跳/  │</span></span>
+<span data-line><span>           单人精品/双端) │   ● MyFramework  ● QFramework</span></span>
+<span data-line><span>                        │  (传统引擎思路/    (轻量MVC/</span></span>
+<span data-line><span>                        │   自研工具链)      ~1000行核心)</span></span>
+<span data-line><span>                        ▼</span></span>
+<span data-line><span>                  OOP-Module 范式</span></span></code></pre></figure>
+<blockquote class="callout note" data-callout="note">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>定位说明 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<ul>
+<li><strong>右下密集区</strong>（OOP + 客户端）是中国手游主流：TEngine / DGame / MyFramework / QFramework 都在这里，差异在”轻 vs 重&quot;&quot;通用 vs 自研工具链”。</li>
+<li><strong>右上</strong>（ECS + 双端）只有 ET 一家真正成熟；Fantasy 把它往”服务端 + AOT”方向重写。</li>
+<li><strong>BigCat 横跨</strong>：范式是 OOP，但用 TaskTree 心跳驱动走了第三条路（既非纯 Update 也非事件驱动），目标偏服务端 MMO。</li>
+</ul>
+</div>
+</blockquote>
+<h3 id="七框架一句话定位">七框架一句话定位<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#七框架一句话定位" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th>框架</th><th>范式</th><th>一句话</th><th>适用规模</th></tr></thead><tbody><tr><td><a href="../tools-工具与工作流/tengine-framework-TEngine框架" class="internal alias" data-slug="tools-工具与工作流/tengine-framework-TEngine框架">TEngine</a></td><td>OOP</td><td>客户端全栈热更框架，工业化程度最高，社区最活跃</td><td>中大型商业</td></tr><tr><td><a href="../tools-工具与工作流/dgame-framework-DGame框架" class="internal alias" data-slug="tools-工具与工作流/dgame-framework-DGame框架">DGame</a></td><td>OOP</td><td>TEngine 增强版，叠业务模块（红点/存档/GM），不修底层</td><td>中大型商业</td></tr><tr><td><a href="../tools-工具与工作流/et-framework-ET框架" class="internal alias" data-slug="tools-工具与工作流/et-framework-ET框架">ET</a></td><td>ECS</td><td>唯一成熟的双端框架，前后端共享代码</td><td>大型分布式</td></tr><tr><td><a href="../tools-工具与工作流/fantasy-framework-Fantasy框架" class="internal alias" data-slug="tools-工具与工作流/fantasy-framework-Fantasy框架">Fantasy</a></td><td>ECS</td><td>”重写一个 ET”：零反射 + Native AOT + .NET 8</td><td>大型服务端</td></tr><tr><td><a href="../tools-工具与工作流/qframework-QFramework框架" class="internal alias" data-slug="tools-工具与工作流/qframework-QFramework框架">QFramework</a></td><td>OOP(MVC)</td><td>~1000 行轻量架构 + 工具集，CQRS 约束</td><td>小团队/原型</td></tr><tr><td><a href="../tools-工具与工作流/bigcat-framework-BigCat框架" class="internal alias" data-slug="tools-工具与工作流/bigcat-framework-BigCat框架">BigCat</a></td><td>OOP(任务树)</td><td>单人精品，TaskTree 统一 AI/技能/副本，代码质量样本</td><td>学习/借鉴</td></tr><tr><td><a href="../tools-工具与工作流/myframework-MyFramework框架" class="internal alias" data-slug="tools-工具与工作流/myframework-MyFramework框架">MyFramework</a></td><td>OOP</td><td>传统引擎思路，显式生命周期 + 自研工具链，5 年 20 万行</td><td>中大型商业</td></tr></tbody></table></div>
+<h3 id="多维能力总表">多维能力总表<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#多维能力总表" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>下表的每一格都来自对应框架页的源码级验证（非市场宣传）。空白/无表示框架未内置该能力。</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th>维度</th><th>TEngine</th><th>DGame</th><th>ET</th><th>Fantasy</th><th>QFramework</th><th>BigCat</th><th>MyFramework</th></tr></thead><tbody><tr><td><strong>范式</strong></td><td>OOP+SL</td><td>OOP+SL</td><td>ECS</td><td>ECS</td><td>MVC+IOC</td><td>OOP+任务树</td><td>OOP+显式</td></tr><tr><td><strong>热更方案</strong></td><td>HybridCLR</td><td>HybridCLR</td><td>Model/Hotfix 分层</td><td>（服务端为主）</td><td>无内置</td><td>计划中</td><td>自研分层(HybridCLR)</td></tr><tr><td><strong>平台目标</strong></td><td>客户端</td><td>客户端</td><td>双端</td><td>服务端为主</td><td>客户端</td><td>双端(偏服务端)</td><td>双端(配套服务器)</td></tr><tr><td><strong>异步原语</strong></td><td>UniTask</td><td>UniTask</td><td>ETTask</td><td>FTask(零反射)</td><td>协程/UniRx</td><td>自研Future+EventLoop</td><td>自研(协程+异步)</td></tr><tr><td><strong>资源管理</strong></td><td>YooAsset</td><td>YooAsset</td><td>自研</td><td>—</td><td>ResKit</td><td>—</td><td>自研封装AB</td></tr><tr><td><strong>配表工具</strong></td><td>Luban</td><td>Luban</td><td>Excel自研</td><td>业务自写</td><td>无内置</td><td>Dson导出</td><td>自研CSV工具链</td></tr><tr><td><strong>UI 抽象层数</strong></td><td>2(Window/Widget)</td><td>2+组件增强</td><td>—</td><td>—</td><td>UIKit</td><td>5(Desktop/Window/Node…)</td><td>自研+UGUIGenerator</td></tr><tr><td><strong>事件立场</strong></td><td>全局总线(零GC)</td><td>同TEngine</td><td>Publish/Invoke双轨</td><td>同ET思想</td><td>事件系统</td><td><strong>反对纯事件驱动</strong></td><td>自研MessageCenter</td></tr><tr><td><strong>对象池</strong></td><td>MemoryPool两级</td><td>+GameObjectPool</td><td>ObjectPool</td><td>EntityPool</td><td>CoreKit池</td><td>集合库+池</td><td>5类池(类/List/GO/Prefab/Effect)</td></tr><tr><td><strong>序列化</strong></td><td>（YooAsset）</td><td>同上</td><td>Protobuf/MemoryPack</td><td>MemoryPack/LightProto</td><td>—</td><td>Dson(自创)</td><td>自研(Json/字节/按位)</td></tr><tr><td><strong>维护者</strong></td><td>团队/活跃</td><td>1人</td><td>团队/活跃</td><td>1人/活跃</td><td>凉鞋/活跃</td><td>1人精品</td><td>1人/5年</td></tr><tr><td><strong>社区生态</strong></td><td>★★★★</td><td>★</td><td>★★★★</td><td>★★</td><td>★★★</td><td>★(&lt;100⭐)</td><td>★★</td></tr></tbody></table></div>
+<blockquote class="callout warning" data-callout="warning">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>&quot;自研一切&quot;是把双刃剑 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>MyFramework / BigCat / ET / Fantasy 都大量自研（序列化、异步、工具链）。<strong>自研的代价是生态壁垒</strong>——团队成员要先学非标方案，第三方工具不可用。单人/小团队作者能维护得起（他们最懂自己的代码），但作为被借鉴方时，要区分”借鉴思想”和”照抄实现”：BigCat 的 Dson、自研协程、自研 DI 都在”不建议照抄”之列（见 <a href="../tools-工具与工作流/bigcat-framework-BigCat框架" class="internal alias" data-slug="tools-工具与工作流/bigcat-framework-BigCat框架">bigcat-framework-BigCat框架</a>），思想可借鉴，落地用 MemoryPack/UniTask/VContainer 等工业标准。</p>
+</div>
+</blockquote>
+<h3 id="演化谱系">演化谱系<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#演化谱系" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="text" data-theme="github-light github-dark"><code data-language="text" data-theme="github-light github-dark" style="display:grid;"><span data-line><span>GameFramework (EllanJiang, 2013, OOP+SL 范式奠基)</span></span>
+<span data-line><span>  │</span></span>
+<span data-line><span>  └─→ TEngine (Alex-Rachel, 2022+, 商业化重构 HybridCLR)</span></span>
+<span data-line><span>        │</span></span>
+<span data-line><span>        └─→ DGame (AmaniDawn, 2025+, 实战增强不回PR)</span></span>
+<span data-line> </span>
+<span data-line><span>ET Framework (egametang, 2017+, ECS 双端奠基)</span></span>
+<span data-line><span>  │</span></span>
+<span data-line><span>  └─→ Fantasy (qq362946, 零反射 AOT 重写)</span></span>
+<span data-line> </span>
+<span data-line><span>QFramework (liangxiegame, 2015+, 轻量 MVC 独立演化)</span></span>
+<span data-line> </span>
+<span data-line><span>BigCat (wjybxx, 单人精品 独立演化, 任务树心跳驱动)</span></span>
+<span data-line> </span>
+<span data-line><span>MyFramework (ZHOURUIH, 传统引擎思路 独立演化, 5年迭代)</span></span></code></pre></figure>
+<p>两条主谱系（GameFramework 系 / ET 系）+ 三个独立演化者（QFramework / BigCat / MyFramework）。谱系内是”继承+优化”，谱系间是”范式对立”。</p>
+<h2 id="横向连接">横向连接<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#横向连接" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<h3 id="同范式内的差异不是范式之争是工程取向之争">同范式内的差异（不是范式之争，是工程取向之争）<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#同范式内的差异不是范式之争是工程取向之争" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>OOP 阵营内部（TEngine/DGame/QFramework/MyFramework/BigCat）的真正分歧不在范式，而在三个工程取向：</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th>取向</th><th>一端</th><th>另一端</th></tr></thead><tbody><tr><td><strong>依赖第三方 vs 自研</strong></td><td>TEngine（YooAsset+HybridCLR+Luban 拼装）</td><td>MyFramework（几乎全自研工具链）</td></tr><tr><td><strong>轻量通用 vs 重业务</strong></td><td>QFramework（~1000行核心）</td><td>DGame（叠满红点/存档/GM 业务模块）</td></tr><tr><td><strong>事件驱动 vs 心跳驱动</strong></td><td>TEngine（GameEvent 全局总线）</td><td>BigCat（明确反对纯事件，用 TaskTree 心跳）</td></tr></tbody></table></div>
+<h3 id="异构架构范式可以混搭">异构架构：范式可以混搭<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#异构架构范式可以混搭" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>范式轴不是”二选一”——<strong>客户端和服务端可以用不同范式</strong>，因为通信层只传数据不传行为：</p>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="text" data-theme="github-light github-dark"><code data-language="text" data-theme="github-light github-dark" style="display:grid;"><span data-line><span>客户端：TEngine / DGame / MyFramework（OOP + ServiceLocator）</span></span>
+<span data-line><span>   ↕ MemoryPack 序列化 + KCP/WebSocket</span></span>
+<span data-line><span>服务端：Fantasy / ET（ECS + 零反射）</span></span></code></pre></figure>
+<p>DGame 的 <code>DGame_Fantasy</code> 分支、MyFramework 的 <code>MyServerFramework</code> 都是这种异构落地。这说明：<strong>选客户端框架和选服务端框架是两个独立决策</strong>。</p>
+<h3 id="与自研决策指南的关系">与自研决策指南的关系<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#与自研决策指南的关系" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>7 框架是”别人怎么选”的现成样本；要把这些选择转成”我自己怎么选”，走决策指南：</p>
+<ul>
+<li><a href="../tools-工具与工作流/framework-self-design-guide-自研框架决策指南" class="internal alias" data-slug="tools-工具与工作流/framework-self-design-guide-自研框架决策指南">framework-self-design-guide-自研框架决策指南</a> — v1 底层决策（范式/热更/平台/异步/模块组织/程序集分层）</li>
+<li><a href="../tools-工具与工作流/framework-self-design-guide-v2-中层决策" class="internal alias" data-slug="tools-工具与工作流/framework-self-design-guide-v2-中层决策">framework-self-design-guide-v2-中层决策</a> — v2 中层（事件/启动/池/帧驱动）</li>
+<li><a href="../tools-工具与工作流/framework-self-design-guide-v3-上层决策" class="internal alias" data-slug="tools-工具与工作流/framework-self-design-guide-v3-上层决策">framework-self-design-guide-v3-上层决策</a> — v3 上层（UI 系统）</li>
+<li><a href="../tools-工具与工作流/framework-design-principles-框架设计原则" class="internal alias" data-slug="tools-工具与工作流/framework-design-principles-框架设计原则">framework-design-principles-框架设计原则</a> — 10 条跨框架通用原则</li>
+</ul>
+<blockquote class="callout tip" data-callout="tip">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>本页与决策指南的分工 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>本页回答”<strong>生态里有哪些选择、它们在坐标系哪个位置</strong>”；决策指南回答”<strong>给定我的约束，该走哪条决策路径</strong>”。前者是地图，后者是导航。</p>
+</div>
+</blockquote>
+<h2 id="结论与权衡">结论与权衡<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#结论与权衡" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<h3 id="选型速查按硬约束定位">选型速查（按硬约束定位）<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#选型速查按硬约束定位" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th>硬约束</th><th>落点</th><th>理由</th></tr></thead><tbody><tr><td>客户端 + 要热更 + 快速上线</td><td><strong>TEngine</strong></td><td>HybridCLR 开箱即用，社区最活跃</td></tr><tr><td>客户端 + 要现成业务模块（红点/存档/GM）</td><td><strong>DGame</strong></td><td>TEngine 增强版，省去自己造轮子</td></tr><tr><td>前后端共享代码 + 分布式</td><td><strong>ET</strong></td><td>唯一成熟双端框架</td></tr><tr><td>服务端 + Native AOT + 极致性能</td><td><strong>Fantasy</strong></td><td>零反射，.NET 8，多协议一等公民</td></tr><tr><td>小团队 / 快速原型</td><td><strong>QFramework</strong></td><td>最轻量，CQRS 约束有价值</td></tr><tr><td>想统一 AI/技能/副本逻辑组织</td><td><strong>借鉴 BigCat</strong></td><td>TaskTree + Context 三件套（借思想非抄码）</td></tr><tr><td>要传统引擎式显式控制 + 自研工具链</td><td><strong>MyFramework</strong></td><td>显式生命周期，低 GC，5 年商业验证</td></tr></tbody></table></div>
+<h3 id="三条跨框架通用启示">三条跨框架通用启示<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#三条跨框架通用启示" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<ol>
+<li><strong>框架的价值不在功能多少，在于它强制了什么约束</strong>——QFramework 的 CQRS 约束比它的 UIKit 更有价值；ET 的 Model/Hotfix 分离强制了热更架构。</li>
+<li><strong>范式选择跟着平台目标走，不跟着流行度走</strong>——纯客户端没必要上 ECS（ET/Fantasy 是杀鸡用牛刀），双端分布式 OOP 又撑不住。</li>
+<li><strong>借鉴个人精品框架时，分清”思想”与”实现”</strong>——BigCat 的 reentry 检测/协作式取消/Context 三件套是普适思想，Dson/自研协程/自研 DI 是个人选择，照抄是技术债。</li>
+</ol>
+<h2 id="相关">相关<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#相关" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<ul>
+<li><a href="../tools-工具与工作流/paradigm-comparison-范式对比" class="internal alias" data-slug="tools-工具与工作流/paradigm-comparison-范式对比">paradigm-comparison-范式对比</a> — 范式轴深挖（OOP vs ECS 源码级）</li>
+<li><a href="../tools-工具与工作流/unity-framework-comparison-Unity框架架构对比" class="internal alias" data-slug="tools-工具与工作流/unity-framework-comparison-Unity框架架构对比">unity-framework-comparison-Unity框架架构对比</a> — 选型/演化轴深挖</li>
+<li><a href="../tools-工具与工作流/unity-ui-framework-comparison-UI框架对比" class="internal alias" data-slug="tools-工具与工作流/unity-ui-framework-comparison-UI框架对比">unity-ui-framework-comparison-UI框架对比</a> — UI 子系统横切对比</li>
+<li><a href="../tools-工具与工作流/tengine-framework-TEngine框架" class="internal alias" data-slug="tools-工具与工作流/tengine-framework-TEngine框架">tengine-framework-TEngine框架</a> — TEngine hub</li>
+<li><a href="../tools-工具与工作流/dgame-framework-DGame框架" class="internal alias" data-slug="tools-工具与工作流/dgame-framework-DGame框架">dgame-framework-DGame框架</a> — DGame</li>
+<li><a href="../tools-工具与工作流/et-framework-ET框架" class="internal alias" data-slug="tools-工具与工作流/et-framework-ET框架">et-framework-ET框架</a> — ET</li>
+<li><a href="../tools-工具与工作流/fantasy-framework-Fantasy框架" class="internal alias" data-slug="tools-工具与工作流/fantasy-framework-Fantasy框架">fantasy-framework-Fantasy框架</a> — Fantasy</li>
+<li><a href="../tools-工具与工作流/qframework-QFramework框架" class="internal alias" data-slug="tools-工具与工作流/qframework-QFramework框架">qframework-QFramework框架</a> — QFramework</li>
+<li><a href="../tools-工具与工作流/bigcat-framework-BigCat框架" class="internal alias" data-slug="tools-工具与工作流/bigcat-framework-BigCat框架">bigcat-framework-BigCat框架</a> — BigCat</li>
+<li><a href="../tools-工具与工作流/myframework-MyFramework框架" class="internal alias" data-slug="tools-工具与工作流/myframework-MyFramework框架">myframework-MyFramework框架</a> — MyFramework hub</li>
+<li><a href="../tools-工具与工作流/framework-self-design-guide-自研框架决策指南" class="internal alias" data-slug="tools-工具与工作流/framework-self-design-guide-自研框架决策指南">framework-self-design-guide-自研框架决策指南</a> — 自研决策入口</li>
+<li><a href="../tools-工具与工作流/framework-design-principles-框架设计原则" class="internal alias" data-slug="tools-工具与工作流/framework-design-principles-框架设计原则">framework-design-principles-框架设计原则</a> — 跨框架通用原则</li>
+</ul></article><hr/><div class="page-footer"></div></div><div class="right sidebar"><div class="graph"><h3>关系图谱</h3><div class="graph-outer"><div class="graph-container" data-cfg="{&quot;drag&quot;:true,&quot;zoom&quot;:true,&quot;depth&quot;:1,&quot;scale&quot;:1.1,&quot;repelForce&quot;:0.5,&quot;centerForce&quot;:0.3,&quot;linkDistance&quot;:30,&quot;fontSize&quot;:0.6,&quot;opacityScale&quot;:1,&quot;showTags&quot;:true,&quot;removeTags&quot;:[],&quot;focusOnHover&quot;:false,&quot;enableRadial&quot;:false}"></div><button class="global-graph-icon" aria-label="Global Graph"><svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 55 55" fill="currentColor" xml:space="preserve"><path d="M49,0c-3.309,0-6,2.691-6,6c0,1.035,0.263,2.009,0.726,2.86l-9.829,9.829C32.542,17.634,30.846,17,29,17
+                s-3.542,0.634-4.898,1.688l-7.669-7.669C16.785,10.424,17,9.74,17,9c0-2.206-1.794-4-4-4S9,6.794,9,9s1.794,4,4,4
+                c0.74,0,1.424-0.215,2.019-0.567l7.669,7.669C21.634,21.458,21,23.154,21,25s0.634,3.542,1.688,4.897L10.024,42.562
+                C8.958,41.595,7.549,41,6,41c-3.309,0-6,2.691-6,6s2.691,6,6,6s6-2.691,6-6c0-1.035-0.263-2.009-0.726-2.86l12.829-12.829
+                c1.106,0.86,2.44,1.436,3.898,1.619v10.16c-2.833,0.478-5,2.942-5,5.91c0,3.309,2.691,6,6,6s6-2.691,6-6c0-2.967-2.167-5.431-5-5.91
+                v-10.16c1.458-0.183,2.792-0.759,3.898-1.619l7.669,7.669C41.215,39.576,41,40.26,41,41c0,2.206,1.794,4,4,4s4-1.794,4-4
+                s-1.794-4-4-4c-0.74,0-1.424,0.215-2.019,0.567l-7.669-7.669C36.366,28.542,37,26.846,37,25s-0.634-3.542-1.688-4.897l9.665-9.665
+                C46.042,11.405,47.451,12,49,12c3.309,0,6-2.691,6-6S52.309,0,49,0z M11,9c0-1.103,0.897-2,2-2s2,0.897,2,2s-0.897,2-2,2
+                S11,10.103,11,9z M6,51c-2.206,0-4-1.794-4-4s1.794-4,4-4s4,1.794,4,4S8.206,51,6,51z M33,49c0,2.206-1.794,4-4,4s-4-1.794-4-4
+                s1.794-4,4-4S33,46.794,33,49z M29,31c-3.309,0-6-2.691-6-6s2.691-6,6-6s6,2.691,6,6S32.309,31,29,31z M47,41c0,1.103-0.897,2-2,2
+                s-2-0.897-2-2s0.897-2,2-2S47,39.897,47,41z M49,10c-2.206,0-4-1.794-4-4s1.794-4,4-4s4,1.794,4,4S51.206,10,49,10z"></path></svg></button></div><div class="global-graph-outer"><div class="global-graph-container" data-cfg="{&quot;drag&quot;:true,&quot;zoom&quot;:true,&quot;depth&quot;:-1,&quot;scale&quot;:0.9,&quot;repelForce&quot;:0.5,&quot;centerForce&quot;:0.2,&quot;linkDistance&quot;:30,&quot;fontSize&quot;:0.6,&quot;opacityScale&quot;:1,&quot;showTags&quot;:true,&quot;removeTags&quot;:[],&quot;focusOnHover&quot;:true,&quot;enableRadial&quot;:true}"></div></div></div><div class="toc desktop-only"><button type="button" class="toc-header" aria-controls="toc-83" aria-expanded="true"><h3>目录</h3><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="fold"><polyline points="6 9 12 15 18 9"></polyline></svg></button><ul id="list-1" class="toc-content overflow"><li class="depth-0"><a href="#unity-游戏框架全景坐标系framework-landscape-synthesis" data-for="unity-游戏框架全景坐标系framework-landscape-synthesis">Unity 游戏框架全景坐标系（Framework Landscape Synthesis）</a></li><li class="depth-1"><a href="#本页定位" data-for="本页定位">本页定位</a></li><li class="depth-1"><a href="#主线脉络" data-for="主线脉络">主线脉络</a></li><li class="depth-1"><a href="#关键节点" data-for="关键节点">关键节点</a></li><li class="depth-2"><a href="#两轴定位图" data-for="两轴定位图">两轴定位图</a></li><li class="depth-2"><a href="#七框架一句话定位" data-for="七框架一句话定位">七框架一句话定位</a></li><li class="depth-2"><a href="#多维能力总表" data-for="多维能力总表">多维能力总表</a></li><li class="depth-2"><a href="#演化谱系" data-for="演化谱系">演化谱系</a></li><li class="depth-1"><a href="#横向连接" data-for="横向连接">横向连接</a></li><li class="depth-2"><a href="#同范式内的差异不是范式之争是工程取向之争" data-for="同范式内的差异不是范式之争是工程取向之争">同范式内的差异（不是范式之争，是工程取向之争）</a></li><li class="depth-2"><a href="#异构架构范式可以混搭" data-for="异构架构范式可以混搭">异构架构：范式可以混搭</a></li><li class="depth-2"><a href="#与自研决策指南的关系" data-for="与自研决策指南的关系">与自研决策指南的关系</a></li><li class="depth-1"><a href="#结论与权衡" data-for="结论与权衡">结论与权衡</a></li><li class="depth-2"><a href="#选型速查按硬约束定位" data-for="选型速查按硬约束定位">选型速查（按硬约束定位）</a></li><li class="depth-2"><a href="#三条跨框架通用启示" data-for="三条跨框架通用启示">三条跨框架通用启示</a></li><li class="depth-1"><a href="#相关" data-for="相关">相关</a></li><li class="overflow-end"></li></ul></div><div class="backlinks"><h3>反向链接</h3><ul id="list-2" class="overflow"><li><a href="../" class="internal">index</a></li><li><a href="../tools-工具与工作流/bigcat-framework-BigCat框架" class="internal">bigcat-framework-BigCat框架</a></li><li><a href="../tools-工具与工作流/dgame-framework-DGame框架" class="internal">dgame-framework-DGame框架</a></li><li><a href="../tools-工具与工作流/et-framework-ET框架" class="internal">et-framework-ET框架</a></li><li><a href="../tools-工具与工作流/fantasy-framework-Fantasy框架" class="internal">fantasy-framework-Fantasy框架</a></li><li><a href="../tools-工具与工作流/myframework-MyFramework框架" class="internal">myframework-MyFramework框架</a></li><li><a href="../tools-工具与工作流/paradigm-comparison-范式对比" class="internal">paradigm-comparison-范式对比</a></li><li><a href="../tools-工具与工作流/qframework-QFramework框架" class="internal">qframework-QFramework框架</a></li><li><a href="../tools-工具与工作流/tengine-framework-TEngine框架" class="internal">tengine-framework-TEngine框架</a></li><li><a href="../tools-工具与工作流/unity-framework-comparison-Unity框架架构对比" class="internal">unity-framework-comparison-Unity框架架构对比</a></li><li class="overflow-end"></li></ul></div></div><footer class><p>Created with <a href="https://quartz.jzhao.xyz/">Quartz v4.5.2</a> © 2026</p><ul><li><a href="https://github.com/jackyzha0/quartz">GitHub</a></li><li><a href="https://discord.gg/cRFFHYye7t">Discord Community</a></li></ul></footer></div></div></body><script type="application/javascript" data-persist="true">function n(){let t=this.parentElement;t.classList.toggle("is-collapsed");let e=t.getElementsByClassName("callout-content")[0];if(!e)return;let l=t.classList.contains("is-collapsed");e.style.gridTemplateRows=l?"0fr":"1fr"}function c(){let t=document.getElementsByClassName("callout is-collapsible");for(let e of t){let l=e.getElementsByClassName("callout-title")[0],s=e.getElementsByClassName("callout-content")[0];if(!l||!s)continue;l.addEventListener("click",n),window.addCleanup(()=>l.removeEventListener("click",n));let o=e.classList.contains("is-collapsed");s.style.gridTemplateRows=o?"0fr":"1fr"}}document.addEventListener("nav",c);
+</script><script type="module" data-persist="true">function E(c,e){if(!c)return;function t(s){s.target===this&&(s.preventDefault(),s.stopPropagation(),e())}function r(s){s.key.startsWith("Esc")&&(s.preventDefault(),e())}c?.addEventListener("click",t),window.addCleanup(()=>c?.removeEventListener("click",t)),document.addEventListener("keydown",r),window.addCleanup(()=>document.removeEventListener("keydown",r))}function y(c){for(;c.firstChild;)c.removeChild(c.firstChild)}var v=class{constructor(e,t){this.container=e;this.content=t;this.setupEventListeners(),this.setupNavigationControls(),this.resetTransform()}isDragging=!1;startPan={x:0,y:0};currentPan={x:0,y:0};scale=1;MIN_SCALE=.5;MAX_SCALE=3;cleanups=[];setupEventListeners(){let e=this.onMouseDown.bind(this),t=this.onMouseMove.bind(this),r=this.onMouseUp.bind(this),s=this.onTouchStart.bind(this),o=this.onTouchMove.bind(this),i=this.onTouchEnd.bind(this),n=this.resetTransform.bind(this);this.container.addEventListener("mousedown",e),document.addEventListener("mousemove",t),document.addEventListener("mouseup",r),this.container.addEventListener("touchstart",s,{passive:!1}),document.addEventListener("touchmove",o,{passive:!1}),document.addEventListener("touchend",i),window.addEventListener("resize",n),this.cleanups.push(()=>this.container.removeEventListener("mousedown",e),()=>document.removeEventListener("mousemove",t),()=>document.removeEventListener("mouseup",r),()=>this.container.removeEventListener("touchstart",s),()=>document.removeEventListener("touchmove",o),()=>document.removeEventListener("touchend",i),()=>window.removeEventListener("resize",n))}cleanup(){for(let e of this.cleanups)e()}setupNavigationControls(){let e=document.createElement("div");e.className="mermaid-controls";let t=this.createButton("+",()=>this.zoom(.1)),r=this.createButton("-",()=>this.zoom(-.1)),s=this.createButton("Reset",()=>this.resetTransform());e.appendChild(r),e.appendChild(s),e.appendChild(t),this.container.appendChild(e)}createButton(e,t){let r=document.createElement("button");return r.textContent=e,r.className="mermaid-control-button",r.addEventListener("click",t),window.addCleanup(()=>r.removeEventListener("click",t)),r}onMouseDown(e){e.button===0&&(this.isDragging=!0,this.startPan={x:e.clientX-this.currentPan.x,y:e.clientY-this.currentPan.y},this.container.style.cursor="grabbing")}onMouseMove(e){this.isDragging&&(e.preventDefault(),this.currentPan={x:e.clientX-this.startPan.x,y:e.clientY-this.startPan.y},this.updateTransform())}onMouseUp(){this.isDragging=!1,this.container.style.cursor="grab"}onTouchStart(e){if(e.touches.length!==1)return;this.isDragging=!0;let t=e.touches[0];this.startPan={x:t.clientX-this.currentPan.x,y:t.clientY-this.currentPan.y}}onTouchMove(e){if(!this.isDragging||e.touches.length!==1)return;e.preventDefault();let t=e.touches[0];this.currentPan={x:t.clientX-this.startPan.x,y:t.clientY-this.startPan.y},this.updateTransform()}onTouchEnd(){this.isDragging=!1}zoom(e){let t=Math.min(Math.max(this.scale+e,this.MIN_SCALE),this.MAX_SCALE),r=this.content.getBoundingClientRect(),s=r.width/2,o=r.height/2,i=t-this.scale;this.currentPan.x-=s*i,this.currentPan.y-=o*i,this.scale=t,this.updateTransform()}updateTransform(){this.content.style.transform=`translate(${this.currentPan.x}px, ${this.currentPan.y}px) scale(${this.scale})`}resetTransform(){let t=this.content.querySelector("svg").getBoundingClientRect(),r=t.width/this.scale,s=t.height/this.scale;this.scale=1,this.currentPan={x:(this.container.clientWidth-r)/2,y:(this.container.clientHeight-s)/2},this.updateTransform()}},T=["--secondary","--tertiary","--gray","--light","--lightgray","--highlight","--dark","--darkgray","--codeFont"],L;document.addEventListener("nav",async()=>{let e=document.querySelector(".center").querySelectorAll("code.mermaid");if(e.length===0)return;L||=await import("https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.4.0/mermaid.esm.min.mjs");let t=L.default,r=new WeakMap;for(let o of e){let i=o.getAttribute("data-clipboard"),n=o.innerText;if(i)try{n=JSON.parse(i)}catch{}r.set(o,n)}async function s(){for(let n of e){n.removeAttribute("data-processed");let a=r.get(n);a&&(n.textContent=a)}let o=T.reduce((n,a)=>(n[a]=window.getComputedStyle(document.documentElement).getPropertyValue(a),n),{}),i=document.documentElement.getAttribute("saved-theme")==="dark";t.initialize({startOnLoad:!1,securityLevel:"loose",theme:i?"dark":"base",themeVariables:{fontFamily:o["--codeFont"],primaryColor:o["--light"],primaryTextColor:o["--darkgray"],primaryBorderColor:o["--tertiary"],lineColor:o["--darkgray"],secondaryColor:o["--secondary"],tertiaryColor:o["--tertiary"],clusterBkg:o["--light"],edgeLabelBackground:o["--highlight"]}});for(let n=0;n<e.length;n++){let a=e[n],l=r.get(a);if(l)try{let u=`mermaid-svg-${Date.now()}-${n}`,{svg:p,bindFunctions:d}=await t.render(u,l);a.innerHTML=p,d&&d(a),a.setAttribute("data-processed","true")}catch(u){console.error(`mermaid render failed for node ${n}:`,u)}}}await s(),document.addEventListener("themechange",s),window.addCleanup(()=>document.removeEventListener("themechange",s));for(let o=0;o<e.length;o++){let g=function(){let f=d.querySelector("#mermaid-space"),m=d.querySelector(".mermaid-content");if(!m)return;y(m);let w=i.querySelector("svg").cloneNode(!0);m.appendChild(w),d.classList.add("active"),f.style.cursor="grab",h=new v(f,m)},M=function(){d.classList.remove("active"),h?.cleanup(),h=null},i=e[o],n=i.parentElement,a=n.querySelector(".clipboard-button"),l=n.querySelector(".expand-button"),u=window.getComputedStyle(a),p=a.offsetWidth+parseFloat(u.marginLeft||"0")+parseFloat(u.marginRight||"0");l.style.right=`calc(${p}px + 0.3rem)`,n.prepend(l);let d=n.querySelector("#mermaid-container");if(!d)return;let h=null;l.addEventListener("click",g),E(d,M),window.addCleanup(()=>{h?.cleanup(),l.removeEventListener("click",g)})}});
+</script><script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/copy-tex.min.js" type="application/javascript" data-persist="true"></script><script src="../postscript.js" type="module" data-persist="true"></script></html>

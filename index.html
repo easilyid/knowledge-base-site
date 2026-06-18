@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr"><head><title>index</title><meta charset="utf-8"/><link rel="preconnect" href="https://fonts.googleapis.com"/><link rel="preconnect" href="https://fonts.gstatic.com"/><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted Grotesk:wght@400;700&amp;family=Source Sans Pro:ital,wght@0,400;0,600;1,400;1,600&amp;family=IBM Plex Mono:wght@400;600&amp;display=swap"/><link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin="anonymous"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><meta name="og:site_name" content="Unity / C# / .NET 游戏开发知识库"/><meta property="og:title" content="index"/><meta property="og:type" content="website"/><meta name="twitter:card" content="summary_large_image"/><meta name="twitter:title" content="index"/><meta name="twitter:description" content="知识库 面向 Unity 游戏开发的工程知识库。这里把 Unity 引擎、C#/.NET、游戏设计模式、性能优化和工具工作流组织成可搜索、可双链、可公网浏览的技术地图。 这是什么 一个以 Obsidian 维护、Quartz 发布的游戏开发外置大脑。目标不是按时间写博客，而是把 API、概念、模式、对比和综述沉淀成长期可复用的知识节点。 Unity Unity 引擎 对象模型、生命周期、异步、场景、序列化、DOTS C# / .NET C# 与 .NET 类型系统、async/await、GC、托管执行、Native AOT Performance 性能优化 Job System、Burst、..."/><meta property="og:description" content="知识库 面向 Unity 游戏开发的工程知识库。这里把 Unity 引擎、C#/.NET、游戏设计模式、性能优化和工具工作流组织成可搜索、可双链、可公网浏览的技术地图。 这是什么 一个以 Obsidian 维护、Quartz 发布的游戏开发外置大脑。目标不是按时间写博客，而是把 API、概念、模式、对比和综述沉淀成长期可复用的知识节点。 Unity Unity 引擎 对象模型、生命周期、异步、场景、序列化、DOTS C# / .NET C# 与 .NET 类型系统、async/await、GC、托管执行、Native AOT Performance 性能优化 Job System、Burst、..."/><meta property="og:image:alt" content="知识库 面向 Unity 游戏开发的工程知识库。这里把 Unity 引擎、C#/.NET、游戏设计模式、性能优化和工具工作流组织成可搜索、可双链、可公网浏览的技术地图。 这是什么 一个以 Obsidian 维护、Quartz 发布的游戏开发外置大脑。目标不是按时间写博客，而是把 API、概念、模式、对比和综述沉淀成长期可复用的知识节点。 Unity Unity 引擎 对象模型、生命周期、异步、场景、序列化、DOTS C# / .NET C# 与 .NET 类型系统、async/await、GC、托管执行、Native AOT Performance 性能优化 Job System、Burst、..."/><meta property="twitter:domain" content="easilyid.github.io/knowledge-base-site"/><meta property="og:url" content="https://easilyid.github.io/knowledge-base-site/index"/><meta property="twitter:url" content="https://easilyid.github.io/knowledge-base-site/index"/><link rel="icon" href="./static/icon.png"/><meta name="description" content="知识库 面向 Unity 游戏开发的工程知识库。这里把 Unity 引擎、C#/.NET、游戏设计模式、性能优化和工具工作流组织成可搜索、可双链、可公网浏览的技术地图。 这是什么 一个以 Obsidian 维护、Quartz 发布的游戏开发外置大脑。目标不是按时间写博客，而是把 API、概念、模式、对比和综述沉淀成长期可复用的知识节点。 Unity Unity 引擎 对象模型、生命周期、异步、场景、序列化、DOTS C# / .NET C# 与 .NET 类型系统、async/await、GC、托管执行、Native AOT Performance 性能优化 Job System、Burst、..."/><meta name="generator" content="Quartz"/><link href="./index.css" rel="stylesheet" type="text/css" data-persist="true"/><style>.expand-button {
+  position: absolute;
+  display: flex;
+  float: right;
+  padding: 0.4rem;
+  margin: 0.3rem;
+  right: 0;
+  color: var(--gray);
+  border-color: var(--dark);
+  background-color: var(--light);
+  border: 1px solid;
+  border-radius: 5px;
+  opacity: 0;
+  transition: 0.2s;
+}
+.expand-button > svg {
+  fill: var(--light);
+  filter: contrast(0.3);
+}
+.expand-button:hover {
+  cursor: pointer;
+  border-color: var(--secondary);
+}
+.expand-button:focus {
+  outline: 0;
+}
+
+pre:hover > .expand-button {
+  opacity: 1;
+  transition: 0.2s;
+}
+
+#mermaid-container {
+  position: fixed;
+  contain: layout;
+  z-index: 999;
+  left: 0;
+  top: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  display: none;
+  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.5);
+}
+#mermaid-container.active {
+  display: inline-block;
+}
+#mermaid-container > #mermaid-space {
+  border: 1px solid var(--lightgray);
+  background-color: var(--light);
+  border-radius: 5px;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  height: 80vh;
+  width: 80vw;
+  overflow: hidden;
+}
+#mermaid-container > #mermaid-space > .mermaid-content {
+  position: relative;
+  transform-origin: 0 0;
+  transition: transform 0.1s ease;
+  overflow: visible;
+  min-height: 200px;
+  min-width: 200px;
+}
+#mermaid-container > #mermaid-space > .mermaid-content pre {
+  margin: 0;
+  border: none;
+}
+#mermaid-container > #mermaid-space > .mermaid-content svg {
+  max-width: none;
+  height: auto;
+}
+#mermaid-container > #mermaid-space > .mermaid-controls {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+  background: var(--light);
+  border: 1px solid var(--lightgray);
+  border-radius: 6px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  z-index: 2;
+}
+#mermaid-container > #mermaid-space > .mermaid-controls .mermaid-control-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--lightgray);
+  background: var(--light);
+  color: var(--dark);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  font-family: var(--bodyFont);
+  transition: all 0.2s ease;
+}
+#mermaid-container > #mermaid-space > .mermaid-controls .mermaid-control-button:hover {
+  background: var(--lightgray);
+}
+#mermaid-container > #mermaid-space > .mermaid-controls .mermaid-control-button:active {
+  transform: translateY(1px);
+}
+#mermaid-container > #mermaid-space > .mermaid-controls .mermaid-control-button:nth-child(2) {
+  width: auto;
+  padding: 0 12px;
+  font-size: 14px;
+}
+/*# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VSb290IjoiL2hvbWUvcnVubmVyL3dvcmsvS25vd2xlZGdlLUJhc2UvS25vd2xlZGdlLUJhc2UvcXVhcnR6L3F1YXJ0ei9jb21wb25lbnRzL3N0eWxlcyIsInNvdXJjZXMiOlsibWVybWFpZC5pbmxpbmUuc2NzcyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiQUFBQTtFQUNFO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBOztBQUVBO0VBQ0U7RUFDQTs7QUFHRjtFQUNFO0VBQ0E7O0FBR0Y7RUFDRTs7O0FBS0Y7RUFDRTtFQUNBOzs7QUFJSjtFQUNFO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7O0FBRUE7RUFDRTs7QUFHRjtFQUNFO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBOztBQUVBO0VBQ0U7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBOztBQUVBO0VBQ0U7RUFDQTs7QUFHRjtFQUNFO0VBQ0E7O0FBSUo7RUFDRTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBOztBQUVBO0VBQ0U7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTs7QUFFQTtFQUNFOztBQUdGO0VBQ0U7O0FBSUY7RUFDRTtFQUNBO0VBQ0EiLCJzb3VyY2VzQ29udGVudCI6WyIuZXhwYW5kLWJ1dHRvbiB7XG4gIHBvc2l0aW9uOiBhYnNvbHV0ZTtcbiAgZGlzcGxheTogZmxleDtcbiAgZmxvYXQ6IHJpZ2h0O1xuICBwYWRkaW5nOiAwLjRyZW07XG4gIG1hcmdpbjogMC4zcmVtO1xuICByaWdodDogMDsgLy8gTk9URTogcmlnaHQgd2lsbCBiZSBzZXQgaW4gbWVybWFpZC5pbmxpbmUudHNcbiAgY29sb3I6IHZhcigtLWdyYXkpO1xuICBib3JkZXItY29sb3I6IHZhcigtLWRhcmspO1xuICBiYWNrZ3JvdW5kLWNvbG9yOiB2YXIoLS1saWdodCk7XG4gIGJvcmRlcjogMXB4IHNvbGlkO1xuICBib3JkZXItcmFkaXVzOiA1cHg7XG4gIG9wYWNpdHk6IDA7XG4gIHRyYW5zaXRpb246IDAuMnM7XG5cbiAgJiA+IHN2ZyB7XG4gICAgZmlsbDogdmFyKC0tbGlnaHQpO1xuICAgIGZpbHRlcjogY29udHJhc3QoMC4zKTtcbiAgfVxuXG4gICY6aG92ZXIge1xuICAgIGN1cnNvcjogcG9pbnRlcjtcbiAgICBib3JkZXItY29sb3I6IHZhcigtLXNlY29uZGFyeSk7XG4gIH1cblxuICAmOmZvY3VzIHtcbiAgICBvdXRsaW5lOiAwO1xuICB9XG59XG5cbnByZSB7XG4gICY6aG92ZXIgPiAuZXhwYW5kLWJ1dHRvbiB7XG4gICAgb3BhY2l0eTogMTtcbiAgICB0cmFuc2l0aW9uOiAwLjJzO1xuICB9XG59XG5cbiNtZXJtYWlkLWNvbnRhaW5lciB7XG4gIHBvc2l0aW9uOiBmaXhlZDtcbiAgY29udGFpbjogbGF5b3V0O1xuICB6LWluZGV4OiA5OTk7XG4gIGxlZnQ6IDA7XG4gIHRvcDogMDtcbiAgd2lkdGg6IDEwMHZ3O1xuICBoZWlnaHQ6IDEwMHZoO1xuICBvdmVyZmxvdzogaGlkZGVuO1xuICBkaXNwbGF5OiBub25lO1xuICBiYWNrZHJvcC1maWx0ZXI6IGJsdXIoNHB4KTtcbiAgYmFja2dyb3VuZDogcmdiYSgwLCAwLCAwLCAwLjUpO1xuXG4gICYuYWN0aXZlIHtcbiAgICBkaXNwbGF5OiBpbmxpbmUtYmxvY2s7XG4gIH1cblxuICAmID4gI21lcm1haWQtc3BhY2Uge1xuICAgIGJvcmRlcjogMXB4IHNvbGlkIHZhcigtLWxpZ2h0Z3JheSk7XG4gICAgYmFja2dyb3VuZC1jb2xvcjogdmFyKC0tbGlnaHQpO1xuICAgIGJvcmRlci1yYWRpdXM6IDVweDtcbiAgICBwb3NpdGlvbjogZml4ZWQ7XG4gICAgdG9wOiA1MCU7XG4gICAgbGVmdDogNTAlO1xuICAgIHRyYW5zZm9ybTogdHJhbnNsYXRlKC01MCUsIC01MCUpO1xuICAgIGhlaWdodDogODB2aDtcbiAgICB3aWR0aDogODB2dztcbiAgICBvdmVyZmxvdzogaGlkZGVuO1xuXG4gICAgJiA+IC5tZXJtYWlkLWNvbnRlbnQge1xuICAgICAgcG9zaXRpb246IHJlbGF0aXZlO1xuICAgICAgdHJhbnNmb3JtLW9yaWdpbjogMCAwO1xuICAgICAgdHJhbnNpdGlvbjogdHJhbnNmb3JtIDAuMXMgZWFzZTtcbiAgICAgIG92ZXJmbG93OiB2aXNpYmxlO1xuICAgICAgbWluLWhlaWdodDogMjAwcHg7XG4gICAgICBtaW4td2lkdGg6IDIwMHB4O1xuXG4gICAgICBwcmUge1xuICAgICAgICBtYXJnaW46IDA7XG4gICAgICAgIGJvcmRlcjogbm9uZTtcbiAgICAgIH1cblxuICAgICAgc3ZnIHtcbiAgICAgICAgbWF4LXdpZHRoOiBub25lO1xuICAgICAgICBoZWlnaHQ6IGF1dG87XG4gICAgICB9XG4gICAgfVxuXG4gICAgJiA+IC5tZXJtYWlkLWNvbnRyb2xzIHtcbiAgICAgIHBvc2l0aW9uOiBhYnNvbHV0ZTtcbiAgICAgIGJvdHRvbTogMjBweDtcbiAgICAgIHJpZ2h0OiAyMHB4O1xuICAgICAgZGlzcGxheTogZmxleDtcbiAgICAgIGdhcDogOHB4O1xuICAgICAgcGFkZGluZzogOHB4O1xuICAgICAgYmFja2dyb3VuZDogdmFyKC0tbGlnaHQpO1xuICAgICAgYm9yZGVyOiAxcHggc29saWQgdmFyKC0tbGlnaHRncmF5KTtcbiAgICAgIGJvcmRlci1yYWRpdXM6IDZweDtcbiAgICAgIGJveC1zaGFkb3c6IDAgMnB4IDRweCByZ2JhKDAsIDAsIDAsIDAuMSk7XG4gICAgICB6LWluZGV4OiAyO1xuXG4gICAgICAubWVybWFpZC1jb250cm9sLWJ1dHRvbiB7XG4gICAgICAgIGRpc3BsYXk6IGZsZXg7XG4gICAgICAgIGFsaWduLWl0ZW1zOiBjZW50ZXI7XG4gICAgICAgIGp1c3RpZnktY29udGVudDogY2VudGVyO1xuICAgICAgICB3aWR0aDogMzJweDtcbiAgICAgICAgaGVpZ2h0OiAzMnB4O1xuICAgICAgICBwYWRkaW5nOiAwO1xuICAgICAgICBib3JkZXI6IDFweCBzb2xpZCB2YXIoLS1saWdodGdyYXkpO1xuICAgICAgICBiYWNrZ3JvdW5kOiB2YXIoLS1saWdodCk7XG4gICAgICAgIGNvbG9yOiB2YXIoLS1kYXJrKTtcbiAgICAgICAgYm9yZGVyLXJhZGl1czogNHB4O1xuICAgICAgICBjdXJzb3I6IHBvaW50ZXI7XG4gICAgICAgIGZvbnQtc2l6ZTogMTZweDtcbiAgICAgICAgZm9udC1mYW1pbHk6IHZhcigtLWJvZHlGb250KTtcbiAgICAgICAgdHJhbnNpdGlvbjogYWxsIDAuMnMgZWFzZTtcblxuICAgICAgICAmOmhvdmVyIHtcbiAgICAgICAgICBiYWNrZ3JvdW5kOiB2YXIoLS1saWdodGdyYXkpO1xuICAgICAgICB9XG5cbiAgICAgICAgJjphY3RpdmUge1xuICAgICAgICAgIHRyYW5zZm9ybTogdHJhbnNsYXRlWSgxcHgpO1xuICAgICAgICB9XG5cbiAgICAgICAgLy8gU3R5bGUgdGhlIHJlc2V0IGJ1dHRvbiBkaWZmZXJlbnRseVxuICAgICAgICAmOm50aC1jaGlsZCgyKSB7XG4gICAgICAgICAgd2lkdGg6IGF1dG87XG4gICAgICAgICAgcGFkZGluZzogMCAxMnB4O1xuICAgICAgICAgIGZvbnQtc2l6ZTogMTRweDtcbiAgICAgICAgfVxuICAgICAgfVxuICAgIH1cbiAgfVxufVxuIl19 */</style><link href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" rel="stylesheet" type="text/css" data-persist="true"/><script src="./prescript.js" type="application/javascript" data-persist="true"></script><script type="application/javascript" data-persist="true">const fetchData = fetch("./static/contentIndex.json").then(data => data.json())</script><link rel="alternate" type="application/rss+xml" title="RSS Feed" href="https://easilyid.github.io/knowledge-base-site/index.xml"/><meta property="og:image:width" content="1200"/><meta property="og:image:height" content="630"/><meta property="og:image" content="https://easilyid.github.io/knowledge-base-site/index-og-image.webp"/><meta property="og:image:url" content="https://easilyid.github.io/knowledge-base-site/index-og-image.webp"/><meta name="twitter:image" content="https://easilyid.github.io/knowledge-base-site/index-og-image.webp"/><meta property="og:image:type" content="image/.webp"/></head><body data-slug="index"><div id="quartz-root" class="page"><div id="quartz-body"><div class="left sidebar"><h2 class="page-title"><a href=".">Unity / C# / .NET 游戏开发知识库</a></h2><div class="spacer mobile-only"></div><div class="flex-component" style="flex-direction: row; flex-wrap: nowrap; gap: 1rem;"><div style="flex-grow: 1; flex-shrink: 1; flex-basis: auto; order: 0; align-self: center; justify-self: center;"><div class="search"><button class="search-button"><svg role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 19.9 19.7"><title>Search</title><g class="search-path" fill="none"><path stroke-linecap="square" d="M18.5 18.3l-5.4-5.4"></path><circle cx="8" cy="8" r="7"></circle></g></svg><p>搜索</p></button><div class="search-container"><div class="search-space"><input autocomplete="off" class="search-bar" name="search" type="text" aria-label="搜索些什么" placeholder="搜索些什么"/><div class="search-layout" data-preview="true"></div></div></div></div></div><div style="flex-grow: 0; flex-shrink: 1; flex-basis: auto; order: 0; align-self: center; justify-self: center;"><button class="darkmode"><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" class="dayIcon" x="0px" y="0px" viewBox="0 0 35 35" style="enable-background:new 0 0 35 35" xml:space="preserve" aria-label="暗色模式"><title>暗色模式</title><path d="M6,17.5C6,16.672,5.328,16,4.5,16h-3C0.672,16,0,16.672,0,17.5    S0.672,19,1.5,19h3C5.328,19,6,18.328,6,17.5z M7.5,26c-0.414,0-0.789,0.168-1.061,0.439l-2,2C4.168,28.711,4,29.086,4,29.5    C4,30.328,4.671,31,5.5,31c0.414,0,0.789-0.168,1.06-0.44l2-2C8.832,28.289,9,27.914,9,27.5C9,26.672,8.329,26,7.5,26z M17.5,6    C18.329,6,19,5.328,19,4.5v-3C19,0.672,18.329,0,17.5,0S16,0.672,16,1.5v3C16,5.328,16.671,6,17.5,6z M27.5,9    c0.414,0,0.789-0.168,1.06-0.439l2-2C30.832,6.289,31,5.914,31,5.5C31,4.672,30.329,4,29.5,4c-0.414,0-0.789,0.168-1.061,0.44    l-2,2C26.168,6.711,26,7.086,26,7.5C26,8.328,26.671,9,27.5,9z M6.439,8.561C6.711,8.832,7.086,9,7.5,9C8.328,9,9,8.328,9,7.5    c0-0.414-0.168-0.789-0.439-1.061l-2-2C6.289,4.168,5.914,4,5.5,4C4.672,4,4,4.672,4,5.5c0,0.414,0.168,0.789,0.439,1.06    L6.439,8.561z M33.5,16h-3c-0.828,0-1.5,0.672-1.5,1.5s0.672,1.5,1.5,1.5h3c0.828,0,1.5-0.672,1.5-1.5S34.328,16,33.5,16z     M28.561,26.439C28.289,26.168,27.914,26,27.5,26c-0.828,0-1.5,0.672-1.5,1.5c0,0.414,0.168,0.789,0.439,1.06l2,2    C28.711,30.832,29.086,31,29.5,31c0.828,0,1.5-0.672,1.5-1.5c0-0.414-0.168-0.789-0.439-1.061L28.561,26.439z M17.5,29    c-0.829,0-1.5,0.672-1.5,1.5v3c0,0.828,0.671,1.5,1.5,1.5s1.5-0.672,1.5-1.5v-3C19,29.672,18.329,29,17.5,29z M17.5,7    C11.71,7,7,11.71,7,17.5S11.71,28,17.5,28S28,23.29,28,17.5S23.29,7,17.5,7z M17.5,25c-4.136,0-7.5-3.364-7.5-7.5    c0-4.136,3.364-7.5,7.5-7.5c4.136,0,7.5,3.364,7.5,7.5C25,21.636,21.636,25,17.5,25z"></path></svg><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" class="nightIcon" x="0px" y="0px" viewBox="0 0 100 100" style="enable-background:new 0 0 100 100" xml:space="preserve" aria-label="亮色模式"><title>亮色模式</title><path d="M96.76,66.458c-0.853-0.852-2.15-1.064-3.23-0.534c-6.063,2.991-12.858,4.571-19.655,4.571  C62.022,70.495,50.88,65.88,42.5,57.5C29.043,44.043,25.658,23.536,34.076,6.47c0.532-1.08,0.318-2.379-0.534-3.23  c-0.851-0.852-2.15-1.064-3.23-0.534c-4.918,2.427-9.375,5.619-13.246,9.491c-9.447,9.447-14.65,22.008-14.65,35.369  c0,13.36,5.203,25.921,14.65,35.368s22.008,14.65,35.368,14.65c13.361,0,25.921-5.203,35.369-14.65  c3.872-3.871,7.064-8.328,9.491-13.246C97.826,68.608,97.611,67.309,96.76,66.458z"></path></svg></button></div><div style="flex-grow: 0; flex-shrink: 1; flex-basis: auto; order: 0; align-self: center; justify-self: center;"><button class="readermode"><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" class="readerIcon" fill="currentColor" stroke="currentColor" stroke-width="0.2" stroke-linecap="round" stroke-linejoin="round" width="64px" height="64px" viewBox="0 0 24 24" aria-label="阅读模式"><title>阅读模式</title><g transform="translate(-1.8, -1.8) scale(1.15, 1.2)"><path d="M8.9891247,2.5 C10.1384702,2.5 11.2209868,2.96705384 12.0049645,3.76669482 C12.7883914,2.96705384 13.8709081,2.5 15.0202536,2.5 L18.7549359,2.5 C19.1691495,2.5 19.5049359,2.83578644 19.5049359,3.25 L19.5046891,4.004 L21.2546891,4.00457396 C21.6343849,4.00457396 21.9481801,4.28672784 21.9978425,4.6528034 L22.0046891,4.75457396 L22.0046891,20.25 C22.0046891,20.6296958 21.7225353,20.943491 21.3564597,20.9931534 L21.2546891,21 L2.75468914,21 C2.37499337,21 2.06119817,20.7178461 2.01153575,20.3517706 L2.00468914,20.25 L2.00468914,4.75457396 C2.00468914,4.37487819 2.28684302,4.061083 2.65291858,4.01142057 L2.75468914,4.00457396 L4.50368914,4.004 L4.50444233,3.25 C4.50444233,2.87030423 4.78659621,2.55650904 5.15267177,2.50684662 L5.25444233,2.5 L8.9891247,2.5 Z M4.50368914,5.504 L3.50468914,5.504 L3.50468914,19.5 L10.9478955,19.4998273 C10.4513189,18.9207296 9.73864328,18.5588115 8.96709342,18.5065584 L8.77307039,18.5 L5.25444233,18.5 C4.87474657,18.5 4.56095137,18.2178461 4.51128895,17.8517706 L4.50444233,17.75 L4.50368914,5.504 Z M19.5049359,17.75 C19.5049359,18.1642136 19.1691495,18.5 18.7549359,18.5 L15.2363079,18.5 C14.3910149,18.5 13.5994408,18.8724714 13.0614828,19.4998273 L20.5046891,19.5 L20.5046891,5.504 L19.5046891,5.504 L19.5049359,17.75 Z M18.0059359,3.999 L15.0202536,4 L14.8259077,4.00692283 C13.9889509,4.06666544 13.2254227,4.50975805 12.7549359,5.212 L12.7549359,17.777 L12.7782651,17.7601316 C13.4923805,17.2719483 14.3447024,17 15.2363079,17 L18.0059359,16.999 L18.0056891,4.798 L18.0033792,4.75457396 L18.0056891,4.71 L18.0059359,3.999 Z M8.9891247,4 L6.00368914,3.999 L6.00599909,4.75457396 L6.00599909,4.75457396 L6.00368914,4.783 L6.00368914,16.999 L8.77307039,17 C9.57551536,17 10.3461406,17.2202781 11.0128313,17.6202194 L11.2536891,17.776 L11.2536891,5.211 C10.8200889,4.56369974 10.1361548,4.13636104 9.37521067,4.02745763 L9.18347055,4.00692283 L8.9891247,4 Z"></path></g></svg></button></div></div><div class="explorer" data-behavior="link" data-collapsed="collapsed" data-savestate="true" data-data-fns="{&quot;order&quot;:[&quot;filter&quot;,&quot;map&quot;,&quot;sort&quot;],&quot;sortFn&quot;:&quot;(a,b)=>!a.isFolder&amp;&amp;!b.isFolder||a.isFolder&amp;&amp;b.isFolder?a.displayName.localeCompare(b.displayName,void 0,{numeric:!0,sensitivity:\&quot;base\&quot;}):!a.isFolder&amp;&amp;b.isFolder?1:-1&quot;,&quot;filterFn&quot;:&quot;node=>node.slugSegment!==\&quot;tags\&quot;&quot;,&quot;mapFn&quot;:&quot;node=>{let override={\&quot;unity-Unity\\u5F15\\u64CE\&quot;:\&quot;Unity\&quot;,\&quot;csharp-dotnet-CSharp\\u4E0ENET\&quot;:\&quot;C#/.NET\&quot;,\&quot;patterns-\\u8BBE\\u8BA1\\u6A21\\u5F0F\&quot;:\&quot;\\u8BBE\\u8BA1\\u6A21\\u5F0F\&quot;,\&quot;performance-\\u6027\\u80FD\\u4F18\\u5316\&quot;:\&quot;\\u6027\\u80FD\&quot;,\&quot;tools-\\u5DE5\\u5177\\u4E0E\\u5DE5\\u4F5C\\u6D41\&quot;:\&quot;\\u5DE5\\u5177\&quot;,\&quot;gamedesign-\\u6E38\\u620F\\u8BBE\\u8BA1\&quot;:\&quot;\\u6E38\\u620F\\u8BBE\\u8BA1\&quot;,\&quot;sources-\\u6765\\u6E90\\u6458\\u8981\&quot;:\&quot;\\u6765\\u6E90\\u6458\\u8981\&quot;}[node.displayName];if(override){node.displayName=override;return}let segments=node.displayName.split(\&quot;-\&quot;),cjkStart=segments.findIndex(segment=>/[一-鿿]/.test(segment));cjkStart>-1&amp;&amp;(node.displayName=segments.slice(cjkStart).join(\&quot;-\&quot;))}&quot;}"><button type="button" class="explorer-toggle mobile-explorer hide-until-loaded" data-mobile="true" aria-controls="explorer-22"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide-menu"><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button><button type="button" class="title-button explorer-toggle desktop-explorer" data-mobile="false" aria-expanded="true"><h2>探索</h2><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="5 8 14 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="fold"><polyline points="6 9 12 15 18 9"></polyline></svg></button><div id="explorer-22" class="explorer-content" aria-expanded="false" role="group"><ul class="explorer-ul overflow" id="list-0"><li class="overflow-end"></li></ul></div><template id="template-file"><li><a href="#"></a></li></template><template id="template-folder"><li><div class="folder-container"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="5 8 14 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="folder-icon"><polyline points="6 9 12 15 18 9"></polyline></svg><div><button class="folder-button"><span class="folder-title"></span></button></div></div><div class="folder-outer"><ul class="content"></ul></div></li></template></div></div><div class="center"><div class="page-header"><div class="popover-hint"><h1 class="article-title">index</h1><p show-comma="true" class="content-meta"><time datetime="2026-05-25T00:00:00.000Z">2026年5月25日</time><span>18分钟阅读</span></p></div></div><article class="popover-hint"><h1 id="知识库">知识库<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#知识库" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h1>
+<p>面向 Unity 游戏开发的工程知识库。这里把 Unity 引擎、C#/.NET、游戏设计模式、性能优化和工具工作流组织成可搜索、可双链、可公网浏览的技术地图。</p>
+<blockquote class="callout abstract" data-callout="abstract">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>这是什么 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>一个以 Obsidian 维护、Quartz 发布的游戏开发外置大脑。目标不是按时间写博客，而是把 API、概念、模式、对比和综述沉淀成长期可复用的知识节点。</p>
+</div>
+</blockquote>
+<div class="wiki-hero-grid">
+  <a class="wiki-branch-card internal" href="./unity-Unity引擎" data-slug="unity-Unity引擎">
+    <span class="branch-kicker">Unity</span>
+    <strong>Unity 引擎</strong>
+    <small>对象模型、生命周期、异步、场景、序列化、DOTS</small>
+  </a>
+  <a class="wiki-branch-card internal" href="./csharp-dotnet-CSharp与NET" data-slug="csharp-dotnet-CSharp与NET">
+    <span class="branch-kicker">C# / .NET</span>
+    <strong>C# 与 .NET</strong>
+    <small>类型系统、async/await、GC、托管执行、Native AOT</small>
+  </a>
+  <a class="wiki-branch-card internal" href="./performance-性能优化" data-slug="performance-性能优化">
+    <span class="branch-kicker">Performance</span>
+    <strong>性能优化</strong>
+    <small>Job System、Burst、NativeContainer、并发模型</small>
+  </a>
+  <a class="wiki-branch-card internal" href="./patterns-设计模式" data-slug="patterns-设计模式">
+    <span class="branch-kicker">Patterns</span>
+    <strong>游戏设计模式</strong>
+    <small>GoF、GPP、组件、对象池、状态、事件队列</small>
+  </a>
+  <a class="wiki-branch-card internal" href="./tools-工具与工作流" data-slug="tools-工具与工作流">
+    <span class="branch-kicker">Tools</span>
+    <strong>工具与工作流</strong>
+    <small>框架、资源、编辑器扩展、工程化流程</small>
+  </a>
+  <a class="wiki-branch-card muted internal" href="#待写主题悬挂-wikilink-池">
+    <span class="branch-kicker">Next</span>
+    <strong>待写主题池</strong>
+    <small>尚未展开但已被引用的后续知识节点</small>
+  </a>
+</div>
+<blockquote class="callout tip" data-callout="tip">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>推荐入口 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<ul>
+<li><strong>想了解 Unity 异步</strong>：<a href="./unity-Unity引擎/awaitable-Unity异步类型" class="internal alias" data-slug="unity-Unity引擎/awaitable-Unity异步类型">Awaitable</a> → <a href="./unity-Unity引擎/coroutine-协程" class="internal alias" data-slug="unity-Unity引擎/coroutine-协程">Coroutine</a> → <a href="./unity-Unity引擎/awaitable-vs-unitask-comparison-Awaitable与UniTask对比" class="internal alias" data-slug="unity-Unity引擎/awaitable-vs-unitask-comparison-Awaitable与UniTask对比">Awaitable vs UniTask</a></li>
+<li><strong>想学游戏设计模式</strong>：<a href="./patterns-设计模式/design-patterns-设计模式" class="internal alias" data-slug="patterns-设计模式/design-patterns-设计模式">GoF 综述</a> → <a href="./patterns-设计模式/game-programming-patterns-游戏编程模式" class="internal alias" data-slug="patterns-设计模式/game-programming-patterns-游戏编程模式">GPP 综述</a> → 按分类深入</li>
+<li><strong>想做性能优化</strong>：<a href="./performance-性能优化/concurrency-models-synthesis-并发全景" class="internal alias" data-slug="performance-性能优化/concurrency-models-synthesis-并发全景">并发模型全景</a> → <a href="./performance-性能优化/job-system-作业系统" class="internal alias" data-slug="performance-性能优化/job-system-作业系统">Job System</a> → <a href="./performance-性能优化/burst-compiler-Burst编译" class="internal alias" data-slug="performance-性能优化/burst-compiler-Burst编译">Burst</a></li>
+<li><strong>想理解 .NET 内核</strong>：<a href="./csharp-dotnet-CSharp与NET/managed-execution-托管执行" class="internal alias" data-slug="csharp-dotnet-CSharp与NET/managed-execution-托管执行">托管执行流程</a> → <a href="./csharp-dotnet-CSharp与NET/garbage-collection-GC与内存" class="internal alias" data-slug="csharp-dotnet-CSharp与NET/garbage-collection-GC与内存">GC 与内存</a> → <a href="./csharp-dotnet-CSharp与NET/type-system-类型系统" class="internal alias" data-slug="csharp-dotnet-CSharp与NET/type-system-类型系统">类型系统</a></li>
+</ul>
+</div>
+</blockquote>
+<blockquote class="callout info" data-callout="info">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>关于置信度标注 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>每条目末尾的 <em>(high)</em> / <em>(medium)</em> 表示来源置信度：</p>
+<ul>
+<li><code>high</code> = 官方文档或源码验证</li>
+<li><code>medium</code> = 社区共识或单一来源</li>
+</ul>
+</div>
+</blockquote>
+<h2 id="unity-引擎-unity">Unity 引擎 (<code>unity</code>)<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#unity-引擎-unity" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<h3 id="综述synthesis">综述（synthesis）<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#综述synthesis" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<ul>
+<li><a href="./unity-Unity引擎/player-loop-主循环" class="internal alias" data-slug="unity-Unity引擎/player-loop-主循环">PlayerLoop 系统（PlayerLoop System）</a> — Unity 主循环与脚本/异步/Job 调度底座 <em>(high)</em></li>
+</ul>
+<h3 id="概念与实体">概念与实体<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#概念与实体" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<ul>
+<li><a href="./unity-Unity引擎/gameobject-component-对象与组件" class="internal alias" data-slug="unity-Unity引擎/gameobject-component-对象与组件">GameObject 与 Component</a> — Unity 经典对象模型入口 <em>(high)</em></li>
+<li><a href="./unity-Unity引擎/transform-变换" class="internal alias" data-slug="unity-Unity引擎/transform-变换">Transform</a> — 每个 GameObject 必带的空间变换与层级组件 <em>(high)</em></li>
+<li><a href="./unity-Unity引擎/monobehaviour-脚本基类" class="internal alias" data-slug="unity-Unity引擎/monobehaviour-脚本基类">MonoBehaviour</a> — Unity 脚本行为基类 <em>(high)</em></li>
+<li><a href="./unity-Unity引擎/monobehaviour-lifecycle-生命周期" class="internal alias" data-slug="unity-Unity引擎/monobehaviour-lifecycle-生命周期">MonoBehaviour 生命周期（MonoBehaviour Lifecycle）</a> — Awake / Start / Update / FixedUpdate / LateUpdate 执行语义 <em>(high)</em></li>
+<li><a href="./unity-Unity引擎/coroutine-协程" class="internal alias" data-slug="unity-Unity引擎/coroutine-协程">Unity Coroutine（协程）</a> — 单线程跨帧流程控制 <em>(high)</em></li>
+<li><a href="./unity-Unity引擎/prefab-system-预制体" class="internal alias" data-slug="unity-Unity引擎/prefab-system-预制体">Prefab 系统（Prefab System）</a> — 实例 Override、Variant/Nested、内存布局、Addressables 集成、对象池、DOTS Entity Prefab <em>(high)</em></li>
+<li><a href="./unity-Unity引擎/scriptableobject-数据资产" class="internal alias" data-slug="unity-Unity引擎/scriptableobject-数据资产">ScriptableObject</a> — 独立于 GameObject 的共享数据资产 <em>(high)</em></li>
+<li><a href="./unity-Unity引擎/scriptableobject-deep-dive-深入" class="internal alias" data-slug="unity-Unity引擎/scriptableobject-deep-dive-深入">ScriptableObject 深入</a> — 生命周期、持久化语义、事件通道、序列化边界、DOTS 数据流、生产反模式 <em>(high)</em></li>
+<li><a href="./unity-Unity引擎/scenemanager-场景管理" class="internal alias" data-slug="unity-Unity引擎/scenemanager-场景管理">SceneManager</a> — 运行时场景加载、卸载与 additive scene 管理 <em>(high)</em></li>
+<li><a href="./unity-Unity引擎/scene-architecture-patterns-场景架构模式" class="internal alias" data-slug="unity-Unity引擎/scene-architecture-patterns-场景架构模式">场景架构模式（Scene Architecture Patterns）</a> — 多场景架构 / Bootstrap+PersistentManagers / 跨场景引用 / Addressables 集成 / ECS SubScene <em>(high)</em></li>
+<li><a href="./unity-Unity引擎/dots-ecs-数据导向" class="internal alias" data-slug="unity-Unity引擎/dots-ecs-数据导向"> ECS（数据导向技术栈）</a> — Entities、Component、System、Baking 与数据导向运行时 <em>(high)</em></li>
+<li><a href="./unity-Unity引擎/awaitable-Unity异步类型" class="internal alias" data-slug="unity-Unity引擎/awaitable-Unity异步类型">Unity Awaitable</a> — 官方 async/await 类型：完整 API、池化机制、continuation 语义、线程切换、Job System 集成、常见模式与反模式 <em>(high)</em></li>
+<li><a href="./unity-Unity引擎/awaitable-pooling-and-continuation-池化与continuation" class="internal alias" data-slug="unity-Unity引擎/awaitable-pooling-and-continuation-池化与continuation">Awaitable 池化与 Continuation 语义</a> — 池化机制、重复 await 危险、同步 continuation、线程切换详解 <em>(high)</em></li>
+<li><a href="./unity-Unity引擎/awaitable-job-integration-Job集成" class="internal alias" data-slug="unity-Unity引擎/awaitable-job-integration-Job集成">Awaitable + Job System 集成</a> — 帧末调度模式、骨骼动画示例、BackgroundThreadAsync vs Job System <em>(medium)</em></li>
+<li><a href="./unity-Unity引擎/awaitable-vs-unitask-comparison-Awaitable与UniTask对比" class="internal alias" data-slug="unity-Unity引擎/awaitable-vs-unitask-comparison-Awaitable与UniTask对比">Awaitable vs UniTask 对比</a> — 维度对比表 / 选择建议 / UniTask→Awaitable 迁移 <em>(high)</em></li>
+<li><a href="./unity-Unity引擎/awaitable-cancellation-Cancellation详解" class="internal alias" data-slug="unity-Unity引擎/awaitable-cancellation-Cancellation详解">Awaitable Cancellation 详解</a> — CancellationToken / destroyCancellationToken / exitCancellationToken / linked source / Cancel() 风险 <em>(high)</em></li>
+<li><a href="./unity-Unity引擎/serialization-序列化" class="internal alias" data-slug="unity-Unity引擎/serialization-序列化">Unity 序列化系统（Unity Serialization）</a> — SerializeField / SerializeReference / ISerializationCallbackReceiver / 序列化限制 / JsonUtility / Prefab Override <em>(high)</em></li>
+<li><a href="./unity-Unity引擎/netcode-ngo-网络框架" class="internal alias" data-slug="unity-Unity引擎/netcode-ngo-网络框架">Unity Netcode for GameObjects（NGO）</a> — NetworkBehaviour / RPC vs NetworkVariable / NetworkTime / 同步组件 <em>(medium)</em></li>
+<li><a href="./unity-Unity引擎/playable-animation-动画系统" class="internal alias" data-slug="unity-Unity引擎/playable-animation-动画系统">Playable 动画系统（Playable Animation System）</a> — PlayableGraph / AnimationMixerPlayable / ScriptPlayable / 运行时动画树构建 <em>(medium)</em></li>
+<li><a href="./unity-Unity引擎/spine-async-loading-Spine异步加载" class="internal alias" data-slug="unity-Unity引擎/spine-async-loading-Spine异步加载">Spine 异步加载（Spine Async Loading）</a> — 异步线程创建 Spine 动画组件 <em>(medium)</em></li>
+<li><a href="./unity-Unity引擎/ugui-network-image-comparison-UGUI网络图片对比" class="internal alias" data-slug="unity-Unity引擎/ugui-network-image-comparison-UGUI网络图片对比">UGUI 网络图片加载方式对比</a> — WWW / UnityWebRequest / UnityWebRequestTexture / HttpClient 4 种方式性能对比 <em>(medium)</em></li>
+</ul>
+<h2 id="c-与-net-csharp-dotnet">C# 与 .NET (<code>csharp-dotnet</code>)<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#c-与-net-csharp-dotnet" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<h3 id="概念与实体-1">概念与实体<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#概念与实体-1" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<ul>
+<li><a href="./csharp-dotnet-CSharp与NET/type-system-类型系统" class="internal alias" data-slug="csharp-dotnet-CSharp与NET/type-system-类型系统">C＃ 类型系统（C＃ Type System）</a> — 强类型、CTS、class / struct / interface / generics 基础 <em>(high)</em></li>
+<li><a href="./csharp-dotnet-CSharp与NET/value-types-vs-reference-types-值与引用" class="internal alias" data-slug="csharp-dotnet-CSharp与NET/value-types-vs-reference-types-值与引用">值类型 vs 引用类型（Value Types vs Reference Types）</a> — 值复制、引用共享、装箱与 Unity 类型语义 <em>(high)</em></li>
+<li><a href="./csharp-dotnet-CSharp与NET/generic-collections-泛型集合" class="internal alias" data-slug="csharp-dotnet-CSharp与NET/generic-collections-泛型集合">C＃ 泛型集合（Generic Collections）</a> — List / Dictionary / HashSet / Queue / Stack 选择 <em>(high)</em></li>
+<li><a href="./csharp-dotnet-CSharp与NET/linq-查询与延迟" class="internal alias" data-slug="csharp-dotnet-CSharp与NET/linq-查询与延迟">LINQ 与延迟执行（LINQ and Deferred Execution）</a> — 查询语法、延迟枚举与 Unity hot path 分配风险 <em>(high)</em></li>
+<li><a href="./csharp-dotnet-CSharp与NET/garbage-collection-GC与内存" class="internal alias" data-slug="csharp-dotnet-CSharp与NET/garbage-collection-GC与内存">.NET GC 与托管内存（.NET Garbage Collection）</a> — 分代模型、LOH、GC 模式、碎片与钉住、Unity 分析、零 GC 模式、DOTS 语境、反模式 <em>(high)</em></li>
+<li><a href="./csharp-dotnet-CSharp与NET/dispose-pattern-释放模式" class="internal alias" data-slug="csharp-dotnet-CSharp与NET/dispose-pattern-释放模式">Dispose 模式（Dispose Pattern）</a> — IDisposable、Dispose(bool)、SafeHandle 与资源释放 <em>(high)</em></li>
+<li><a href="./csharp-dotnet-CSharp与NET/iasyncdisposable-异步释放" class="internal alias" data-slug="csharp-dotnet-CSharp与NET/iasyncdisposable-异步释放">IAsyncDisposable 与异步释放</a> — DisposeAsync / await using / 双接口实现模式 <em>(high)</em></li>
+<li><a href="./csharp-dotnet-CSharp与NET/unity-disposables-Unity可释放资源" class="internal alias" data-slug="csharp-dotnet-CSharp与NET/unity-disposables-Unity可释放资源">Unity 可释放资源与 SafeHandle</a> — NativeArray/GPU/AssetBundle 释放规则 + SafeHandle/CER 深入 <em>(medium)</em></li>
+<li><a href="./csharp-dotnet-CSharp与NET/async-await-task-异步与Task" class="internal alias" data-slug="csharp-dotnet-CSharp与NET/async-await-task-异步与Task">await 与 Task</a> — Task 生命周期 / ConfigureAwait / Unity async 上下文 / PlayerLoop 时序 / 性能 / 反模式 <em>(high)</em></li>
+<li><a href="./csharp-dotnet-CSharp与NET/cancellation-取消模式" class="internal alias" data-slug="csharp-dotnet-CSharp与NET/cancellation-取消模式">取消模式（Cancellation）</a> — CancellationToken / LinkedTokenSource / Unity destroyCancellationToken <em>(high)</em></li>
+<li><a href="./csharp-dotnet-CSharp与NET/task-exception-handling-异常处理" class="internal alias" data-slug="csharp-dotnet-CSharp与NET/task-exception-handling-异常处理">Task 异常处理</a> — AggregateException / WhenAll 异常聚合 / async void 安全模式 / ExceptionDispatchInfo <em>(high)</em></li>
+<li><a href="./csharp-dotnet-CSharp与NET/valuetask-deep-dive-ValueTask深入" class="internal alias" data-slug="csharp-dotnet-CSharp与NET/valuetask-deep-dive-ValueTask深入">ValueTask 深入</a> — discriminated union struct / IValueTaskSource 池化 / 使用约束 <em>(high)</em></li>
+<li><a href="./csharp-dotnet-CSharp与NET/async-await-internals-异步机制" class="internal alias" data-slug="csharp-dotnet-CSharp与NET/async-await-internals-异步机制">await 内部机制（Async Await Internals）</a> — 状态机、builder 与 awaiter pattern <em>(high)</em></li>
+<li><a href="./csharp-dotnet-CSharp与NET/managed-execution-托管执行" class="internal alias" data-slug="csharp-dotnet-CSharp与NET/managed-execution-托管执行">.NET 托管执行流程（Managed Execution）</a> — 编译管线、CIL 指令集、分层 JIT / PGO / R2R、CLR 类型系统、Unity 四后端、IL2CPP 深入、程序集加载、反射与 Interop、反模式 <em>(high)</em></li>
+<li><a href="./csharp-dotnet-CSharp与NET/native-aot-原生AOT" class="internal alias" data-slug="csharp-dotnet-CSharp与NET/native-aot-原生AOT">.NET Native AOT</a> — publish-time AOT、JIT 禁用与动态能力限制 <em>(high)</em></li>
+</ul>
+<h2 id="游戏设计模式-patterns">游戏设计模式 (<code>patterns</code>)<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#游戏设计模式-patterns" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<h3 id="综述与分类">综述与分类<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#综述与分类" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<ul>
+<li><a href="./patterns-设计模式/design-patterns-设计模式" class="internal alias" data-slug="patterns-设计模式/design-patterns-设计模式">设计模式（Design Patterns）</a> — GoF 22 种模式总览与游戏开发高频模式 <em>(high)</em></li>
+<li><a href="./patterns-设计模式/game-programming-patterns-游戏编程模式" class="internal alias" data-slug="patterns-设计模式/game-programming-patterns-游戏编程模式">游戏编程模式（Game Programming Patterns）</a> — GPP 13 种 GoF 未收录模式总览 <em>(high)</em></li>
+<li><a href="./patterns-设计模式/creational-patterns-创建型" class="internal alias" data-slug="patterns-设计模式/creational-patterns-创建型">创建型模式（Creational Patterns）</a> — 工厂方法 / 抽象工厂 / 生成器 / 原型 / 单例 <em>(high)</em></li>
+<li><a href="./patterns-设计模式/structural-patterns-结构型" class="internal alias" data-slug="patterns-设计模式/structural-patterns-结构型">结构型模式（Structural Patterns）</a> — 适配器 / 桥接 / 组合 / 装饰 / 外观 / 享元 / 代理 <em>(high)</em></li>
+<li><a href="./patterns-设计模式/behavioral-patterns-行为型" class="internal alias" data-slug="patterns-设计模式/behavioral-patterns-行为型">行为型模式（Behavioral Patterns）</a> — 责任链 / 命令 / 迭代器 / 中介者 / 备忘录 / 观察者 / 状态 / 策略 / 模板方法 / 访问者 <em>(high)</em></li>
+<li><a href="./patterns-设计模式/sequencing-patterns-序列模式" class="internal alias" data-slug="patterns-设计模式/sequencing-patterns-序列模式">序列模式（Sequencing Patterns）</a> — 双缓冲 / 游戏循环 / 更新方法 — GPP 帧驱动模式 <em>(high)</em></li>
+<li><a href="./patterns-设计模式/gpp-behavioral-patterns-GPP行为" class="internal alias" data-slug="patterns-设计模式/gpp-behavioral-patterns-GPP行为">GPP 行为模式（GPP Behavioral Patterns）</a> — 字节码 / 子类沙箱 / 类型对象 — GPP 数据驱动行为 <em>(high)</em></li>
+<li><a href="./patterns-设计模式/decoupling-patterns-解耦" class="internal alias" data-slug="patterns-设计模式/decoupling-patterns-解耦">解耦模式（Decoupling Patterns）</a> — 组件 / 事件队列 / 服务定位器 — GPP 架构解耦 <em>(high)</em></li>
+<li><a href="./patterns-设计模式/optimization-patterns-优化" class="internal alias" data-slug="patterns-设计模式/optimization-patterns-优化">优化模式（Optimization Patterns）</a> — 数据局部性 / 脏标识 / 对象池 / 空间分区 — GPP 性能优化 <em>(high)</em></li>
+</ul>
+<h3 id="创建型">创建型<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#创建型" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<ul>
+<li><a href="./patterns-设计模式/factory-method-工厂方法" class="internal alias" data-slug="patterns-设计模式/factory-method-工厂方法">工厂方法（Factory Method）</a> — 父类定义创建接口，子类决定实例化类型 <em>(high)</em></li>
+<li><a href="./patterns-设计模式/abstract-factory-抽象工厂" class="internal alias" data-slug="patterns-设计模式/abstract-factory-抽象工厂">抽象工厂（Abstract Factory）</a> — 创建一族相关对象，无需指定具体类 <em>(high)</em></li>
+<li><a href="./patterns-设计模式/builder-pattern-生成器" class="internal alias" data-slug="patterns-设计模式/builder-pattern-生成器">生成器（Builder）</a> — 分步骤创建复杂对象 <em>(high)</em></li>
+<li><a href="./patterns-设计模式/prototype-pattern-原型" class="internal alias" data-slug="patterns-设计模式/prototype-pattern-原型">原型（Prototype）</a> — 克隆已有对象，不依赖其所属类 <em>(high)</em></li>
+<li><a href="./patterns-设计模式/singleton-pattern-单例" class="internal alias" data-slug="patterns-设计模式/singleton-pattern-单例">单例（Singleton）</a> — 全局唯一实例 <em>(high)</em></li>
+</ul>
+<h3 id="结构型">结构型<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#结构型" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<ul>
+<li><a href="./patterns-设计模式/adapter-pattern-适配器" class="internal alias" data-slug="patterns-设计模式/adapter-pattern-适配器">适配器（Adapter）</a> — 接口转换，让不兼容对象合作 <em>(high)</em></li>
+<li><a href="./patterns-设计模式/bridge-pattern-桥接" class="internal alias" data-slug="patterns-设计模式/bridge-pattern-桥接">桥接（Bridge）</a> — 抽象与实现分离 <em>(high)</em></li>
+<li><a href="./patterns-设计模式/composite-pattern-组合" class="internal alias" data-slug="patterns-设计模式/composite-pattern-组合">组合（Composite）</a> — 树状结构统一接口 <em>(high)</em></li>
+<li><a href="./patterns-设计模式/decorator-pattern-装饰" class="internal alias" data-slug="patterns-设计模式/decorator-pattern-装饰">装饰（Decorator）</a> — 动态添加行为，不改变接口 <em>(high)</em></li>
+<li><a href="./patterns-设计模式/facade-pattern-外观" class="internal alias" data-slug="patterns-设计模式/facade-pattern-外观">外观（Facade）</a> — 简化复杂子系统接口 <em>(high)</em></li>
+<li><a href="./patterns-设计模式/flyweight-pattern-享元" class="internal alias" data-slug="patterns-设计模式/flyweight-pattern-享元">享元（Flyweight）</a> — 共享相同状态节省内存 <em>(high)</em></li>
+<li><a href="./patterns-设计模式/proxy-pattern-代理" class="internal alias" data-slug="patterns-设计模式/proxy-pattern-代理">代理（Proxy）</a> — 控制对象访问 <em>(high)</em></li>
+</ul>
+<h3 id="序列模式gpp-sequencing">序列模式（GPP Sequencing）<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#序列模式gpp-sequencing" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<ul>
+<li><a href="./patterns-设计模式/double-buffer-双缓冲" class="internal alias" data-slug="patterns-设计模式/double-buffer-双缓冲">双缓冲（Double Buffer）</a> — 读写分离，消除视觉撕裂 <em>(high)</em></li>
+<li><a href="./patterns-设计模式/game-loop-游戏循环" class="internal alias" data-slug="patterns-设计模式/game-loop-游戏循环">游戏循环（Game Loop）</a> — 固定/可变时间步的主循环 <em>(high)</em></li>
+<li><a href="./patterns-设计模式/update-method-更新方法" class="internal alias" data-slug="patterns-设计模式/update-method-更新方法">更新方法（Update Method）</a> — 每帧通知对象更新 <em>(high)</em></li>
+</ul>
+<h3 id="gpp-行为模式">GPP 行为模式<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#gpp-行为模式" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<ul>
+<li><a href="./patterns-设计模式/bytecode-字节码" class="internal alias" data-slug="patterns-设计模式/bytecode-字节码">字节码（Bytecode）</a> — 数据驱动的行为定义，VM 解释执行 <em>(high)</em></li>
+<li><a href="./patterns-设计模式/subclass-sandbox-子类沙箱" class="internal alias" data-slug="patterns-设计模式/subclass-sandbox-子类沙箱">子类沙箱（Subclass Sandbox）</a> — 基类提供操作集，子类组合调用 <em>(high)</em></li>
+<li><a href="./patterns-设计模式/type-object-类型对象" class="internal alias" data-slug="patterns-设计模式/type-object-类型对象">类型对象（Type Object）</a> — 数据定义类型，替代继承 <em>(high)</em></li>
+</ul>
+<h3 id="解耦模式gpp-decoupling">解耦模式（GPP Decoupling）<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#解耦模式gpp-decoupling" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<ul>
+<li><a href="./patterns-设计模式/component-组件模式" class="internal alias" data-slug="patterns-设计模式/component-组件模式">组件模式（Component）</a> — 用组合替代继承，Unity 核心架构的设计根基 <em>(high)</em></li>
+<li><a href="./patterns-设计模式/event-queue-事件队列" class="internal alias" data-slug="patterns-设计模式/event-queue-事件队列">事件队列（Event Queue）</a> — 异步解耦生产者与消费者的时序 <em>(high)</em></li>
+<li><a href="./patterns-设计模式/service-locator-服务定位" class="internal alias" data-slug="patterns-设计模式/service-locator-服务定位">服务定位器（Service Locator）</a> — 单例的解耦版，全局访问 + 接口隔离 <em>(high)</em></li>
+</ul>
+<h3 id="优化模式gpp-optimization">优化模式（GPP Optimization）<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#优化模式gpp-optimization" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<ul>
+<li><a href="./patterns-设计模式/data-locality-数据局部性" class="internal alias" data-slug="patterns-设计模式/data-locality-数据局部性">数据局部性（Data Locality）</a> — 连续内存排列最大化 CPU 缓存命中 <em>(high)</em></li>
+<li><a href="./patterns-设计模式/dirty-flag-脏标识" class="internal alias" data-slug="patterns-设计模式/dirty-flag-脏标识">脏标识（Dirty Flag）</a> — 延迟计算，只在需要时重新算导出数据 <em>(high)</em></li>
+<li><a href="./patterns-设计模式/object-pool-对象池" class="internal alias" data-slug="patterns-设计模式/object-pool-对象池">对象池（Object Pool）</a> — 预分配复用实例，消除 GC Spike <em>(high)</em></li>
+<li><a href="./patterns-设计模式/spatial-partition-空间分区" class="internal alias" data-slug="patterns-设计模式/spatial-partition-空间分区">空间分区（Spatial Partition）</a> — 按空间位置组织对象，O(n^2) → O(n log n) <em>(high)</em></li>
+</ul>
+<h3 id="行为型">行为型<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#行为型" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<ul>
+<li><a href="./patterns-设计模式/chain-of-responsibility-责任链" class="internal alias" data-slug="patterns-设计模式/chain-of-responsibility-责任链">责任链（Chain of Responsibility）</a> — 请求沿处理者链传递 <em>(high)</em></li>
+<li><a href="./patterns-设计模式/command-pattern-命令" class="internal alias" data-slug="patterns-设计模式/command-pattern-命令">命令（Command）</a> — 请求封装为对象，支持撤销/队列 <em>(high)</em></li>
+<li><a href="./patterns-设计模式/iterator-pattern-迭代器" class="internal alias" data-slug="patterns-设计模式/iterator-pattern-迭代器">迭代器（Iterator）</a> — 不暴露底层表示遍历集合 <em>(high)</em></li>
+<li><a href="./patterns-设计模式/mediator-pattern-中介者" class="internal alias" data-slug="patterns-设计模式/mediator-pattern-中介者">中介者（Mediator）</a> — 对象通过中介者通信 <em>(high)</em></li>
+<li><a href="./patterns-设计模式/memento-pattern-备忘录" class="internal alias" data-slug="patterns-设计模式/memento-pattern-备忘录">备忘录（Memento）</a> — 保存和恢复对象状态 <em>(high)</em></li>
+<li><a href="./patterns-设计模式/observer-pattern-观察者" class="internal alias" data-slug="patterns-设计模式/observer-pattern-观察者">观察者（Observer）</a> — 发布-订阅通知 <em>(high)</em></li>
+<li><a href="./patterns-设计模式/state-pattern-状态" class="internal alias" data-slug="patterns-设计模式/state-pattern-状态">状态（State）</a> — 内部状态变化改变行为 <em>(high)</em></li>
+<li><a href="./patterns-设计模式/strategy-pattern-策略" class="internal alias" data-slug="patterns-设计模式/strategy-pattern-策略">策略（Strategy）</a> — 算法族可互换 <em>(high)</em></li>
+<li><a href="./patterns-设计模式/template-method-pattern-模板方法" class="internal alias" data-slug="patterns-设计模式/template-method-pattern-模板方法">模板方法（Template Method）</a> — 超类定义算法骨架 <em>(high)</em></li>
+<li><a href="./patterns-设计模式/visitor-pattern-访问者" class="internal alias" data-slug="patterns-设计模式/visitor-pattern-访问者">访问者（Visitor）</a> — 算法与对象结构分离 <em>(high)</em></li>
+</ul>
+<h2 id="性能优化-performance">性能优化 (<code>performance</code>)<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#性能优化-performance" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<h3 id="综述synthesis-1">综述（synthesis）<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#综述synthesis-1" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<ul>
+<li><a href="./performance-性能优化/concurrency-models-synthesis-并发全景" class="internal alias" data-slug="performance-性能优化/concurrency-models-synthesis-并发全景">Unity 并发模型全景（Unity Concurrency Models）</a> — Job System / Coroutine / async-await / Awaitable / UniTask <em>(high)</em></li>
+</ul>
+<h3 id="概念与实体-2">概念与实体<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#概念与实体-2" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<ul>
+<li><a href="./performance-性能优化/unitask-deep-dive-深入" class="internal alias" data-slug="performance-性能优化/unitask-deep-dive-深入">UniTask 深入（UniTask Deep Dive）</a> — Unity 应用层低分配 async/await 库 <em>(high)</em></li>
+<li><a href="./performance-性能优化/job-system-作业系统" class="internal alias" data-slug="performance-性能优化/job-system-作业系统">Unity Job System（作业系统）</a> — 安全的多线程编程模型 <em>(high)</em></li>
+<li><a href="./performance-性能优化/burst-compiler-Burst编译" class="internal alias" data-slug="performance-性能优化/burst-compiler-Burst编译">Burst 编译器（Burst Compiler）</a> — HPC# 子集 → LLVM 原生编译、编译管线、FloatMode/Precision/OptimizeFor 配置、语言限制、内存属性、数学内联函数、函数指针、SIMD 自动向量化、SharedStatic、Burst Inspector、与 IL2CPP/Native AOT 对比 <em>(high)</em></li>
+<li><a href="./performance-性能优化/collections-package-集合包" class="internal alias" data-slug="performance-性能优化/collections-package-集合包">Unity Collections 包（Unity Collections Package）</a> — Job/Burst 可用的 unmanaged 数据结构 <em>(high)</em></li>
+<li><a href="./performance-性能优化/ijob-types-IJob接口族" class="internal alias" data-slug="performance-性能优化/ijob-types-IJob接口族">IJob 接口族（IJob Types）</a> — IJob / IJobFor / IJobParallelFor / IJobParallelForBatch / IJobParallelForFilter / IJobParallelForTransform / IJobChunk / IJobEntity <em>(high)</em></li>
+<li><a href="./performance-性能优化/native-container-Native容器" class="internal alias" data-slug="performance-性能优化/native-container-Native容器">NativeContainer 与 Allocator</a> — 线程安全 native 内存容器与分配器 <em>(high)</em></li>
+<li><a href="./performance-性能优化/job-dependencies-作业依赖" class="internal alias" data-slug="performance-性能优化/job-dependencies-作业依赖">Job 依赖与 JobHandle</a> — Job 执行顺序与依赖句柄 <em>(high)</em></li>
+<li><a href="./performance-性能优化/parallel-for-job-并行调度" class="internal alias" data-slug="performance-性能优化/parallel-for-job-并行调度">ParallelFor Job 与批量调度</a> — 大数组并行处理模式 <em>(high)</em></li>
+</ul>
+<h2 id="来源摘要-sources">来源摘要 (<code>sources</code>)<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#来源摘要-sources" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<ul>
+<li><a href="./sources-来源摘要/2026-05-16-cysharp-unitask-overview" class="internal alias" data-slug="sources-来源摘要/2026-05-16-cysharp-unitask-overview">摘要：Cysharp UniTask README</a></li>
+<li><a href="./sources-来源摘要/2026-05-16-unity-scheduling-and-ecs-overview" class="internal alias" data-slug="sources-来源摘要/2026-05-16-unity-scheduling-and-ecs-overview">摘要：Unity 调度与 ECS 基础官方文档</a></li>
+<li><a href="./sources-来源摘要/2026-05-16-csharp-dotnet-foundations-overview" class="internal alias" data-slug="sources-来源摘要/2026-05-16-csharp-dotnet-foundations-overview"> .NET 基础官方文档</a></li>
+<li><a href="./sources-来源摘要/2026-05-16-unity-foundations-overview" class="internal alias" data-slug="sources-来源摘要/2026-05-16-unity-foundations-overview">摘要：Unity 基础官方文档</a></li>
+<li><a href="./sources-来源摘要/2026-05-14-job-system-overview" class="internal alias" data-slug="sources-来源摘要/2026-05-14-job-system-overview">摘要：Unity Job System 官方手册</a> — 完整章节</li>
+<li><a href="./sources-来源摘要/2026-05-16-burst-compiler-overview" class="internal alias" data-slug="sources-来源摘要/2026-05-16-burst-compiler-overview">摘要：Unity Burst Compiler 官方文档</a></li>
+<li><a href="./sources-来源摘要/2026-05-16-unity-collections-package-overview" class="internal alias" data-slug="sources-来源摘要/2026-05-16-unity-collections-package-overview">摘要：Unity Collections Package 官方文档</a></li>
+<li><a href="./sources-来源摘要/2026-05-17-indienova-gpp-overview" class="internal alias" data-slug="sources-来源摘要/2026-05-17-indienova-gpp-overview">摘要：indienova 游戏设计模式系列</a></li>
+<li><a href="./sources-来源摘要/2026-05-17-ifeelgame-overview" class="internal alias" data-slug="sources-来源摘要/2026-05-17-ifeelgame-overview">摘要：Ifeelgame 博客 10 篇文章</a></li>
+</ul>
+<h2 id="工具与工作流-tools">工具与工作流 (<code>tools</code>)<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#工具与工作流-tools" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<h3 id="综述synthesis-2">综述（synthesis）<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#综述synthesis-2" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<ul>
+<li><a href="./tools-工具与工作流/framework-landscape-框架全景坐标系" class="internal alias" data-slug="tools-工具与工作流/framework-landscape-框架全景坐标系">Unity 框架全景坐标系</a> — <strong>7 框架枢纽页</strong>：范式轴 × 目标轴两轴定位图 + 多维能力总表 + 选型速查；tools 框架群的顶层入口 <em>(medium)</em></li>
+<li><a href="./tools-工具与工作流/paradigm-comparison-范式对比" class="internal alias" data-slug="tools-工具与工作流/paradigm-comparison-范式对比">OOP vs ECS 范式对比</a> — 范式轴深挖：TEngine/DGame vs ET/Fantasy 根本差异、决策树、跨范式集成 <em>(high)</em></li>
+<li><a href="./tools-工具与工作流/unity-framework-comparison-Unity框架架构对比" class="internal alias" data-slug="tools-工具与工作流/unity-framework-comparison-Unity框架架构对比">Unity 框架架构对比</a> — 选型/演化轴深挖：TEngine vs GameFramework vs ET vs QFramework 设计哲学 <em>(medium)</em></li>
+</ul>
+<h3 id="概念与实体-3">概念与实体<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#概念与实体-3" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<ul>
+<li><a href="./tools-工具与工作流/et-framework-ET框架" class="internal alias" data-slug="tools-工具与工作流/et-framework-ET框架">ET Framework（ET 游戏框架）</a> — 单线程多进程 C# 双端框架 / ECS 编程原则 / Model-Hotfix 分层 <em>(high)</em></li>
+<li><a href="./tools-工具与工作流/fantasy-framework-Fantasy框架" class="internal alias" data-slug="tools-工具与工作流/fantasy-framework-Fantasy框架">Fantasy 框架</a> — ET 思想 + 零反射 + Native AOT / 大型 MMO 服务端 <em>(high)</em></li>
+<li><a href="./tools-工具与工作流/qframework-QFramework框架" class="internal alias" data-slug="tools-工具与工作流/qframework-QFramework框架">QFramework 框架</a> — 架构本体 / ResKit / UIKit / ActionKit / AudioKit / FluentAPI / 微信小游戏适配 <em>(medium)</em></li>
+<li><a href="./tools-工具与工作流/tengine-framework-TEngine框架" class="internal alias" data-slug="tools-工具与工作流/tengine-framework-TEngine框架">TEngine 框架</a> — 全平台热更框架 / HybridCLR + YooAsset + UniTask + Luban / 四层架构 / Procedure 启动链 / 零 GC 事件总线 <em>(medium)</em>
+<ul>
+<li><a href="./tools-工具与工作流/tengine-module-system-模块系统深度" class="internal alias" data-slug="tools-工具与工作流/tengine-module-system-模块系统深度">ModuleSystem 深度</a> — 静态服务定位器实现 / 与 DI 容器对比 / 优化空间 <em>(high)</em></li>
+<li><a href="./tools-工具与工作流/tengine-game-event-事件系统深度" class="internal alias" data-slug="tools-工具与工作流/tengine-game-event-事件系统深度">GameEvent 深度</a> — 零 GC 机制 / 重入安全 / Source Generator / 与 MessagePipe 对比 <em>(high)</em></li>
+<li><a href="./tools-工具与工作流/tengine-pool-procedure-池化与启动深度" class="internal alias" data-slug="tools-工具与工作流/tengine-pool-procedure-池化与启动深度">Pool &amp; Procedure 深度</a> — MemoryPool / ObjectPool / FSM vs Async 启动 <em>(high)</em></li>
+<li><a href="./tools-工具与工作流/tengine-ui-system-UI系统深度" class="internal alias" data-slug="tools-工具与工作流/tengine-ui-system-UI系统深度">UI 系统深度</a> — Layer-Stack / WindowAttribute / 全屏遮挡 / 事件生命周期绑定 <em>(high)</em></li>
+<li><a href="./tools-工具与工作流/tengine-design-decisions-设计决策分析" class="internal alias" data-slug="tools-工具与工作流/tengine-design-decisions-设计决策分析">设计决策分析</a> — FSM 泛型化 / 帧驱动统一 / 热更边界 / Singleton vs Module / 节点池化 <em>(high)</em></li>
+</ul>
+</li>
+<li><a href="./tools-工具与工作流/dgame-framework-DGame框架" class="internal alias" data-slug="tools-工具与工作流/dgame-framework-DGame框架">DGame 框架</a> — TEngine 实战增强版 / 红点+存档+输入+动画模块 / 底层 bug 未修复 <em>(high)</em></li>
+<li><a href="./tools-工具与工作流/bigcat-framework-BigCat框架" class="internal alias" data-slug="tools-工具与工作流/bigcat-framework-BigCat框架">BigCat 框架</a> — wjybxx 个人 MMO 框架 / TaskTree 通用任务树 / Context 三件套 / Reentry 检测 / 心跳驱动反对事件驱动 <em>(medium)</em></li>
+<li><a href="./tools-工具与工作流/framework-design-principles-框架设计原则" class="internal alias" data-slug="tools-工具与工作流/framework-design-principles-框架设计原则">框架设计原则</a> — 10 条可复用设计原则 + 自研框架 Checklist（从 8 篇源码分析提炼） <em>(high)</em></li>
+<li><a href="./tools-工具与工作流/framework-self-design-guide-自研框架决策指南" class="internal alias" data-slug="tools-工具与工作流/framework-self-design-guide-自研框架决策指南">自研框架决策指南 v1</a> — 底层 5 决策：范式 / 热更 / 平台 / 异步 / 程序集分层；决策依赖图 + 反模式清单 <em>(high)</em></li>
+<li><a href="./tools-工具与工作流/framework-self-design-guide-v2-中层决策" class="internal alias" data-slug="tools-工具与工作流/framework-self-design-guide-v2-中层决策">自研框架决策指南 v2</a> — 中层 4 决策：事件系统 / 启动流程 / 对象池 / 帧驱动；3 条铁律 + 反馈环 <em>(high)</em></li>
+<li><a href="./tools-工具与工作流/framework-self-design-guide-v3-上层决策" class="internal alias" data-slug="tools-工具与工作流/framework-self-design-guide-v3-上层决策">自研框架决策指南 v3</a> — 上层决策 10：UI 系统抽象层次选线（A/B/C/D/E 五选项）+ 5 条必抄设计原则 <em>(high)</em></li>
+<li><a href="./tools-工具与工作流/unity-ui-framework-comparison-UI框架对比" class="internal alias" data-slug="tools-工具与工作流/unity-ui-framework-comparison-UI框架对比">Unity UI 框架架构对比</a> — TEngine / BigCat / QFramework / GameFramework UI 系统跨框架对比 <em>(high)</em></li>
+<li><a href="./tools-工具与工作流/myframework-MyFramework框架" class="internal alias" data-slug="tools-工具与工作流/myframework-MyFramework框架">MyFramework 框架</a> — 传统引擎式 Unity 客户端框架 / 显式生命周期 / UI+协议+配表代码生成 / 自研资源与输入系统 / HybridCLR 热更新 <em>(high)</em>
+<ul>
+<li><a href="./tools-工具与工作流/myframework-startup-hotfix-启动与热更链" class="internal alias" data-slug="tools-工具与工作流/myframework-startup-hotfix-启动与热更链">启动与热更链</a> — AOT 启动壳 / HybridCLR DLL 加载 / HotFix 第二框架 / FrameSystem 生命周期 <em>(medium)</em></li>
+<li><a href="./tools-工具与工作流/myframework-resource-system-资源系统深度" class="internal alias" data-slug="tools-工具与工作流/myframework-resource-system-资源系统深度">资源系统深度</a> — ResourceManager / AssetBundleLoader / STREAMING_ASSET_FILE / ResourceRef 引用凭证 <em>(medium)</em></li>
+<li><a href="./tools-工具与工作流/myframework-ui-system-UI系统深度" class="internal alias" data-slug="tools-工具与工作流/myframework-ui-system-UI系统深度">UI 系统深度</a> — UGUIGenerator / LayoutManager / LayoutScript / UI 对象池与输入绑定 <em>(medium)</em>
+<ul>
+<li><a href="./tools-工具与工作流/myframework-ugui-generator-UI代码生成器深度" class="internal alias" data-slug="tools-工具与工作流/myframework-ugui-generator-UI代码生成器深度">UGUIGenerator 代码生成器深度</a> — 三层结构 / MemberData IR / 五锚点增量替换 / 拓扑排序生成 / 反射类型发现 / 三类注入 <em>(high)</em></li>
+</ul>
+</li>
+<li><a href="./tools-工具与工作流/myframework-input-system-输入系统深度" class="internal alias" data-slug="tools-工具与工作流/myframework-input-system-输入系统深度">输入系统深度</a> — InputSystem / GlobalTouchSystem / 多摄像机射线 / 点击穿透 <em>(medium)</em></li>
+<li><a href="./tools-工具与工作流/myframework-command-system-命令系统深度" class="internal alias" data-slug="tools-工具与工作流/myframework-command-system-命令系统深度">命令系统深度</a> — CommandSystem / 延迟命令 / 主线程调度 / 接收者生命周期 <em>(medium)</em></li>
+<li><a href="./tools-工具与工作流/myframework-scene-procedure-场景与流程深度" class="internal alias" data-slug="tools-工具与工作流/myframework-scene-procedure-场景与流程深度">场景与流程深度</a> — GameScene / SceneProcedure / 逻辑场景状态机 / 延迟销毁旧场景 <em>(medium)</em></li>
+<li><a href="./tools-工具与工作流/myframework-network-system-网络与序列化深度" class="internal alias" data-slug="tools-工具与工作流/myframework-network-system-网络与序列化深度">网络与序列化深度</a> — NetConnectTCPBit / NetPacketBit / bit 序列化 / CRC+序列号 <em>(medium)</em></li>
+<li><a href="./tools-工具与工作流/myframework-pool-system-对象池与低GC深度" class="internal alias" data-slug="tools-工具与工作流/myframework-pool-system-对象池与低GC深度">对象池与低 GC 深度</a> — ClassPool / ListPool / ByteArrayPool / AssignID 生命周期 <em>(medium)</em>
+<ul>
+<li><a href="./tools-工具与工作流/myframework-analyzer-resetproperty-静态检查器深度" class="internal alias" data-slug="tools-工具与工作流/myframework-analyzer-resetproperty-静态检查器深度">AnalyzerResetProperty 静态检查器</a> — Roslyn <code>RESET001</code> / <code>BASE001</code> 强制 resetProperty 字段重置与 base 调用 <em>(high)</em></li>
+</ul>
+</li>
+<li><a href="./tools-工具与工作流/myframework-database-system-配表与存储深度" class="internal alias" data-slug="tools-工具与工作流/myframework-database-system-配表与存储深度">配表与存储深度</a> — ExcelManager / SQLiteManager / 配表代码生成 / WebGL SQLite 限制 <em>(medium)</em></li>
+<li><a href="./tools-工具与工作流/myframework-editor-tooling-编辑器工具链深度" class="internal alias" data-slug="tools-工具与工作流/myframework-editor-tooling-编辑器工具链深度">编辑器工具链深度</a> — AssetBundle 打包 / 资源检查 / UI 生成 / 发布工具 <em>(medium)</em></li>
+<li><a href="./tools-工具与工作流/myframework-effect-tween-character-特效与角色系统深度" class="internal alias" data-slug="tools-工具与工作流/myframework-effect-tween-character-特效与角色系统深度">特效与角色系统深度</a> — EffectManager / GameEffectPool / QuickEffect / TweenerManager <em>(medium)</em></li>
+<li><a href="./tools-工具与工作流/myframework-design-decisions-设计决策分析" class="internal alias" data-slug="tools-工具与工作流/myframework-design-decisions-设计决策分析">设计决策分析</a> — 强控制 / 强工具链 / 自研管线 / 适用边界 <em>(medium)</em></li>
+</ul>
+</li>
+</ul>
+<hr/>
+<h2 id="关于本知识库">关于本知识库<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#关于本知识库" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<blockquote class="callout note" data-callout="note">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>工作机制 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>本索引由 LLM 自动维护，按 Karpathy LLM Wiki 模式涌现：顶层分类不预填空骨架、未填充的分支不在此列出。</p>
+<p><strong>顶层分支</strong>：<code>unity</code> ✓ / <code>csharp-dotnet</code> ✓ / <code>patterns</code> ✓ / <code>performance</code> ✓ / <code>tools</code> ✓ / <code>gamedesign</code>（未启动）</p>
+<p>详细 schema 与维护规则见仓库根 <code>CLAUDE.md</code>。</p>
+</div>
+</blockquote>
+<blockquote class="callout tip" data-callout="tip">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>仅本地 Obsidian 可见 </p></div>
+                  
+                </div>
+<div class="callout-content">
+<p>以下内容只在本地 Obsidian vault 工作，不发布到公网：</p>
+<ul>
+<li><a href="./dashboard" class="internal alias" data-slug="dashboard">Wiki Dashboard</a> — Dataview 仪表盘（Quartz 不执行 Dataview 查询）</li>
+<li><a href="./hot" class="internal alias" data-slug="hot">Hot Cache</a> — 跨会话上下文缓存</li>
+<li><a href="./log" class="internal alias" data-slug="log">Log</a> — Ingest 操作日志</li>
+</ul>
+</div>
+</blockquote>
+<blockquote class="callout info" data-callout="info">
+<div class="callout-title">
+                  <div class="callout-icon"></div>
+                  <div class="callout-title-inner"><p>待写主题（悬挂 Wikilink 池） </p></div>
+                  
+                </div>
+<div class="callout-content">
+<ul>
+<li><code>addressables-可寻址资源</code>（branch: tools）— Unity 可寻址资源系统：远程加载、依赖管理、引用计数、Group/Label 组织。被 <a href="./unity-Unity引擎/scene-architecture-patterns-场景架构模式" class="internal alias" data-slug="unity-Unity引擎/scene-architecture-patterns-场景架构模式">scene-architecture-patterns-场景架构模式</a> 引用为远程场景加载方案。</li>
+</ul>
+</div>
+</blockquote></article><hr/><div class="page-footer"></div></div><div class="right sidebar"><div class="graph"><h3>关系图谱</h3><div class="graph-outer"><div class="graph-container" data-cfg="{&quot;drag&quot;:true,&quot;zoom&quot;:true,&quot;depth&quot;:1,&quot;scale&quot;:1.1,&quot;repelForce&quot;:0.5,&quot;centerForce&quot;:0.3,&quot;linkDistance&quot;:30,&quot;fontSize&quot;:0.6,&quot;opacityScale&quot;:1,&quot;showTags&quot;:true,&quot;removeTags&quot;:[],&quot;focusOnHover&quot;:false,&quot;enableRadial&quot;:false}"></div><button class="global-graph-icon" aria-label="Global Graph"><svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 55 55" fill="currentColor" xml:space="preserve"><path d="M49,0c-3.309,0-6,2.691-6,6c0,1.035,0.263,2.009,0.726,2.86l-9.829,9.829C32.542,17.634,30.846,17,29,17
+                s-3.542,0.634-4.898,1.688l-7.669-7.669C16.785,10.424,17,9.74,17,9c0-2.206-1.794-4-4-4S9,6.794,9,9s1.794,4,4,4
+                c0.74,0,1.424-0.215,2.019-0.567l7.669,7.669C21.634,21.458,21,23.154,21,25s0.634,3.542,1.688,4.897L10.024,42.562
+                C8.958,41.595,7.549,41,6,41c-3.309,0-6,2.691-6,6s2.691,6,6,6s6-2.691,6-6c0-1.035-0.263-2.009-0.726-2.86l12.829-12.829
+                c1.106,0.86,2.44,1.436,3.898,1.619v10.16c-2.833,0.478-5,2.942-5,5.91c0,3.309,2.691,6,6,6s6-2.691,6-6c0-2.967-2.167-5.431-5-5.91
+                v-10.16c1.458-0.183,2.792-0.759,3.898-1.619l7.669,7.669C41.215,39.576,41,40.26,41,41c0,2.206,1.794,4,4,4s4-1.794,4-4
+                s-1.794-4-4-4c-0.74,0-1.424,0.215-2.019,0.567l-7.669-7.669C36.366,28.542,37,26.846,37,25s-0.634-3.542-1.688-4.897l9.665-9.665
+                C46.042,11.405,47.451,12,49,12c3.309,0,6-2.691,6-6S52.309,0,49,0z M11,9c0-1.103,0.897-2,2-2s2,0.897,2,2s-0.897,2-2,2
+                S11,10.103,11,9z M6,51c-2.206,0-4-1.794-4-4s1.794-4,4-4s4,1.794,4,4S8.206,51,6,51z M33,49c0,2.206-1.794,4-4,4s-4-1.794-4-4
+                s1.794-4,4-4S33,46.794,33,49z M29,31c-3.309,0-6-2.691-6-6s2.691-6,6-6s6,2.691,6,6S32.309,31,29,31z M47,41c0,1.103-0.897,2-2,2
+                s-2-0.897-2-2s0.897-2,2-2S47,39.897,47,41z M49,10c-2.206,0-4-1.794-4-4s1.794-4,4-4s4,1.794,4,4S51.206,10,49,10z"></path></svg></button></div><div class="global-graph-outer"><div class="global-graph-container" data-cfg="{&quot;drag&quot;:true,&quot;zoom&quot;:true,&quot;depth&quot;:-1,&quot;scale&quot;:0.9,&quot;repelForce&quot;:0.5,&quot;centerForce&quot;:0.2,&quot;linkDistance&quot;:30,&quot;fontSize&quot;:0.6,&quot;opacityScale&quot;:1,&quot;showTags&quot;:true,&quot;removeTags&quot;:[],&quot;focusOnHover&quot;:true,&quot;enableRadial&quot;:true}"></div></div></div><div class="toc desktop-only"><button type="button" class="toc-header" aria-controls="toc-15" aria-expanded="true"><h3>目录</h3><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="fold"><polyline points="6 9 12 15 18 9"></polyline></svg></button><ul id="list-1" class="toc-content overflow"><li class="depth-0"><a href="#知识库" data-for="知识库">知识库</a></li><li class="depth-1"><a href="#unity-引擎-unity" data-for="unity-引擎-unity">Unity 引擎 (unity)</a></li><li class="depth-2"><a href="#综述synthesis" data-for="综述synthesis">综述（synthesis）</a></li><li class="depth-2"><a href="#概念与实体" data-for="概念与实体">概念与实体</a></li><li class="depth-1"><a href="#c-与-net-csharp-dotnet" data-for="c-与-net-csharp-dotnet">C# 与 .NET (csharp-dotnet)</a></li><li class="depth-2"><a href="#概念与实体-1" data-for="概念与实体-1">概念与实体</a></li><li class="depth-1"><a href="#游戏设计模式-patterns" data-for="游戏设计模式-patterns">游戏设计模式 (patterns)</a></li><li class="depth-2"><a href="#综述与分类" data-for="综述与分类">综述与分类</a></li><li class="depth-2"><a href="#创建型" data-for="创建型">创建型</a></li><li class="depth-2"><a href="#结构型" data-for="结构型">结构型</a></li><li class="depth-2"><a href="#序列模式gpp-sequencing" data-for="序列模式gpp-sequencing">序列模式（GPP Sequencing）</a></li><li class="depth-2"><a href="#gpp-行为模式" data-for="gpp-行为模式">GPP 行为模式</a></li><li class="depth-2"><a href="#解耦模式gpp-decoupling" data-for="解耦模式gpp-decoupling">解耦模式（GPP Decoupling）</a></li><li class="depth-2"><a href="#优化模式gpp-optimization" data-for="优化模式gpp-optimization">优化模式（GPP Optimization）</a></li><li class="depth-2"><a href="#行为型" data-for="行为型">行为型</a></li><li class="depth-1"><a href="#性能优化-performance" data-for="性能优化-performance">性能优化 (performance)</a></li><li class="depth-2"><a href="#综述synthesis-1" data-for="综述synthesis-1">综述（synthesis）</a></li><li class="depth-2"><a href="#概念与实体-2" data-for="概念与实体-2">概念与实体</a></li><li class="depth-1"><a href="#来源摘要-sources" data-for="来源摘要-sources">来源摘要 (sources)</a></li><li class="depth-1"><a href="#工具与工作流-tools" data-for="工具与工作流-tools">工具与工作流 (tools)</a></li><li class="depth-2"><a href="#综述synthesis-2" data-for="综述synthesis-2">综述（synthesis）</a></li><li class="depth-2"><a href="#概念与实体-3" data-for="概念与实体-3">概念与实体</a></li><li class="depth-1"><a href="#关于本知识库" data-for="关于本知识库">关于本知识库</a></li><li class="overflow-end"></li></ul></div></div><footer class><p>Created with <a href="https://quartz.jzhao.xyz/">Quartz v4.5.2</a> © 2026</p><ul><li><a href="https://github.com/jackyzha0/quartz">GitHub</a></li><li><a href="https://discord.gg/cRFFHYye7t">Discord Community</a></li></ul></footer></div></div></body><script type="application/javascript" data-persist="true">function n(){let t=this.parentElement;t.classList.toggle("is-collapsed");let e=t.getElementsByClassName("callout-content")[0];if(!e)return;let l=t.classList.contains("is-collapsed");e.style.gridTemplateRows=l?"0fr":"1fr"}function c(){let t=document.getElementsByClassName("callout is-collapsible");for(let e of t){let l=e.getElementsByClassName("callout-title")[0],s=e.getElementsByClassName("callout-content")[0];if(!l||!s)continue;l.addEventListener("click",n),window.addCleanup(()=>l.removeEventListener("click",n));let o=e.classList.contains("is-collapsed");s.style.gridTemplateRows=o?"0fr":"1fr"}}document.addEventListener("nav",c);
+</script><script type="module" data-persist="true">function E(c,e){if(!c)return;function t(s){s.target===this&&(s.preventDefault(),s.stopPropagation(),e())}function r(s){s.key.startsWith("Esc")&&(s.preventDefault(),e())}c?.addEventListener("click",t),window.addCleanup(()=>c?.removeEventListener("click",t)),document.addEventListener("keydown",r),window.addCleanup(()=>document.removeEventListener("keydown",r))}function y(c){for(;c.firstChild;)c.removeChild(c.firstChild)}var v=class{constructor(e,t){this.container=e;this.content=t;this.setupEventListeners(),this.setupNavigationControls(),this.resetTransform()}isDragging=!1;startPan={x:0,y:0};currentPan={x:0,y:0};scale=1;MIN_SCALE=.5;MAX_SCALE=3;cleanups=[];setupEventListeners(){let e=this.onMouseDown.bind(this),t=this.onMouseMove.bind(this),r=this.onMouseUp.bind(this),s=this.onTouchStart.bind(this),o=this.onTouchMove.bind(this),i=this.onTouchEnd.bind(this),n=this.resetTransform.bind(this);this.container.addEventListener("mousedown",e),document.addEventListener("mousemove",t),document.addEventListener("mouseup",r),this.container.addEventListener("touchstart",s,{passive:!1}),document.addEventListener("touchmove",o,{passive:!1}),document.addEventListener("touchend",i),window.addEventListener("resize",n),this.cleanups.push(()=>this.container.removeEventListener("mousedown",e),()=>document.removeEventListener("mousemove",t),()=>document.removeEventListener("mouseup",r),()=>this.container.removeEventListener("touchstart",s),()=>document.removeEventListener("touchmove",o),()=>document.removeEventListener("touchend",i),()=>window.removeEventListener("resize",n))}cleanup(){for(let e of this.cleanups)e()}setupNavigationControls(){let e=document.createElement("div");e.className="mermaid-controls";let t=this.createButton("+",()=>this.zoom(.1)),r=this.createButton("-",()=>this.zoom(-.1)),s=this.createButton("Reset",()=>this.resetTransform());e.appendChild(r),e.appendChild(s),e.appendChild(t),this.container.appendChild(e)}createButton(e,t){let r=document.createElement("button");return r.textContent=e,r.className="mermaid-control-button",r.addEventListener("click",t),window.addCleanup(()=>r.removeEventListener("click",t)),r}onMouseDown(e){e.button===0&&(this.isDragging=!0,this.startPan={x:e.clientX-this.currentPan.x,y:e.clientY-this.currentPan.y},this.container.style.cursor="grabbing")}onMouseMove(e){this.isDragging&&(e.preventDefault(),this.currentPan={x:e.clientX-this.startPan.x,y:e.clientY-this.startPan.y},this.updateTransform())}onMouseUp(){this.isDragging=!1,this.container.style.cursor="grab"}onTouchStart(e){if(e.touches.length!==1)return;this.isDragging=!0;let t=e.touches[0];this.startPan={x:t.clientX-this.currentPan.x,y:t.clientY-this.currentPan.y}}onTouchMove(e){if(!this.isDragging||e.touches.length!==1)return;e.preventDefault();let t=e.touches[0];this.currentPan={x:t.clientX-this.startPan.x,y:t.clientY-this.startPan.y},this.updateTransform()}onTouchEnd(){this.isDragging=!1}zoom(e){let t=Math.min(Math.max(this.scale+e,this.MIN_SCALE),this.MAX_SCALE),r=this.content.getBoundingClientRect(),s=r.width/2,o=r.height/2,i=t-this.scale;this.currentPan.x-=s*i,this.currentPan.y-=o*i,this.scale=t,this.updateTransform()}updateTransform(){this.content.style.transform=`translate(${this.currentPan.x}px, ${this.currentPan.y}px) scale(${this.scale})`}resetTransform(){let t=this.content.querySelector("svg").getBoundingClientRect(),r=t.width/this.scale,s=t.height/this.scale;this.scale=1,this.currentPan={x:(this.container.clientWidth-r)/2,y:(this.container.clientHeight-s)/2},this.updateTransform()}},T=["--secondary","--tertiary","--gray","--light","--lightgray","--highlight","--dark","--darkgray","--codeFont"],L;document.addEventListener("nav",async()=>{let e=document.querySelector(".center").querySelectorAll("code.mermaid");if(e.length===0)return;L||=await import("https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.4.0/mermaid.esm.min.mjs");let t=L.default,r=new WeakMap;for(let o of e){let i=o.getAttribute("data-clipboard"),n=o.innerText;if(i)try{n=JSON.parse(i)}catch{}r.set(o,n)}async function s(){for(let n of e){n.removeAttribute("data-processed");let a=r.get(n);a&&(n.textContent=a)}let o=T.reduce((n,a)=>(n[a]=window.getComputedStyle(document.documentElement).getPropertyValue(a),n),{}),i=document.documentElement.getAttribute("saved-theme")==="dark";t.initialize({startOnLoad:!1,securityLevel:"loose",theme:i?"dark":"base",themeVariables:{fontFamily:o["--codeFont"],primaryColor:o["--light"],primaryTextColor:o["--darkgray"],primaryBorderColor:o["--tertiary"],lineColor:o["--darkgray"],secondaryColor:o["--secondary"],tertiaryColor:o["--tertiary"],clusterBkg:o["--light"],edgeLabelBackground:o["--highlight"]}});for(let n=0;n<e.length;n++){let a=e[n],l=r.get(a);if(l)try{let u=`mermaid-svg-${Date.now()}-${n}`,{svg:p,bindFunctions:d}=await t.render(u,l);a.innerHTML=p,d&&d(a),a.setAttribute("data-processed","true")}catch(u){console.error(`mermaid render failed for node ${n}:`,u)}}}await s(),document.addEventListener("themechange",s),window.addCleanup(()=>document.removeEventListener("themechange",s));for(let o=0;o<e.length;o++){let g=function(){let f=d.querySelector("#mermaid-space"),m=d.querySelector(".mermaid-content");if(!m)return;y(m);let w=i.querySelector("svg").cloneNode(!0);m.appendChild(w),d.classList.add("active"),f.style.cursor="grab",h=new v(f,m)},M=function(){d.classList.remove("active"),h?.cleanup(),h=null},i=e[o],n=i.parentElement,a=n.querySelector(".clipboard-button"),l=n.querySelector(".expand-button"),u=window.getComputedStyle(a),p=a.offsetWidth+parseFloat(u.marginLeft||"0")+parseFloat(u.marginRight||"0");l.style.right=`calc(${p}px + 0.3rem)`,n.prepend(l);let d=n.querySelector("#mermaid-container");if(!d)return;let h=null;l.addEventListener("click",g),E(d,M),window.addCleanup(()=>{h?.cleanup(),l.removeEventListener("click",g)})}});
+</script><script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/copy-tex.min.js" type="application/javascript" data-persist="true"></script><script src="./postscript.js" type="module" data-persist="true"></script></html>
